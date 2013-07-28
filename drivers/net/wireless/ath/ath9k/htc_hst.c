@@ -395,10 +395,13 @@ void ath9k_htc_rx_msg(struct htc_target *htc_handle,
 	if (epid == ENDPOINT0) {
 
 		/* Handle trailer */
-		if (htc_hdr->flags & HTC_FLAGS_RECV_TRAILER) {
+		if (htc_hdr->flags & HTC_FLAGS_EXCEPTION) {
+			pr_info("!!!!! got exception\n");
 			if (be32_to_cpu(*(__be32 *) skb->data) == 0x00C60000)
+				pr_info("!!!!! got WDT exception\n");
 				/* Move past the Watchdog pattern */
 				htc_hdr = (struct htc_frame_hdr *)(skb->data + 4);
+			htc_handle_exception(htc_handle);
 		}
 
 		/* Get the message ID */

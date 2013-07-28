@@ -16,6 +16,7 @@
 
 #include <asm/unaligned.h>
 #include "htc.h"
+#include "hif_msg.h"
 
 /* identify firmware images */
 #define FIRMWARE_AR7010_1_1     "htc_7010.fw"
@@ -66,6 +67,7 @@ static struct usb_device_id ath9k_hif_usb_ids[] = {
 MODULE_DEVICE_TABLE(usb, ath9k_hif_usb_ids);
 
 static int __hif_usb_tx(struct hif_device_usb *hif_dev);
+static void ath9k_send_hif_cmd(struct usb_device *udev, enum hif_cmd_id cmd_id);
 
 static void hif_usb_regout_cb(struct urb *urb)
 {
@@ -1065,6 +1067,8 @@ static int ath9k_hif_usb_dev_init(struct hif_device_usb *hif_dev)
 		return ret;
 	}
 
+	/* Test if EP4 working OK */
+	ath9k_send_hif_cmd(hif_dev->udev, TRANSFER_SIZE_TEST);
 	return 0;
 }
 
@@ -1258,20 +1262,34 @@ err_alloc:
 	return ret;
 }
 
-static void ath9k_hif_usb_reboot(struct usb_device *udev)
+static void ath9k_send_hif_cmd(struct usb_device *udev, enum hif_cmd_id cmd_id)
 {
-	u32 reboot_cmd = 0xffffffff;
+	struct hif_msg_hdr hif_hdr;
 	void *buf;
-	int ret;
+	int ret, buf_size;
 
-	buf = kmemdup(&reboot_cmd, 4, GFP_KERNEL);
+	buf_size = sizeof(struct hif_msg_hdr);
+
+	if (cmd_id == TRANSFER_SIZE_TEST)
+		buf_size += EP4_BUG_SIZE;
+
+	buf = kmalloc(buf_size, GFP_KERNEL);
 	if (!buf)
 		return;
 
+	hif_hdr.endpoint_id = HIF_ENDPOINT;
+	hif_hdr.cmd_id = cmd_id;
+	hif_hdr.length = buf_size - sizeof(struct hif_msg_hdr);
+
+	/* for TRANSFER_SIZE_TEST it is better to send clean buffer */
+	memset(buf, 0, buf_size);
+
+	*((__be32 *)buf) = cpu_to_be32p((const __u32 *)&hif_hdr);
+
 	ret = usb_bulk_msg(udev, usb_sndbulkpipe(udev, USB_REG_OUT_PIPE),
-			   buf, 4, NULL, HZ);
+			   buf, buf_size, NULL, HZ);
 	if (ret)
-		dev_err(&udev->dev, "ath9k_htc: USB reboot failed\n");
+		dev_err(&udev->dev, "ath9k_htc: hif cmd %i failed\n", cmd_id);
 
 	kfree(buf);
 }
@@ -1298,7 +1316,7 @@ static void ath9k_hif_usb_disconnect(struct usb_interface *interface)
 	/* If firmware was loaded we should drop it
 	 * go back to first stage bootloader. */
 	if (!unplugged && (hif_dev->flags & HIF_USB_READY))
-		ath9k_hif_usb_reboot(udev);
+		ath9k_send_hif_cmd(udev, REBOOT);
 
 	kfree(hif_dev);
 	dev_info(&udev->dev, "ath9k_htc: USB layer deinitialized\n");

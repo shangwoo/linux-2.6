@@ -37,6 +37,11 @@ static int htc_issue_send(struct htc_target *target, struct sk_buff* skb,
 	return status;
 }
 
+static void htc_handle_exception(struct htc_target *target)
+{
+	target->hif->exception(target->hif_dev);
+}
+
 static struct htc_endpoint *get_next_avail_ep(struct htc_endpoint *endpoint)
 {
 	enum htc_endpoint_id avail_epid;

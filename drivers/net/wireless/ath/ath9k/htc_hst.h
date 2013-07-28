@@ -37,6 +37,7 @@ struct ath9k_htc_hif {
 	void (*stop) (void *hif_handle);
 	void (*sta_drain) (void *hif_handle, u8 idx);
 	int (*send) (void *hif_handle, u8 pipe, struct sk_buff *buf);
+	void (*exception) (void *hif_handle);
 };
 
 enum htc_endpoint_id {

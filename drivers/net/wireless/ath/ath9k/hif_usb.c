@@ -68,6 +68,7 @@ MODULE_DEVICE_TABLE(usb, ath9k_hif_usb_ids);
 
 static int __hif_usb_tx(struct hif_device_usb *hif_dev);
 static void ath9k_send_hif_cmd(struct usb_device *udev, enum hif_cmd_id cmd_id);
+static void ath9k_hif_handle_exception(void *hif_handle);
 
 static void hif_usb_regout_cb(struct urb *urb)
 {
@@ -522,6 +523,7 @@ static struct ath9k_htc_hif hif_usb = {
 	.stop = hif_usb_stop,
 	.sta_drain = hif_usb_sta_drain,
 	.send = hif_usb_send,
+	.exception = ath9k_hif_handle_exception,
 };
 
 static void ath9k_hif_usb_rx_stream(struct hif_device_usb *hif_dev,
@@ -1321,6 +1323,13 @@ static void ath9k_hif_usb_disconnect(struct usb_interface *interface)
 	kfree(hif_dev);
 	dev_info(&udev->dev, "ath9k_htc: USB layer deinitialized\n");
 	usb_put_dev(udev);
+}
+
+static void ath9k_hif_handle_exception(void *hif_handle)
+{
+	struct hif_device_usb *hif_dev = (struct hif_device_usb *)hif_handle;
+
+	ath9k_send_hif_cmd(hif_dev->udev, COLD_REBOOT);
 }
 
 #ifdef CONFIG_PM

@@ -56,6 +56,8 @@ enum htc_endpoint_id {
 
 /* Htc frame hdr flags */
 #define HTC_FLAGS_RECV_TRAILER (1 << 1)
+#define HTC_FLAGS_DMESG		(1 << 6)
+#define HTC_FLAGS_EXCEPTION	(1 << 7)
 
 struct htc_frame_hdr {
 	u8 endpoint_id;

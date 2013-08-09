@@ -270,6 +270,8 @@ static const struct file_operations fops_ani = {
 	.llseek = default_llseek,
 };
 
+#ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
+
 static ssize_t read_file_bt_ant_diversity(struct file *file,
 					  char __user *user_buf,
 					  size_t count, loff_t *ppos)
@@ -322,6 +324,8 @@ static const struct file_operations fops_bt_ant_diversity = {
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 };
+
+#endif
 
 void ath9k_debug_stat_ant(struct ath_softc *sc,
 			  struct ath_hw_antcomb_conf *div_ant_conf,
@@ -728,6 +732,28 @@ static ssize_t read_file_xmit(struct file *file, char __user *user_buf,
 	return retval;
 }
 
+static ssize_t print_queue(struct ath_softc *sc, struct ath_txq *txq,
+			   char *buf, ssize_t size)
+{
+	ssize_t len = 0;
+
+	ath_txq_lock(sc, txq);
+
+	len += snprintf(buf + len, size - len, "%s: %d ",
+			"qnum", txq->axq_qnum);
+	len += snprintf(buf + len, size - len, "%s: %2d ",
+			"qdepth", txq->axq_depth);
+	len += snprintf(buf + len, size - len, "%s: %2d ",
+			"ampdu-depth", txq->axq_ampdu_depth);
+	len += snprintf(buf + len, size - len, "%s: %3d ",
+			"pending", txq->pending_frames);
+	len += snprintf(buf + len, size - len, "%s: %d\n",
+			"stopped", txq->stopped);
+
+	ath_txq_unlock(sc, txq);
+	return len;
+}
+
 static ssize_t read_file_queues(struct file *file, char __user *user_buf,
 				size_t count, loff_t *ppos)
 {
@@ -745,23 +771,12 @@ static ssize_t read_file_queues(struct file *file, char __user *user_buf,
 
 	for (i = 0; i < IEEE80211_NUM_ACS; i++) {
 		txq = sc->tx.txq_map[i];
-		len += snprintf(buf + len, size - len, "(%s): ", qname[i]);
-
-		ath_txq_lock(sc, txq);
-
-		len += snprintf(buf + len, size - len, "%s: %d ",
-				"qnum", txq->axq_qnum);
-		len += snprintf(buf + len, size - len, "%s: %2d ",
-				"qdepth", txq->axq_depth);
-		len += snprintf(buf + len, size - len, "%s: %2d ",
-				"ampdu-depth", txq->axq_ampdu_depth);
-		len += snprintf(buf + len, size - len, "%s: %3d ",
-				"pending", txq->pending_frames);
-		len += snprintf(buf + len, size - len, "%s: %d\n",
-				"stopped", txq->stopped);
-
-		ath_txq_unlock(sc, txq);
+		len += snprintf(buf + len, size - len, "(%s):  ", qname[i]);
+		len += print_queue(sc, txq, buf + len, size - len);
 	}
+
+	len += snprintf(buf + len, size - len, "(CAB): ");
+	len += print_queue(sc, sc->beacon.cabq, buf + len, size - len);
 
 	if (len > size)
 		len = size;
@@ -1935,11 +1950,11 @@ int ath9k_init_debug(struct ath_hw *ah)
 			   sc->debug.debugfs_phy, &sc->sc_ah->gpio_mask);
 	debugfs_create_u32("gpio_val", S_IRUSR | S_IWUSR,
 			   sc->debug.debugfs_phy, &sc->sc_ah->gpio_val);
-	debugfs_create_file("bt_ant_diversity", S_IRUSR | S_IWUSR,
-			    sc->debug.debugfs_phy, sc, &fops_bt_ant_diversity);
 	debugfs_create_file("antenna_diversity", S_IRUSR,
 			    sc->debug.debugfs_phy, sc, &fops_antenna_diversity);
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
+	debugfs_create_file("bt_ant_diversity", S_IRUSR | S_IWUSR,
+			    sc->debug.debugfs_phy, sc, &fops_bt_ant_diversity);
 	debugfs_create_file("btcoex", S_IRUSR, sc->debug.debugfs_phy, sc,
 			    &fops_btcoex);
 #endif

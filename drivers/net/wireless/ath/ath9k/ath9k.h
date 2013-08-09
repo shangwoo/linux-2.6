@@ -137,7 +137,8 @@ int ath_descdma_setup(struct ath_softc *sc, struct ath_descdma *dd,
 #define ATH_AGGR_ENCRYPTDELIM      10
 /* minimum h/w qdepth to be sustained to maximize aggregation */
 #define ATH_AGGR_MIN_QDEPTH        2
-#define ATH_AMPDU_SUBFRAME_DEFAULT 32
+/* minimum h/w qdepth for non-aggregated traffic */
+#define ATH_NON_AGGR_MIN_QDEPTH    8
 
 #define IEEE80211_SEQ_SEQ_SHIFT    4
 #define IEEE80211_SEQ_MAX          4096
@@ -174,12 +175,6 @@ int ath_descdma_setup(struct ath_softc *sc, struct ath_descdma *dd,
 
 #define ATH_TX_COMPLETE_POLL_INT	1000
 
-enum ATH_AGGR_STATUS {
-	ATH_AGGR_DONE,
-	ATH_AGGR_BAW_CLOSED,
-	ATH_AGGR_LIMITED,
-};
-
 #define ATH_TXFIFO_DEPTH 8
 struct ath_txq {
 	int mac80211_qnum; /* mac80211 queue number, -1 means not mac80211 Q */
@@ -212,8 +207,9 @@ struct ath_frame_info {
 	int framelen;
 	enum ath9k_key_type keytype;
 	u8 keyix;
-	u8 retries;
 	u8 rtscts_rate;
+	u8 retries : 7;
+	u8 baw_tracked : 1;
 };
 
 struct ath_buf_state {
@@ -241,6 +237,7 @@ struct ath_buf {
 struct ath_atx_tid {
 	struct list_head list;
 	struct sk_buff_head buf_q;
+	struct sk_buff_head retry_q;
 	struct ath_node *an;
 	struct ath_atx_ac *ac;
 	unsigned long tx_buf[BITS_TO_LONGS(ATH_TID_MAX_BUFS)];
@@ -268,6 +265,7 @@ struct ath_node {
 	u8 mpdudensity;
 
 	bool sleeping;
+	bool no_ps_filter;
 
 #if defined(CONFIG_MAC80211_DEBUGFS) && defined(CONFIG_ATH9K_DEBUGFS)
 	struct dentry *node_stat;
@@ -367,6 +365,7 @@ void ath9k_release_buffered_frames(struct ieee80211_hw *hw,
 /********/
 
 struct ath_vif {
+	struct ath_node mcast_node;
 	int av_bslot;
 	bool primary_sta_vif;
 	__le64 tsf_adjust; /* TSF adjustment for staggered beacons */

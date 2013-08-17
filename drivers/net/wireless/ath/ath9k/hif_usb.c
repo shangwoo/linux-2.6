@@ -1029,29 +1029,6 @@ static int ath9k_hif_usb_download_fw(struct hif_device_usb *hif_dev)
 	return 0;
 }
 
-static int ath9k_hif_usb_dev_init(struct hif_device_usb *hif_dev)
-{
-	int ret;
-
-	ret = ath9k_hif_usb_download_fw(hif_dev);
-	if (ret) {
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: Firmware - %s download failed\n",
-			hif_dev->fw_name);
-		return ret;
-	}
-
-	/* Alloc URBs */
-	ret = ath9k_hif_usb_alloc_urbs(hif_dev);
-	if (ret) {
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: Unable to allocate URBs\n");
-		return ret;
-	}
-
-	return 0;
-}
-
 static void ath9k_hif_usb_dev_deinit(struct hif_device_usb *hif_dev)
 {
 	ath9k_hif_usb_dealloc_urbs(hif_dev);
@@ -1066,8 +1043,6 @@ static void ath9k_hif_usb_firmware_fail(struct hif_device_usb *hif_dev)
 	struct device *dev = &hif_dev->udev->dev;
 	struct device *parent = dev->parent;
 
-	complete_all(&hif_dev->fw_done);
-
 	if (parent)
 		device_lock(parent);
 
@@ -1077,46 +1052,37 @@ static void ath9k_hif_usb_firmware_fail(struct hif_device_usb *hif_dev)
 		device_unlock(parent);
 }
 
-static void ath9k_hif_usb_firmware_cb(const struct firmware *fw, void *context)
+static void ath9k_hif_usb_dev_init(struct usb_interface *interface)
 {
-	struct hif_device_usb *hif_dev = context;
+	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
+	struct usb_device *udev = hif_dev->udev;
 	int ret;
 
-	if (!fw) {
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: Failed to get firmware %s\n",
-			hif_dev->fw_name);
-		goto err_fw;
-	}
-
 	hif_dev->htc_handle = ath9k_htc_hw_alloc(hif_dev, &hif_usb,
-						 &hif_dev->udev->dev);
+						 &udev->dev);
 	if (hif_dev->htc_handle == NULL)
 		goto err_dev_alloc;
 
-	hif_dev->fw_data = fw->data;
-	hif_dev->fw_size = fw->size;
-
 	/* Proceed with initialization */
-
-	ret = ath9k_hif_usb_dev_init(hif_dev);
-	if (ret)
+	ret = ath9k_hif_usb_alloc_urbs(hif_dev);
+	if (ret) {
+		dev_err(&udev->dev,
+			"ath9k_htc: Unable to allocate URBs\n");
 		goto err_dev_init;
+	}
 
 	ret = ath9k_htc_hw_init(hif_dev->htc_handle,
 				&hif_dev->interface->dev,
 				hif_dev->usb_device_id->idProduct,
-				hif_dev->udev->product,
+				udev->product,
 				hif_dev->usb_device_id->driver_info);
 	if (ret) {
-		ret = -EINVAL;
+		dev_err(&udev->dev,
+			"ath9k_htc: Unable to initiate hw.\n");
 		goto err_htc_hw_init;
 	}
 
-	release_firmware(fw);
 	hif_dev->flags |= HIF_USB_READY;
-	complete_all(&hif_dev->fw_done);
-
 	return;
 
 err_htc_hw_init:
@@ -1124,8 +1090,6 @@ err_htc_hw_init:
 err_dev_init:
 	ath9k_htc_hw_free(hif_dev->htc_handle);
 err_dev_alloc:
-	release_firmware(fw);
-err_fw:
 	ath9k_hif_usb_firmware_fail(hif_dev);
 }
 
@@ -1238,8 +1202,6 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 #endif
 	usb_set_intfdata(interface, hif_dev);
 
-	init_completion(&hif_dev->fw_done);
-
 	/* Find out which firmware to load */
 
 	if (IS_AR7010_DEVICE(id->driver_info))
@@ -1247,17 +1209,13 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 	else
 		hif_dev->fw_name = FIRMWARE_AR9271;
 
-	ret = request_firmware_nowait(THIS_MODULE, true, hif_dev->fw_name,
-				      &hif_dev->udev->dev, GFP_KERNEL,
-				      hif_dev, ath9k_hif_usb_firmware_cb);
-	if (ret) {
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: Async request for firmware %s failed\n",
-			hif_dev->fw_name);
+	ret = ath9k_hif_init_fw(interface);
+	if (ret)
 		goto err_fw_req;
-	}
 
-	dev_info(&hif_dev->udev->dev, "ath9k_htc: Firmware %s requested\n",
+	ath9k_hif_usb_dev_init(interface);
+
+	dev_info(&udev->dev, "ath9k_htc: Firmware %s requested\n",
 		 hif_dev->fw_name);
 
 	return 0;
@@ -1297,8 +1255,6 @@ static void ath9k_hif_usb_disconnect(struct usb_interface *interface)
 	if (!hif_dev)
 		return;
 
-	wait_for_completion(&hif_dev->fw_done);
-
 	if (hif_dev->flags & HIF_USB_READY) {
 		ath9k_htc_hw_deinit(hif_dev->htc_handle, unplugged);
 		ath9k_htc_hw_free(hif_dev->htc_handle);
@@ -1329,8 +1285,6 @@ static int ath9k_hif_usb_suspend(struct usb_interface *interface,
 	 */
 	if (!(hif_dev->flags & HIF_USB_START))
 		ath9k_htc_suspend(hif_dev->htc_handle);
-
-	wait_for_completion(&hif_dev->fw_done);
 
 	if (hif_dev->flags & HIF_USB_READY)
 		ath9k_hif_usb_dealloc_urbs(hif_dev);

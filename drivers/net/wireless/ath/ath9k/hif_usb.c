@@ -1184,6 +1184,34 @@ static int send_eject_command(struct usb_interface *interface)
 	return 0;
 }
 
+static int ath9k_hif_init_fw(struct usb_interface *interface)
+{
+	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
+	const struct firmware *fw;
+	int ret;
+
+	ret = request_firmware(&fw, hif_dev->fw_name,
+				       &hif_dev->udev->dev);
+	if (ret) {
+		dev_err(&hif_dev->udev->dev,
+			"ath9k_htc: request for firmware %s failed\n",
+			hif_dev->fw_name);
+		return ret;
+	}
+
+	hif_dev->fw_data = fw->data;
+	hif_dev->fw_size = fw->size;
+
+	ret = ath9k_hif_usb_download_fw(hif_dev);
+	if (ret)
+		dev_err(&hif_dev->udev->dev,
+			"ath9k_htc: Firmware - %s download failed\n",
+			hif_dev->fw_name);
+
+	release_firmware(fw);
+	return ret;
+}
+
 static int ath9k_hif_usb_probe(struct usb_interface *interface,
 			       const struct usb_device_id *id)
 {
@@ -1315,23 +1343,13 @@ static int ath9k_hif_usb_resume(struct usb_interface *interface)
 	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
 	struct htc_target *htc_handle = hif_dev->htc_handle;
 	int ret;
-	const struct firmware *fw;
 
 	ret = ath9k_hif_usb_alloc_urbs(hif_dev);
 	if (ret)
 		return ret;
 
 	if (hif_dev->flags & HIF_USB_READY) {
-		/* request cached firmware during suspend/resume cycle */
-		ret = request_firmware(&fw, hif_dev->fw_name,
-				       &hif_dev->udev->dev);
-		if (ret)
-			goto fail_resume;
-
-		hif_dev->fw_data = fw->data;
-		hif_dev->fw_size = fw->size;
-		ret = ath9k_hif_usb_download_fw(hif_dev);
-		release_firmware(fw);
+		ret = ath9k_hif_init_fw(interface);
 		if (ret)
 			goto fail_resume;
 	} else {

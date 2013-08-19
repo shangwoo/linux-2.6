@@ -1034,25 +1034,7 @@ static void ath9k_hif_usb_dev_deinit(struct hif_device_usb *hif_dev)
 	ath9k_hif_usb_dealloc_urbs(hif_dev);
 }
 
-/*
- * If initialization fails or the FW cannot be retrieved,
- * detach the device.
- */
-static void ath9k_hif_usb_firmware_fail(struct hif_device_usb *hif_dev)
-{
-	struct device *dev = &hif_dev->udev->dev;
-	struct device *parent = dev->parent;
-
-	if (parent)
-		device_lock(parent);
-
-	device_release_driver(dev);
-
-	if (parent)
-		device_unlock(parent);
-}
-
-static void ath9k_hif_usb_dev_init(struct usb_interface *interface)
+static int ath9k_hif_usb_dev_init(struct usb_interface *interface)
 {
 	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
 	struct usb_device *udev = hif_dev->udev;
@@ -1083,14 +1065,14 @@ static void ath9k_hif_usb_dev_init(struct usb_interface *interface)
 	}
 
 	hif_dev->flags |= HIF_USB_READY;
-	return;
+	return 0;
 
 err_htc_hw_init:
 	ath9k_hif_usb_dev_deinit(hif_dev);
 err_dev_init:
 	ath9k_htc_hw_free(hif_dev->htc_handle);
 err_dev_alloc:
-	ath9k_hif_usb_firmware_fail(hif_dev);
+	return ret;
 }
 
 /*
@@ -1148,18 +1130,46 @@ static int send_eject_command(struct usb_interface *interface)
 	return 0;
 }
 
+static int ath9k_hif_reset_device(struct usb_interface *interface)
+{
+	struct usb_device *udev = interface_to_usbdev(interface);
+	int ret, lock;
+
+	lock = (interface->condition != USB_INTERFACE_BINDING);
+
+	if (lock) {
+		ret = usb_lock_device_for_reset(udev, interface);
+		if (ret < 0) {
+			dev_err(&udev->dev, "ath9k_htc: unable to lock "
+				"device for reset (%d)!\n", ret);
+			return ret;
+		}
+	}
+
+	ret = usb_reset_device(udev);
+	if (lock)
+		usb_unlock_device(udev);
+
+	if (ret)
+		dev_err(&udev->dev, "ath9k_htc: unable to reset "
+			"device (%d)\n", ret);
+
+	return ret;
+}
+
 static int ath9k_hif_init_fw(struct usb_interface *interface)
 {
 	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
+	struct usb_device *udev = interface_to_usbdev(interface);
 	const struct firmware *fw;
 	int ret;
 
 	ret = request_firmware(&fw, hif_dev->fw_name,
-				       &hif_dev->udev->dev);
+				       &udev->dev);
 	if (ret) {
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: request for firmware %s failed\n",
-			hif_dev->fw_name);
+		dev_err(&udev->dev,
+			"ath9k_htc: request for firmware %s failed (%i)!\n",
+			hif_dev->fw_name, ret);
 		return ret;
 	}
 
@@ -1168,11 +1178,12 @@ static int ath9k_hif_init_fw(struct usb_interface *interface)
 
 	ret = ath9k_hif_usb_download_fw(hif_dev);
 	if (ret)
-		dev_err(&hif_dev->udev->dev,
-			"ath9k_htc: Firmware - %s download failed\n",
-			hif_dev->fw_name);
+		dev_err(&udev->dev,
+			"ath9k_htc: Firmware - %s download failed (%i)!\n",
+			hif_dev->fw_name, ret);
 
 	release_firmware(fw);
+	ath9k_hif_reset_device(interface);
 	return ret;
 }
 
@@ -1213,7 +1224,9 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 	if (ret)
 		goto err_fw_req;
 
-	ath9k_hif_usb_dev_init(interface);
+	ret = ath9k_hif_usb_dev_init(interface);
+	if (ret)
+		goto err_fw_req;
 
 	dev_info(&udev->dev, "ath9k_htc: Firmware %s requested\n",
 		 hif_dev->fw_name);
@@ -1327,10 +1340,24 @@ fail_resume:
 }
 #endif
 
+static int pre_reset(struct usb_interface *interface)
+{
+	pr_info("%s\n", __func__);
+	return 0;
+}
+
+static int post_reset(struct usb_interface *interface)
+{
+	pr_info("%s\n", __func__);
+	return 0;
+}
+
 static struct usb_driver ath9k_hif_usb_driver = {
 	.name = KBUILD_MODNAME,
 	.probe = ath9k_hif_usb_probe,
 	.disconnect = ath9k_hif_usb_disconnect,
+	.pre_reset = pre_reset,
+	.post_reset = post_reset,
 #ifdef CONFIG_PM
 	.suspend = ath9k_hif_usb_suspend,
 	.resume = ath9k_hif_usb_resume,

@@ -1130,33 +1130,6 @@ static int send_eject_command(struct usb_interface *interface)
 	return 0;
 }
 
-static int ath9k_hif_reset_device(struct usb_interface *interface)
-{
-	struct usb_device *udev = interface_to_usbdev(interface);
-	int ret, lock;
-
-	lock = (interface->condition != USB_INTERFACE_BINDING);
-
-	if (lock) {
-		ret = usb_lock_device_for_reset(udev, interface);
-		if (ret < 0) {
-			dev_err(&udev->dev, "ath9k_htc: unable to lock "
-				"device for reset (%d)!\n", ret);
-			return ret;
-		}
-	}
-
-	ret = usb_reset_device(udev);
-	if (lock)
-		usb_unlock_device(udev);
-
-	if (ret)
-		dev_err(&udev->dev, "ath9k_htc: unable to reset "
-			"device (%d)\n", ret);
-
-	return ret;
-}
-
 static int ath9k_hif_init_fw(struct usb_interface *interface)
 {
 	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
@@ -1183,7 +1156,7 @@ static int ath9k_hif_init_fw(struct usb_interface *interface)
 			hif_dev->fw_name, ret);
 
 	release_firmware(fw);
-	ath9k_hif_reset_device(interface);
+	usb_reset_device(udev);
 	return ret;
 }
 
@@ -1220,9 +1193,11 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 	else
 		hif_dev->fw_name = FIRMWARE_AR9271;
 
-	ret = ath9k_hif_init_fw(interface);
-	if (ret)
+	if (udev->descriptor.bcdDevice != 0xffff) {
+		ath9k_hif_init_fw(interface);
+		ret = 0;
 		goto err_fw_req;
+	}
 
 	ret = ath9k_hif_usb_dev_init(interface);
 	if (ret)

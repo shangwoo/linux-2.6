@@ -1291,9 +1291,9 @@ static int ath9k_hif_usb_resume(struct usb_interface *interface)
 		return ret;
 
 	if (hif_dev->flags & HIF_USB_READY) {
-		ret = ath9k_hif_init_fw(interface);
-		if (ret)
-			goto fail_resume;
+//		ret = ath9k_hif_init_fw(interface);
+//		if (ret)
+//			goto fail_resume;
 	} else {
 		ath9k_hif_usb_dealloc_urbs(hif_dev);
 		return -EIO;

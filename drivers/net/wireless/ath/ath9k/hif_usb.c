@@ -977,29 +977,54 @@ static void ath9k_hif_usb_dealloc_urbs(struct hif_device_usb *hif_dev)
 	ath9k_hif_usb_dealloc_rx_urbs(hif_dev);
 }
 
-static int ath9k_hif_usb_download_fw(struct hif_device_usb *hif_dev)
+static int ath9k_hif_usb_download_fw(struct usb_device *udev,
+				     const struct usb_device_id *id)
 {
-	int transfer, err;
-	const void *data = hif_dev->fw_data;
-	size_t len = hif_dev->fw_size;
+	int transfer, ret;
+	const struct firmware *fw;
+	const void *data;
+	const char *fw_name;
+	size_t len;
 	u32 addr = AR9271_FIRMWARE;
-	u8 *buf = kzalloc(4096, GFP_KERNEL);
+	u8 *buf;
 	u32 firm_offset;
 
-	if (!buf)
-		return -ENOMEM;
+	if (IS_AR7010_DEVICE(id->driver_info)) {
+		fw_name = FIRMWARE_AR7010_1_1;
+		firm_offset = AR7010_FIRMWARE_TEXT;
+	} else {
+		fw_name = FIRMWARE_AR9271;
+		firm_offset = AR9271_FIRMWARE_TEXT;
+	}
+
+	ret = request_firmware(&fw, fw_name,
+				       &udev->dev);
+	if (ret) {
+		dev_err(&udev->dev,
+			"ath9k_htc: request for firmware %s failed (%i)!\n",
+			fw_name, ret);
+		return ret;
+	}
+
+	data = fw->data;
+	len = fw->size;
+	buf = kzalloc(4096, GFP_KERNEL);
+	if (!buf) {
+		ret = -ENOMEM;
+		goto err;
+	}
 
 	while (len) {
 		transfer = min_t(size_t, len, 4096);
 		memcpy(buf, data, transfer);
 
-		err = usb_control_msg(hif_dev->udev,
-				      usb_sndctrlpipe(hif_dev->udev, 0),
+		ret = usb_control_msg(udev,
+				      usb_sndctrlpipe(udev, 0),
 				      FIRMWARE_DOWNLOAD, 0x40 | USB_DIR_OUT,
 				      addr >> 8, 0, buf, transfer, HZ);
-		if (err < 0) {
+		if (ret < 0) {
 			kfree(buf);
-			return err;
+			goto err;
 		}
 
 		len -= transfer;
@@ -1008,25 +1033,29 @@ static int ath9k_hif_usb_download_fw(struct hif_device_usb *hif_dev)
 	}
 	kfree(buf);
 
-	if (IS_AR7010_DEVICE(hif_dev->usb_device_id->driver_info))
-		firm_offset = AR7010_FIRMWARE_TEXT;
-	else
-		firm_offset = AR9271_FIRMWARE_TEXT;
-
 	/*
 	 * Issue FW download complete command to firmware.
 	 */
-	err = usb_control_msg(hif_dev->udev, usb_sndctrlpipe(hif_dev->udev, 0),
+	ret = usb_control_msg(udev, usb_sndctrlpipe(udev, 0),
 			      FIRMWARE_DOWNLOAD_COMP,
 			      0x40 | USB_DIR_OUT,
 			      firm_offset >> 8, 0, NULL, 0, HZ);
-	if (err)
-		return -EIO;
+	if (ret) {
+		ret = -EIO;
+		goto err;
+	}
 
-	dev_info(&hif_dev->udev->dev, "ath9k_htc: Transferred FW: %s, size: %ld\n",
-		 hif_dev->fw_name, (unsigned long) hif_dev->fw_size);
+	dev_info(&udev->dev, "ath9k_htc: Transferred FW: %s, size: %ld\n",
+		 fw_name, (unsigned long) fw->size);
 
+	release_firmware(fw);
 	return 0;
+err:
+	release_firmware(fw);
+	dev_err(&udev->dev,
+		"ath9k_htc: Firmware - %s download failed (%i)!\n",
+		fw_name, ret);
+	return ret;
 }
 
 static void ath9k_hif_usb_dev_deinit(struct hif_device_usb *hif_dev)
@@ -1130,36 +1159,6 @@ static int send_eject_command(struct usb_interface *interface)
 	return 0;
 }
 
-static int ath9k_hif_init_fw(struct usb_interface *interface)
-{
-	struct hif_device_usb *hif_dev = usb_get_intfdata(interface);
-	struct usb_device *udev = interface_to_usbdev(interface);
-	const struct firmware *fw;
-	int ret;
-
-	ret = request_firmware(&fw, hif_dev->fw_name,
-				       &udev->dev);
-	if (ret) {
-		dev_err(&udev->dev,
-			"ath9k_htc: request for firmware %s failed (%i)!\n",
-			hif_dev->fw_name, ret);
-		return ret;
-	}
-
-	hif_dev->fw_data = fw->data;
-	hif_dev->fw_size = fw->size;
-
-	ret = ath9k_hif_usb_download_fw(hif_dev);
-	if (ret)
-		dev_err(&udev->dev,
-			"ath9k_htc: Firmware - %s download failed (%i)!\n",
-			hif_dev->fw_name, ret);
-
-	release_firmware(fw);
-	usb_reset_device(udev);
-	return ret;
-}
-
 static int ath9k_hif_usb_probe(struct usb_interface *interface,
 			       const struct usb_device_id *id)
 {
@@ -1169,6 +1168,12 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 
 	if (id->driver_info == STORAGE_DEVICE)
 		return send_eject_command(interface);
+
+	if (udev->descriptor.bcdDevice != 0xffff) {
+		ath9k_hif_usb_download_fw(udev, id);
+		usb_reset_device(udev);
+		return 0;
+	}
 
 	hif_dev = kzalloc(sizeof(struct hif_device_usb), GFP_KERNEL);
 	if (!hif_dev) {
@@ -1186,26 +1191,11 @@ static int ath9k_hif_usb_probe(struct usb_interface *interface,
 #endif
 	usb_set_intfdata(interface, hif_dev);
 
-	/* Find out which firmware to load */
-
-	if (IS_AR7010_DEVICE(id->driver_info))
-		hif_dev->fw_name = FIRMWARE_AR7010_1_1;
-	else
-		hif_dev->fw_name = FIRMWARE_AR9271;
-
-	if (udev->descriptor.bcdDevice != 0xffff) {
-		ath9k_hif_init_fw(interface);
-		ret = 0;
-		goto err_fw_req;
-	}
-
 	ret = ath9k_hif_usb_dev_init(interface);
 	if (ret)
 		goto err_fw_req;
 
-	dev_info(&udev->dev, "ath9k_htc: Firmware %s requested\n",
-		 hif_dev->fw_name);
-
+	dev_info(&udev->dev, "ath9k_htc: Driver requested\n");
 	return 0;
 
 err_fw_req:

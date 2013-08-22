@@ -992,7 +992,7 @@ void rt2800_write_beacon(struct queue_entry *entry, struct txentry_desc *txdesc)
 		return;
 	}
 
-	beacon_base = HW_BEACON_OFFSET(entry->entry_idx);
+	beacon_base = HW_BEACON_BASE(entry->entry_idx);
 	rt2800_register_multiwrite(rt2x00dev, beacon_base, entry->skb->data,
 				   entry->skb->len + padding_len);
 
@@ -1011,10 +1011,13 @@ void rt2800_write_beacon(struct queue_entry *entry, struct txentry_desc *txdesc)
 EXPORT_SYMBOL_GPL(rt2800_write_beacon);
 
 static inline void rt2800_clear_beacon_register(struct rt2x00_dev *rt2x00dev,
-						unsigned int beacon_base)
+						unsigned int index)
 {
 	int i;
 	const int txwi_desc_size = rt2x00dev->bcn->winfo_size;
+	unsigned int beacon_base;
+
+	beacon_base = HW_BEACON_BASE(index);
 
 	/*
 	 * For the Beacon base registers we only need to clear
@@ -1041,8 +1044,7 @@ void rt2800_clear_beacon(struct queue_entry *entry)
 	/*
 	 * Clear beacon.
 	 */
-	rt2800_clear_beacon_register(rt2x00dev,
-				     HW_BEACON_OFFSET(entry->entry_idx));
+	rt2800_clear_beacon_register(rt2x00dev, entry->entry_idx);
 
 	/*
 	 * Enabled beaconing again.
@@ -1873,6 +1875,43 @@ static void rt2800_config_lna_gain(struct rt2x00_dev *rt2x00dev,
 	rt2x00dev->lna_gain = lna_gain;
 }
 
+#define FREQ_OFFSET_BOUND	0x5f
+
+static void rt2800_adjust_freq_offset(struct rt2x00_dev *rt2x00dev)
+{
+	u8 freq_offset, prev_freq_offset;
+	u8 rfcsr, prev_rfcsr;
+
+	freq_offset = rt2x00_get_field8(rt2x00dev->freq_offset, RFCSR17_CODE);
+	freq_offset = min_t(u8, freq_offset, FREQ_OFFSET_BOUND);
+
+	rt2800_rfcsr_read(rt2x00dev, 17, &rfcsr);
+	prev_rfcsr = rfcsr;
+
+	rt2x00_set_field8(&rfcsr, RFCSR17_CODE, freq_offset);
+	if (rfcsr == prev_rfcsr)
+		return;
+
+	if (rt2x00_is_usb(rt2x00dev)) {
+		rt2800_mcu_request(rt2x00dev, MCU_FREQ_OFFSET, 0xff,
+				   freq_offset, prev_rfcsr);
+		return;
+	}
+
+	prev_freq_offset = rt2x00_get_field8(prev_rfcsr, RFCSR17_CODE);
+	while (prev_freq_offset != freq_offset) {
+		if (prev_freq_offset < freq_offset)
+			prev_freq_offset++;
+		else
+			prev_freq_offset--;
+
+		rt2x00_set_field8(&rfcsr, RFCSR17_CODE, prev_freq_offset);
+		rt2800_rfcsr_write(rt2x00dev, 17, rfcsr);
+
+		usleep_range(1000, 1500);
+	}
+}
+
 static void rt2800_config_channel_rf2xxx(struct rt2x00_dev *rt2x00dev,
 					 struct ieee80211_conf *conf,
 					 struct rf_channel *rf,
@@ -2321,7 +2360,7 @@ static void rt2800_config_channel_rf3053(struct rt2x00_dev *rt2x00dev,
 	}
 	rt2800_rfcsr_write(rt2x00dev, 1, rfcsr);
 
-	/* TODO: frequency calibration? */
+	rt2800_adjust_freq_offset(rt2x00dev);
 
 	if (conf_is_ht40(conf)) {
 		txrx_agc_fc = rt2x00_get_field8(drv_data->calibration_bw40,
@@ -2490,19 +2529,6 @@ static void rt2800_config_channel_rf3053(struct rt2x00_dev *rt2x00dev,
 
 #define POWER_BOUND		0x27
 #define POWER_BOUND_5G		0x2b
-#define FREQ_OFFSET_BOUND	0x5f
-
-static void rt2800_adjust_freq_offset(struct rt2x00_dev *rt2x00dev)
-{
-	u8 rfcsr;
-
-	rt2800_rfcsr_read(rt2x00dev, 17, &rfcsr);
-	if (rt2x00dev->freq_offset > FREQ_OFFSET_BOUND)
-		rt2x00_set_field8(&rfcsr, RFCSR17_CODE, FREQ_OFFSET_BOUND);
-	else
-		rt2x00_set_field8(&rfcsr, RFCSR17_CODE, rt2x00dev->freq_offset);
-	rt2800_rfcsr_write(rt2x00dev, 17, rfcsr);
-}
 
 static void rt2800_config_channel_rf3290(struct rt2x00_dev *rt2x00dev,
 					 struct ieee80211_conf *conf,
@@ -4803,14 +4829,8 @@ static int rt2800_init_registers(struct rt2x00_dev *rt2x00dev)
 	/*
 	 * Clear all beacons
 	 */
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE0);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE1);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE2);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE3);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE4);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE5);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE6);
-	rt2800_clear_beacon_register(rt2x00dev, HW_BEACON_BASE7);
+	for (i = 0; i < 8; i++)
+		rt2800_clear_beacon_register(rt2x00dev, i);
 
 	if (rt2x00_is_usb(rt2x00dev)) {
 		rt2800_register_read(rt2x00dev, US_CYC_CNT, &reg);

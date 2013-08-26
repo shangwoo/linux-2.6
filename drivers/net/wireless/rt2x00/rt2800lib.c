@@ -940,6 +940,18 @@ void rt2800_txdone_entry(struct queue_entry *entry, u32 status, __le32 *txwi)
 }
 EXPORT_SYMBOL_GPL(rt2800_txdone_entry);
 
+static unsigned int rt2800_hw_beacon_base(struct rt2x00_dev *rt2x00dev,
+					  unsigned int index)
+{
+	return HW_BEACON_BASE(index);
+}
+
+static inline u8 rt2800_get_beacon_offset(struct rt2x00_dev *rt2x00dev,
+					  unsigned int index)
+{
+	return BEACON_BASE_TO_OFFSET(rt2800_hw_beacon_base(rt2x00dev, index));
+}
+
 void rt2800_write_beacon(struct queue_entry *entry, struct txentry_desc *txdesc)
 {
 	struct rt2x00_dev *rt2x00dev = entry->queue->rt2x00dev;
@@ -992,7 +1004,8 @@ void rt2800_write_beacon(struct queue_entry *entry, struct txentry_desc *txdesc)
 		return;
 	}
 
-	beacon_base = HW_BEACON_BASE(entry->entry_idx);
+	beacon_base = rt2800_hw_beacon_base(rt2x00dev, entry->entry_idx);
+
 	rt2800_register_multiwrite(rt2x00dev, beacon_base, entry->skb->data,
 				   entry->skb->len + padding_len);
 
@@ -1017,7 +1030,7 @@ static inline void rt2800_clear_beacon_register(struct rt2x00_dev *rt2x00dev,
 	const int txwi_desc_size = rt2x00dev->bcn->winfo_size;
 	unsigned int beacon_base;
 
-	beacon_base = HW_BEACON_BASE(index);
+	beacon_base = rt2800_hw_beacon_base(rt2x00dev, index);
 
 	/*
 	 * For the Beacon base registers we only need to clear
@@ -3395,6 +3408,13 @@ static int rt2800_get_gain_calibration_delta(struct rt2x00_dev *rt2x00dev)
 	int i;
 
 	/*
+	 * First check if temperature compensation is supported.
+	 */
+	rt2800_eeprom_read(rt2x00dev, EEPROM_NIC_CONF1, &eeprom);
+	if (!rt2x00_get_field16(eeprom, EEPROM_NIC_CONF1_EXTERNAL_TX_ALC))
+		return 0;
+
+	/*
 	 * Read TSSI boundaries for temperature compensation from
 	 * the EEPROM.
 	 *
@@ -4467,17 +4487,25 @@ static int rt2800_init_registers(struct rt2x00_dev *rt2x00dev)
 		return ret;
 
 	rt2800_register_read(rt2x00dev, BCN_OFFSET0, &reg);
-	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN0, 0xe0); /* 0x3800 */
-	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN1, 0xe8); /* 0x3a00 */
-	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN2, 0xf0); /* 0x3c00 */
-	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN3, 0xf8); /* 0x3e00 */
+	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN0,
+			   rt2800_get_beacon_offset(rt2x00dev, 0));
+	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN1,
+			   rt2800_get_beacon_offset(rt2x00dev, 1));
+	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN2,
+			   rt2800_get_beacon_offset(rt2x00dev, 2));
+	rt2x00_set_field32(&reg, BCN_OFFSET0_BCN3,
+			   rt2800_get_beacon_offset(rt2x00dev, 3));
 	rt2800_register_write(rt2x00dev, BCN_OFFSET0, reg);
 
 	rt2800_register_read(rt2x00dev, BCN_OFFSET1, &reg);
-	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN4, 0xc8); /* 0x3200 */
-	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN5, 0xd0); /* 0x3400 */
-	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN6, 0x77); /* 0x1dc0 */
-	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN7, 0x6f); /* 0x1bc0 */
+	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN4,
+			   rt2800_get_beacon_offset(rt2x00dev, 4));
+	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN5,
+			   rt2800_get_beacon_offset(rt2x00dev, 5));
+	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN6,
+			   rt2800_get_beacon_offset(rt2x00dev, 6));
+	rt2x00_set_field32(&reg, BCN_OFFSET1_BCN7,
+			   rt2800_get_beacon_offset(rt2x00dev, 7));
 	rt2800_register_write(rt2x00dev, BCN_OFFSET1, reg);
 
 	rt2800_register_write(rt2x00dev, LEGACY_BASIC_RATE, 0x0000013f);

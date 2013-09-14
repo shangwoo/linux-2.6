@@ -454,13 +454,17 @@ static void ar9271_hw_pa_cal(struct ath_hw *ah, bool is_reset)
 	REG_WRITE(ah, 0x9808, regVal);
 
 	/* 786c,b23,1, pwddac=1 */
-	REG_RMW_FIELD(ah, AR9285_AN_TOP3, AR9285_AN_TOP3_PWDDAC, 1);
+	REG_RMW_FIELD(ah, AR9285_AN_TOP3, 0,
+		      0x1 << AR9285_AN_TOP3_PWDDAC_S);
 	/* 7854, b5,1, pdrxtxbb=1 */
-	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, AR9285_AN_RXTXBB1_PDRXTXBB1, 1);
+	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, 0,
+		      0x1 << AR9285_AN_RXTXBB1_PDRXTXBB1_S);
 	/* 7854, b7,1, pdv2i=1 */
-	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, AR9285_AN_RXTXBB1_PDV2I, 1);
+	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, 0,
+		      0x1 << AR9285_AN_RXTXBB1_PDV2I_S);
 	/* 7854, b8,1, pddacinterface=1 */
-	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, AR9285_AN_RXTXBB1_PDDACIF, 1);
+	REG_RMW_FIELD(ah, AR9285_AN_RXTXBB1, 0,
+		      0x1 << AR9285_AN_RXTXBB1_PDDACIF_S);
 	/* 7824,b12,0, offcal=0 */
 	REG_RMW_FIELD(ah, AR9285_AN_RF2G2, AR9285_AN_RF2G2_OFFCAL, 0);
 	/* 7838, b1,0, pwddb=0 */
@@ -474,14 +478,16 @@ static void ar9271_hw_pa_cal(struct ath_hw *ah, bool is_reset)
 	/* 7820,b23,0, pdpaout=0 */
 	REG_RMW_FIELD(ah, AR9285_AN_RF2G1, AR9285_AN_RF2G1_PDPAOUT, 0);
 	/* 783c,b14-16,7, padrvgn2tab_0=7 */
-	REG_RMW_FIELD(ah, AR9285_AN_RF2G8, AR9285_AN_RF2G8_PADRVGN2TAB0, 7);
+	REG_RMW_FIELD(ah, AR9285_AN_RF2G8, AR9285_AN_RF2G8_PADRVGN2TAB0,
+		      0x7 << AR9285_AN_RF2G8_PADRVGN2TAB0_S);
 	/*
 	 * 7838,b29-31,0, padrvgn1tab_0=0
 	 * does not matter since we turn it off
 	 */
 	REG_RMW_FIELD(ah, AR9285_AN_RF2G7, AR9285_AN_RF2G7_PADRVGN2TAB0, 0);
 	/* 7828, b0-11, ccom=fff */
-	REG_RMW_FIELD(ah, AR9285_AN_RF2G3, AR9271_AN_RF2G3_CCOMP, 0xfff);
+	REG_RMW_FIELD(ah, AR9285_AN_RF2G3, AR9271_AN_RF2G3_CCOMP,
+		      0xfff << AR9285_AN_RF2G6_CCOMP_S);
 
 	/* Set:
 	 * localmode=1,bmode=1,bmoderxtx=1,synthon=1,

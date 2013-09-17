@@ -555,22 +555,25 @@ static void ath9k_hw_def_set_board_values(struct ath_hw *ah,
 		else
 			regChainOffset = i * 0x1000;
 
-		REG_WRITE(ah, AR_PHY_SWITCH_CHAIN_0 + regChainOffset,
-			  pModal->antCtrlChain[i]);
+		ENABLE_REG_RMW_BUFFER(ah);
+		REG_RMW(ah, AR_PHY_SWITCH_CHAIN_0 + regChainOffset,
+			pModal->antCtrlChain[i], 0);
 
-		REG_WRITE(ah, AR_PHY_TIMING_CTRL4(0) + regChainOffset,
-			  (REG_READ(ah, AR_PHY_TIMING_CTRL4(0) + regChainOffset) &
-			   ~(AR_PHY_TIMING_CTRL4_IQCORR_Q_Q_COFF |
-			     AR_PHY_TIMING_CTRL4_IQCORR_Q_I_COFF)) |
-			  SM(pModal->iqCalICh[i],
-			     AR_PHY_TIMING_CTRL4_IQCORR_Q_I_COFF) |
-			  SM(pModal->iqCalQCh[i],
-			     AR_PHY_TIMING_CTRL4_IQCORR_Q_Q_COFF));
+		REG_RMW(ah, AR_PHY_TIMING_CTRL4(0) + regChainOffset,
+			(REG_READ(ah, AR_PHY_TIMING_CTRL4(0) + regChainOffset) &
+			 ~(AR_PHY_TIMING_CTRL4_IQCORR_Q_Q_COFF |
+			   AR_PHY_TIMING_CTRL4_IQCORR_Q_I_COFF)) |
+			 SM(pModal->iqCalICh[i],
+			    AR_PHY_TIMING_CTRL4_IQCORR_Q_I_COFF) |
+			 SM(pModal->iqCalQCh[i],
+			    AR_PHY_TIMING_CTRL4_IQCORR_Q_Q_COFF), 0);
+		REG_RMW_BUFFER_FLUSH(ah);
 
 		ath9k_hw_def_set_gain(ah, pModal, eep, txRxAttenLocal,
 				      regChainOffset, i);
 	}
 
+	ENABLE_REG_RMW_BUFFER(ah);
 	if (AR_SREV_9280_20_OR_LATER(ah)) {
 		if (IS_CHAN_2GHZ(chan)) {
 			ath9k_hw_analog_shift_rmw(ah, AR_AN_RF2G1_CH0,
@@ -630,14 +633,14 @@ static void ath9k_hw_def_set_board_values(struct ath_hw *ah,
 			      AR_PHY_DESIRED_SZ_PGA,
 			      pModal->pgaDesiredSize);
 
-	REG_WRITE(ah, AR_PHY_RF_CTL4,
-		  SM(pModal->txEndToXpaOff, AR_PHY_RF_CTL4_TX_END_XPAA_OFF)
-		  | SM(pModal->txEndToXpaOff,
-		       AR_PHY_RF_CTL4_TX_END_XPAB_OFF)
-		  | SM(pModal->txFrameToXpaOn,
-		       AR_PHY_RF_CTL4_FRAME_XPAA_ON)
-		  | SM(pModal->txFrameToXpaOn,
-		       AR_PHY_RF_CTL4_FRAME_XPAB_ON));
+	REG_RMW(ah, AR_PHY_RF_CTL4,
+		SM(pModal->txEndToXpaOff, AR_PHY_RF_CTL4_TX_END_XPAA_OFF)
+		| SM(pModal->txEndToXpaOff,
+		     AR_PHY_RF_CTL4_TX_END_XPAB_OFF)
+		| SM(pModal->txFrameToXpaOn,
+		     AR_PHY_RF_CTL4_FRAME_XPAA_ON)
+		| SM(pModal->txFrameToXpaOn,
+		     AR_PHY_RF_CTL4_FRAME_XPAB_ON), 0);
 
 	REG_RMW_FIELD(ah, AR_PHY_RF_CTL3, AR_PHY_TX_END_TO_A2_RX_ON,
 		      pModal->txEndToRxOn);
@@ -677,8 +680,10 @@ static void ath9k_hw_def_set_board_values(struct ath_hw *ah,
 			      AR_PHY_CCK_TX_CTRL_TX_DAC_SCALE_CCK,
 			      pModal->miscBits);
 
+	REG_RMW_BUFFER_FLUSH(ah);
 
 	if (AR_SREV_9280_20(ah) && AR5416_VER_MASK >= AR5416_EEP_MINOR_VER_20) {
+		ENABLE_REG_RMW_BUFFER(ah);
 		if (IS_CHAN_2GHZ(chan))
 			REG_RMW_FIELD(ah, AR_AN_TOP1, AR_AN_TOP1_DACIPMODE,
 					eep->baseEepHeader.dacLpMode);
@@ -687,15 +692,18 @@ static void ath9k_hw_def_set_board_values(struct ath_hw *ah,
 		else
 			REG_RMW_FIELD(ah, AR_AN_TOP1, AR_AN_TOP1_DACIPMODE,
 				      eep->baseEepHeader.dacLpMode);
+		REG_RMW_BUFFER_FLUSH(ah);
 
 		udelay(100);
 
+		ENABLE_REG_RMW_BUFFER(ah);
 		REG_RMW_FIELD(ah, AR_PHY_FRAME_CTL, AR_PHY_FRAME_CTL_TX_CLIP,
 			      pModal->miscBits >> 2);
 
 		REG_RMW_FIELD(ah, AR_PHY_TX_PWRCTRL9,
 			      AR_PHY_TX_DESIRED_SCALE_CCK,
 			      eep->baseEepHeader.desiredScaleCCK);
+		REG_RMW_BUFFER_FLUSH(ah);
 	}
 }
 

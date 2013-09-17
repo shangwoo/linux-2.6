@@ -242,7 +242,8 @@ static void ath9k_led_brightness(struct led_classdev *led_cdev,
 
 	/* Not locked, but it's just a tiny green light..*/
 	priv->brightness = brightness;
-	ieee80211_queue_work(priv->hw, &priv->led_work);
+	ieee80211_queue_delayed_work(priv->hw, &priv->led_work,
+				     msecs_to_jiffies(HZ));
 }
 
 void ath9k_deinit_leds(struct ath9k_htc_priv *priv)
@@ -252,7 +253,7 @@ void ath9k_deinit_leds(struct ath9k_htc_priv *priv)
 
 	ath9k_led_brightness(&priv->led_cdev, LED_OFF);
 	led_classdev_unregister(&priv->led_cdev);
-	cancel_work_sync(&priv->led_work);
+	cancel_delayed_work_sync(&priv->led_work);
 }
 
 void ath9k_init_leds(struct ath9k_htc_priv *priv)
@@ -283,7 +284,7 @@ void ath9k_init_leds(struct ath9k_htc_priv *priv)
 	if (ret < 0)
 		return;
 
-	INIT_WORK(&priv->led_work, ath9k_led_work);
+	INIT_DELAYED_WORK(&priv->led_work, ath9k_led_work);
 	priv->led_registered = true;
 
 	return;

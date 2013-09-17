@@ -511,7 +511,7 @@ struct ath9k_htc_priv {
 	bool led_registered;
 	char led_name[32];
 	struct led_classdev led_cdev;
-	struct work_struct led_work;
+	struct delayed_work led_work;
 #endif
 
 	int beaconq;

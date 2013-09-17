@@ -439,8 +439,8 @@ static void ar9271_hw_pa_cal(struct ath_hw *ah, bool is_reset)
 		{ AR9285_AN_RF2G2, 0 },
 		{ AR9285_AN_TOP2, 0 },
 		{ AR9285_AN_RF2G8, 0 },
-		{ AR9285_AN_RF2G7, 0 } ,
-		{ AR9285_AN_RF2G3, 0 } ,
+		{ AR9285_AN_RF2G7, 0 },
+		{ AR9285_AN_RF2G3, 0 },
 	};
 
 	for (i = 0; i < ARRAY_SIZE(regList); i++)

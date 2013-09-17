@@ -724,18 +724,19 @@ static int ar5008_hw_process_ini(struct ath_hw *ah,
 	 * Set correct baseband to analog shift setting to
 	 * access analog chips.
 	 */
+	ENABLE_REGWRITE_BUFFER(ah);
 	REG_WRITE(ah, AR_PHY(0), 0x00000007);
 
 	/* Write ADDAC shifts */
 	REG_WRITE(ah, AR_PHY_ADC_SERIAL_CTL, AR_PHY_SEL_EXTERNAL_RADIO);
 	if (ah->eep_ops->set_addac)
 		ah->eep_ops->set_addac(ah, chan);
+	REGWRITE_BUFFER_FLUSH(ah);
 
 	REG_WRITE_ARRAY(&ah->iniAddac, 1, regWrites);
-	REG_WRITE(ah, AR_PHY_ADC_SERIAL_CTL, AR_PHY_SEL_INTERNAL_ADDAC);
 
 	ENABLE_REGWRITE_BUFFER(ah);
-
+	REG_WRITE(ah, AR_PHY_ADC_SERIAL_CTL, AR_PHY_SEL_INTERNAL_ADDAC);
 	for (i = 0; i < ah->iniModes.ia_rows; i++) {
 		u32 reg = INI_RA(&ah->iniModes, i, 0);
 		u32 val = INI_RA(&ah->iniModes, i, modesIndex);

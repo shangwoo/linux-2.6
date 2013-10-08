@@ -136,7 +136,7 @@ extern bool brcmf_c_prec_enq(struct device *dev, struct pktq *q,
 			 struct sk_buff *pkt, int prec);
 
 /* Receive frame for delivery to OS.  Callee disposes of rxp. */
-extern void brcmf_rx_frames(struct device *dev, struct sk_buff_head *rxlist);
+extern void brcmf_rx_frame(struct device *dev, struct sk_buff *rxp);
 
 /* Indication from bus module regarding presence/insertion of dongle. */
 extern int brcmf_attach(uint bus_hdrlen, struct device *dev);
@@ -156,10 +156,11 @@ extern int brcmf_bus_start(struct device *dev);
 #ifdef CONFIG_BRCMFMAC_SDIO
 extern void brcmf_sdio_exit(void);
 extern void brcmf_sdio_init(void);
+extern void brcmf_sdio_register(void);
 #endif
 #ifdef CONFIG_BRCMFMAC_USB
 extern void brcmf_usb_exit(void);
-extern void brcmf_usb_init(void);
+extern void brcmf_usb_register(void);
 #endif
 
 #endif				/* _BRCMF_BUS_H_ */

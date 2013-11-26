@@ -701,6 +701,54 @@ static int ar9550_hw_get_modes_txgain_index(struct ath_hw *ah,
 	return ret;
 }
 
+static void ar9003_doubler_fix(struct ath_hw *ah)
+{
+	if (AR_SREV_9300(ah) || AR_SREV_9580(ah) || AR_SREV_9550(ah)) {
+		REG_RMW(ah, AR_PHY_65NM_CH0_RXTX2,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S, 0);
+		REG_RMW(ah, AR_PHY_65NM_CH1_RXTX2,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S, 0);
+		REG_RMW(ah, AR_PHY_65NM_CH2_RXTX2,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S, 0);
+
+		udelay(200);
+
+		REG_CLR_BIT(ah, AR_PHY_65NM_CH0_RXTX2,
+			    AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK);
+		REG_CLR_BIT(ah, AR_PHY_65NM_CH1_RXTX2,
+			    AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK);
+		REG_CLR_BIT(ah, AR_PHY_65NM_CH2_RXTX2,
+			    AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK);
+
+		udelay(1);
+
+		REG_RMW_FIELD(ah, AR_PHY_65NM_CH0_RXTX2,
+			      AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK, 1);
+		REG_RMW_FIELD(ah, AR_PHY_65NM_CH1_RXTX2,
+			      AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK, 1);
+		REG_RMW_FIELD(ah, AR_PHY_65NM_CH2_RXTX2,
+			      AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK, 1);
+
+		udelay(200);
+
+		REG_RMW_FIELD(ah, AR_PHY_65NM_CH0_SYNTH12,
+			      AR_PHY_65NM_CH0_SYNTH12_VREFMUL3, 0xf);
+
+		REG_RMW(ah, AR_PHY_65NM_CH0_RXTX2, 0,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S);
+		REG_RMW(ah, AR_PHY_65NM_CH1_RXTX2, 0,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S);
+		REG_RMW(ah, AR_PHY_65NM_CH2_RXTX2, 0,
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHON_MASK_S |
+			1 << AR_PHY_65NM_CH0_RXTX2_SYNTHOVR_MASK_S);
+	}
+}
+
 static int ar9003_hw_process_ini(struct ath_hw *ah,
 				 struct ath9k_channel *chan)
 {
@@ -725,6 +773,8 @@ static int ar9003_hw_process_ini(struct ath_hw *ah,
 					   &ah->ini_radio_post_sys2ant,
 					   modesIndex);
 	}
+
+	ar9003_doubler_fix(ah);
 
 	/*
 	 * RXGAIN initvals.
@@ -1617,6 +1667,98 @@ static void ar9003_hw_spectral_scan_wait(struct ath_hw *ah)
 	}
 }
 
+static void ar9003_hw_tx99_start(struct ath_hw *ah, u32 qnum)
+{
+	REG_SET_BIT(ah, AR_PHY_TEST, PHY_AGC_CLR);
+	REG_SET_BIT(ah, 0x9864, 0x7f000);
+	REG_SET_BIT(ah, 0x9924, 0x7f00fe);
+	REG_CLR_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_DIS);
+	REG_WRITE(ah, AR_CR, AR_CR_RXD);
+	REG_WRITE(ah, AR_DLCL_IFS(qnum), 0);
+	REG_WRITE(ah, AR_D_GBL_IFS_SIFS, 20); /* 50 OK */
+	REG_WRITE(ah, AR_D_GBL_IFS_EIFS, 20);
+	REG_WRITE(ah, AR_TIME_OUT, 0x00000400);
+	REG_WRITE(ah, AR_DRETRY_LIMIT(qnum), 0xffffffff);
+	REG_SET_BIT(ah, AR_QMISC(qnum), AR_Q_MISC_DCU_EARLY_TERM_REQ);
+}
+
+static void ar9003_hw_tx99_stop(struct ath_hw *ah)
+{
+	REG_CLR_BIT(ah, AR_PHY_TEST, PHY_AGC_CLR);
+	REG_SET_BIT(ah, AR_DIAG_SW, AR_DIAG_RX_DIS);
+}
+
+static void ar9003_hw_tx99_set_txpower(struct ath_hw *ah, u8 txpower)
+{
+	static s16 p_pwr_array[ar9300RateSize] = { 0 };
+	unsigned int i;
+
+	if (txpower <= MAX_RATE_POWER) {
+		for (i = 0; i < ar9300RateSize; i++)
+			p_pwr_array[i] = txpower;
+	} else {
+		for (i = 0; i < ar9300RateSize; i++)
+			p_pwr_array[i] = MAX_RATE_POWER;
+	}
+
+	REG_WRITE(ah, 0xa458, 0);
+
+	REG_WRITE(ah, 0xa3c0,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_6_24], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_6_24], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_6_24],  8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_6_24],  0));
+	REG_WRITE(ah, 0xa3c4,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_54],  24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_48],  16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_36],   8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_6_24], 0));
+	REG_WRITE(ah, 0xa3c8,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_1L_5L], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_1L_5L], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_1L_5L],  0));
+	REG_WRITE(ah, 0xa3cc,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_11S],   24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_11L],   16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_5S],     8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_LEGACY_1L_5L],  0));
+	REG_WRITE(ah, 0xa3d0,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_5],  24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_4],  16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_1_3_9_11_17_19], 8)|
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_0_8_16], 0));
+	REG_WRITE(ah, 0xa3d4,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_13], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_12], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_7],   8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_6],   0));
+	REG_WRITE(ah, 0xa3e4,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_21], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_20], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_15],  8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_14],  0));
+	REG_WRITE(ah, 0xa3e8,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_23], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_22], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_23],  8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT20_22],  0));
+	REG_WRITE(ah, 0xa3d8,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_5], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_4], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_1_3_9_11_17_19], 8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_0_8_16], 0));
+	REG_WRITE(ah, 0xa3dc,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_13], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_12], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_7],   8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_6],   0));
+	REG_WRITE(ah, 0xa3ec,
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_21], 24) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_20], 16) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_15],  8) |
+		  ATH9K_POW_SM(p_pwr_array[ALL_TARGET_HT40_14],  0));
+}
+
 void ar9003_hw_attach_phy_ops(struct ath_hw *ah)
 {
 	struct ath_hw_private_ops *priv_ops = ath9k_hw_private_ops(ah);
@@ -1656,6 +1798,9 @@ void ar9003_hw_attach_phy_ops(struct ath_hw *ah)
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 	ops->set_bt_ant_diversity = ar9003_hw_set_bt_ant_diversity;
 #endif
+	ops->tx99_start = ar9003_hw_tx99_start;
+	ops->tx99_stop = ar9003_hw_tx99_stop;
+	ops->tx99_set_txpower = ar9003_hw_tx99_set_txpower;
 
 	ar9003_hw_set_nf_limits(ah);
 	ar9003_hw_set_radar_conf(ah);

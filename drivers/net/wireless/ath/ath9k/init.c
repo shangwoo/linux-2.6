@@ -609,6 +609,11 @@ static void ath9k_init_platform(struct ath_softc *sc)
 		ah->config.pcie_waen = 0x0040473b;
 		ath_info(common, "Enable WAR for ASPM D3/L1\n");
 	}
+
+	if (sc->driver_data & ATH9K_PCI_NO_PLL_PWRSAVE) {
+		ah->config.no_pll_pwrsave = true;
+		ath_info(common, "Disable PLL PowerSave\n");
+	}
 }
 
 static void ath9k_eeprom_request_cb(const struct firmware *eeprom_blob,
@@ -680,7 +685,9 @@ static int ath9k_init_softc(u16 devid, struct ath_softc *sc,
 	sc->sc_ah = ah;
 	pCap = &ah->caps;
 
-	sc->dfs_detector = dfs_pattern_detector_init(ah, NL80211_DFS_UNSET);
+	common = ath9k_hw_common(ah);
+	sc->dfs_detector = dfs_pattern_detector_init(common, NL80211_DFS_UNSET);
+	sc->tx99_power = MAX_RATE_POWER + 1;
 
 	if (!pdata) {
 		ah->ah_flags |= AH_USE_EEPROM;
@@ -694,7 +701,6 @@ static int ath9k_init_softc(u16 devid, struct ath_softc *sc,
 		ah->external_reset = pdata->external_reset;
 	}
 
-	common = ath9k_hw_common(ah);
 	common->ops = &ah->reg_ops;
 	common->bus_ops = bus_ops;
 	common->ah = ah;
@@ -785,6 +791,7 @@ err_queues:
 	ath9k_hw_deinit(ah);
 err_hw:
 	ath9k_eeprom_release(sc);
+	dev_kfree_skb_any(sc->tx99_skb);
 	return ret;
 }
 
@@ -842,9 +849,9 @@ static const struct ieee80211_iface_limit if_limits[] = {
 				 BIT(NL80211_IFTYPE_P2P_GO) },
 };
 
-
 static const struct ieee80211_iface_limit if_dfs_limits[] = {
-	{ .max = 1,	.types = BIT(NL80211_IFTYPE_AP) },
+	{ .max = 1,	.types = BIT(NL80211_IFTYPE_AP) |
+				 BIT(NL80211_IFTYPE_ADHOC) },
 };
 
 static const struct ieee80211_iface_combination if_comb[] = {
@@ -861,8 +868,8 @@ static const struct ieee80211_iface_combination if_comb[] = {
 		.max_interfaces = 1,
 		.num_different_channels = 1,
 		.beacon_int_infra_match = true,
-		.radar_detect_widths =	BIT(NL80211_CHAN_NO_HT) |
-					BIT(NL80211_CHAN_HT20),
+		.radar_detect_widths =	BIT(NL80211_CHAN_WIDTH_20_NOHT) |
+					BIT(NL80211_CHAN_WIDTH_20),
 	}
 };
 
@@ -903,17 +910,18 @@ void ath9k_set_hw_capab(struct ath_softc *sc, struct ieee80211_hw *hw)
 
 	hw->wiphy->features |= NL80211_FEATURE_ACTIVE_MONITOR;
 
-	hw->wiphy->interface_modes =
-		BIT(NL80211_IFTYPE_P2P_GO) |
-		BIT(NL80211_IFTYPE_P2P_CLIENT) |
-		BIT(NL80211_IFTYPE_AP) |
-		BIT(NL80211_IFTYPE_WDS) |
-		BIT(NL80211_IFTYPE_STATION) |
-		BIT(NL80211_IFTYPE_ADHOC) |
-		BIT(NL80211_IFTYPE_MESH_POINT);
-
-	hw->wiphy->iface_combinations = if_comb;
-	hw->wiphy->n_iface_combinations = ARRAY_SIZE(if_comb);
+	if (!config_enabled(CONFIG_ATH9K_TX99)) {
+		hw->wiphy->interface_modes =
+			BIT(NL80211_IFTYPE_P2P_GO) |
+			BIT(NL80211_IFTYPE_P2P_CLIENT) |
+			BIT(NL80211_IFTYPE_AP) |
+			BIT(NL80211_IFTYPE_WDS) |
+			BIT(NL80211_IFTYPE_STATION) |
+			BIT(NL80211_IFTYPE_ADHOC) |
+			BIT(NL80211_IFTYPE_MESH_POINT);
+		hw->wiphy->iface_combinations = if_comb;
+		hw->wiphy->n_iface_combinations = ARRAY_SIZE(if_comb);
+	}
 
 	hw->wiphy->flags &= ~WIPHY_FLAG_PS_ON_BY_DEFAULT;
 

@@ -316,6 +316,7 @@ struct ath9k_ops_config {
 	u32 ant_ctrl_comm2g_switch_enable;
 	bool xatten_margin_cfg;
 	bool alt_mingainidx;
+	bool no_pll_pwrsave;
 };
 
 enum ath9k_int {
@@ -702,6 +703,10 @@ struct ath_hw_ops {
 				     struct ath_spec_scan *param);
 	void (*spectral_scan_trigger)(struct ath_hw *ah);
 	void (*spectral_scan_wait)(struct ath_hw *ah);
+
+	void (*tx99_start)(struct ath_hw *ah, u32 qnum);
+	void (*tx99_stop)(struct ath_hw *ah);
+	void (*tx99_set_txpower)(struct ath_hw *ah, u8 power);
 
 #ifdef CONFIG_ATH9K_BTCOEX_SUPPORT
 	void (*set_bt_ant_diversity)(struct ath_hw *hw, bool enable);

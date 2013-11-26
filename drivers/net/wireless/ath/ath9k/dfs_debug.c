@@ -20,16 +20,16 @@
 
 #include "ath9k.h"
 #include "dfs_debug.h"
+#include "../dfs_pattern_detector.h"
 
-
-struct ath_dfs_pool_stats global_dfs_pool_stats = { 0 };
+static struct ath_dfs_pool_stats dfs_pool_stats = { 0 };
 
 #define ATH9K_DFS_STAT(s, p) \
 	len += scnprintf(buf + len, size - len, "%28s : %10u\n", s, \
 			 sc->debug.stats.dfs_stats.p);
 #define ATH9K_DFS_POOL_STAT(s, p) \
 	len += scnprintf(buf + len, size - len, "%28s : %10u\n", s, \
-			 global_dfs_pool_stats.p);
+			 dfs_pool_stats.p);
 
 static ssize_t read_file_dfs(struct file *file, char __user *user_buf,
 			     size_t count, loff_t *ppos)
@@ -49,6 +49,15 @@ static ssize_t read_file_dfs(struct file *file, char __user *user_buf,
 			 hw_ver->macVersion, hw_ver->macRev,
 			 (sc->sc_ah->caps.hw_caps & ATH9K_HW_CAP_DFS) ?
 					"enabled" : "disabled");
+
+	if (!sc->dfs_detector) {
+		len += scnprintf(buf + len, size - len,
+				 "DFS detector not enabled\n");
+		goto exit;
+	}
+
+	dfs_pool_stats = sc->dfs_detector->get_stats(sc->dfs_detector);
+
 	len += scnprintf(buf + len, size - len, "Pulse detector statistics:\n");
 	ATH9K_DFS_STAT("pulse events reported   ", pulses_total);
 	ATH9K_DFS_STAT("invalid pulse events    ", pulses_no_dfs);
@@ -73,6 +82,7 @@ static ssize_t read_file_dfs(struct file *file, char __user *user_buf,
 	ATH9K_DFS_POOL_STAT("Seqs. alloc error       ", pseq_alloc_error);
 	ATH9K_DFS_POOL_STAT("Seqs. in use            ", pseq_used);
 
+exit:
 	if (len > size)
 		len = size;
 

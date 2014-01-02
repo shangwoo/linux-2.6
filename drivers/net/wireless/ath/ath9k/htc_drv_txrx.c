@@ -1030,6 +1030,23 @@ static void ath9k_process_rssi(struct ath_common *common,
 	rxs->signal = ah->noise + rx_stats->rs_rssi;
 }
 
+/* unmodifyed copy from ath9k */
+static void ath9k_process_tsf(struct ath_rx_status *rs,
+			      struct ieee80211_rx_status *rxs,
+			      u64 tsf)
+{
+	u32 tsf_lower = tsf & 0xffffffff;
+
+	rxs->mactime = (tsf & ~0xffffffffULL) | rs->rs_tstamp;
+	if (rs->rs_tstamp > tsf_lower &&
+	    unlikely(rs->rs_tstamp - tsf_lower > 0x10000000))
+		rxs->mactime -= 0x100000000ULL;
+
+	if (rs->rs_tstamp < tsf_lower &&
+	    unlikely(tsf_lower - rs->rs_tstamp > 0x10000000))
+		rxs->mactime += 0x100000000ULL;
+}
+
 /* FIXME for ath9k:
  * static bool ath9k_is_mybeacon(struct ath_softc *sc, struct ieee80211_hdr *hdr) */
 static bool ath9k_is_mybeacon(struct ath9k_htc_priv *sc, struct ieee80211_hdr *hdr)
@@ -1097,6 +1114,7 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	struct ath_rx_status *rx_stats = &rxbuf->rx_stats;
 	int hdrlen, padsize;
 	__le16 fc;
+	u64 tsf;
 
 	if (skb->len < HTC_RX_FRAME_HEADER_SIZE) {
 		ath_err(common, "Corrupted RX frame, dropping (len: %d)\n",
@@ -1187,6 +1205,9 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	ath9k_process_rate(hw, rx_status, rxbuf->rxstatus.rs_rate,
 			   rxbuf->rxstatus.rs_flags);
 
+	tsf = be64_to_cpu(rxbuf->rxstatus.rs_tstamp);
+	/* copy from ath9k */
+	ath9k_process_tsf(rx_stats, rx_status, tsf);
 	/* FIXME: can be eliminated? */
 	rx_status_htc_to_ath(rx_stats, &rxbuf->rxstatus);
 	/* copy from ath9k */
@@ -1194,8 +1215,6 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	/* copy from ath9k */
 	ath9k_process_rssi(common, hw, rx_stats, rx_status);
 
-	/* FIXME use ath9k_process_tsf to convert mactime */
-	rx_status->mactime = be64_to_cpu(rxbuf->rxstatus.rs_tstamp);
 	rx_status->band = hw->conf.chandef.chan->band;
 	rx_status->freq = hw->conf.chandef.chan->center_freq;
 	rx_status->antenna = rxbuf->rxstatus.rs_antenna;

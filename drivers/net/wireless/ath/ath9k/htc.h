@@ -271,11 +271,11 @@ struct ath9k_htc_rxbuf {
 	bool in_process;
 	struct sk_buff *skb;
 	struct ath_htc_rx_status rxstatus;
+	struct ath_rx_status rx_stats;
 	struct list_head list;
 };
 
 struct ath9k_htc_rx {
-	int last_rssi; /* FIXME: per-STA */
 	struct list_head rxbuf;
 	spinlock_t rxbuflock;
 };
@@ -491,6 +491,7 @@ struct ath9k_htc_priv {
 	spinlock_t beacon_lock;
 	struct htc_beacon_config cur_beacon_conf;
 
+	int last_rssi; /* FIXME: per-STA */
 	struct ath9k_htc_rx rx;
 	struct ath9k_htc_tx tx;
 

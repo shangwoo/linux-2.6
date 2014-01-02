@@ -927,7 +927,7 @@ void ath9k_host_rx_init(struct ath9k_htc_priv *priv)
 	ath9k_hw_rxena(priv->ah);
 	ath9k_htc_opmode_init(priv);
 	ath9k_hw_startpcureceive(priv->ah, test_bit(OP_SCANNING, &priv->op_flags));
-	priv->rx.last_rssi = ATH_RSSI_DUMMY_MARKER;
+	priv->last_rssi = ATH_RSSI_DUMMY_MARKER;
 }
 
 static void ath9k_process_rate(struct ieee80211_hw *hw,
@@ -966,6 +966,124 @@ static void ath9k_process_rate(struct ieee80211_hw *hw,
 
 }
 
+static void ath9k_process_rssi(struct ath_common *common,
+			       struct ieee80211_hw *hw,
+			       struct ath_rx_status *rx_stats,
+			       struct ieee80211_rx_status *rxs)
+{
+	/* FIXME for ath9k: original "struct ath_softc *sc = hw->priv;"
+	 * we need it back  */
+	struct ath9k_htc_priv *sc = hw->priv;
+	struct ath_hw *ah = common->ah;
+	int last_rssi;
+	int rssi = rx_stats->rs_rssi;
+	int i, j;
+
+	/*
+	 * RSSI is not available for subframes in an A-MPDU.
+	 */
+	if (rx_stats->rs_moreaggr) {
+		rxs->flag |= RX_FLAG_NO_SIGNAL_VAL;
+		return;
+	}
+
+	/*
+	 * Check if the RSSI for the last subframe in an A-MPDU
+	 * or an unaggregated frame is valid.
+	 */
+	if (rx_stats->rs_rssi == ATH9K_RSSI_BAD) {
+		rxs->flag |= RX_FLAG_NO_SIGNAL_VAL;
+		return;
+	}
+
+	for (i = 0, j = 0; i < ARRAY_SIZE(rx_stats->rs_rssi_ctl); i++) {
+		s8 rssi;
+
+		if (!(ah->rxchainmask & BIT(i)))
+			continue;
+
+		rssi = rx_stats->rs_rssi_ctl[i];
+		if (rssi != ATH9K_RSSI_BAD) {
+		    rxs->chains |= BIT(j);
+		    rxs->chain_signal[j] = ah->noise + rssi;
+		}
+		j++;
+	}
+
+	/*
+	 * Update Beacon RSSI, this is used by ANI.
+	 */
+	if (rx_stats->is_mybeacon &&
+	    ((ah->opmode == NL80211_IFTYPE_STATION) ||
+	     (ah->opmode == NL80211_IFTYPE_ADHOC))) {
+		ATH_RSSI_LPF(sc->last_rssi, rx_stats->rs_rssi);
+		last_rssi = sc->last_rssi;
+
+		if (likely(last_rssi != ATH_RSSI_DUMMY_MARKER))
+			rssi = ATH_EP_RND(last_rssi, ATH_RSSI_EP_MULTIPLIER);
+		if (rssi < 0)
+			rssi = 0;
+
+		ah->stats.avgbrssi = rssi;
+	}
+
+	rxs->signal = ah->noise + rx_stats->rs_rssi;
+}
+
+/* FIXME for ath9k:
+ * static bool ath9k_is_mybeacon(struct ath_softc *sc, struct ieee80211_hdr *hdr) */
+static bool ath9k_is_mybeacon(struct ath9k_htc_priv *sc, struct ieee80211_hdr *hdr)
+{
+	/* FIXME for ath9k: struct ath_hw *ah = sc->sc_ah; */
+	struct ath_hw *ah = sc->ah;
+	struct ath_common *common = ath9k_hw_common(ah);
+
+	if (ieee80211_is_beacon(hdr->frame_control)) {
+		/* FIXME for ath9k: RX_STAT_INC(rx_beacons); */
+		if (!is_zero_ether_addr(common->curbssid) &&
+		    ether_addr_equal(hdr->addr3, common->curbssid))
+			return true;
+	}
+
+	return false;
+}
+
+static void rx_status_htc_to_ath(struct ath_rx_status *rx_stats,
+				 struct ath_htc_rx_status *rxstatus)
+{
+	/* htc be64 = cpu32 */
+        //rx_stats->rs_tstamp;
+	/* htc be16 = cpu16 */
+	rx_stats->rs_datalen	= rxstatus->rs_datalen;
+	rx_stats->rs_status	= rxstatus->rs_status;
+	rx_stats->rs_phyerr	= rxstatus->rs_phyerr;
+	rx_stats->rs_rssi	= rxstatus->rs_rssi;
+	rx_stats->rs_keyix	= rxstatus->rs_keyix;
+	rx_stats->rs_rate	= rxstatus->rs_rate;
+	rx_stats->rs_antenna	= rxstatus->rs_antenna;
+	rx_stats->rs_more	= rxstatus->rs_more;
+	/* array copy */
+	memcpy(rx_stats->rs_rssi_ctl, rxstatus->rs_rssi_ctl,
+		sizeof(rx_stats->rs_rssi_ctl));
+	memcpy(rx_stats->rs_rssi_ext, rxstatus->rs_rssi_ext,
+		sizeof(rx_stats->rs_rssi_ext));
+
+	rx_stats->rs_isaggr	= rxstatus->rs_isaggr;
+	/* FIXME: rs_firstaggr never used? */
+	//rx_stats->rs_firstaggr	= rxstatus->rs_firstaggr;
+	rx_stats->rs_moreaggr	= rxstatus->rs_moreaggr;
+	rx_stats->rs_num_delims	= rxstatus->rs_num_delims;
+	rx_stats->rs_flags	= rxstatus->rs_flags;
+	/* updated separately */
+        //rx_stats->is_mybeacon;
+	/* htc be32 = cpu32 */
+#if 0
+        rx_stats->evm0		= be32_to_cpu(rxstatus->evm0);
+        rx_stats->evm1		= be32_to_cpu(rxstatus->evm1);
+        rx_stats->evm2		= be32_to_cpu(rxstatus->evm2);
+#endif
+}
+
 static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 			     struct ath9k_htc_rxbuf *rxbuf,
 			     struct ieee80211_rx_status *rx_status)
@@ -976,8 +1094,8 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	struct sk_buff *skb = rxbuf->skb;
 	struct ath_common *common = ath9k_hw_common(priv->ah);
 	struct ath_htc_rx_status *rxstatus;
+	struct ath_rx_status *rx_stats = &rxbuf->rx_stats;
 	int hdrlen, padsize;
-	int last_rssi = ATH_RSSI_DUMMY_MARKER;
 	__le16 fc;
 
 	if (skb->len < HTC_RX_FRAME_HEADER_SIZE) {
@@ -999,6 +1117,7 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	ath9k_htc_err_stat_rx(priv, rxstatus);
 
 	/* Get the RX status information */
+	/* we can convert instead of doing copy of rxstatus */
 	memcpy(&rxbuf->rxstatus, rxstatus, HTC_RX_FRAME_HEADER_SIZE);
 	skb_pull(skb, HTC_RX_FRAME_HEADER_SIZE);
 
@@ -1068,31 +1187,17 @@ static bool ath9k_rx_prepare(struct ath9k_htc_priv *priv,
 	ath9k_process_rate(hw, rx_status, rxbuf->rxstatus.rs_rate,
 			   rxbuf->rxstatus.rs_flags);
 
-	if (rxbuf->rxstatus.rs_rssi != ATH9K_RSSI_BAD &&
-	    !rxbuf->rxstatus.rs_moreaggr)
-		ATH_RSSI_LPF(priv->rx.last_rssi,
-			     rxbuf->rxstatus.rs_rssi);
+	/* FIXME: can be eliminated? */
+	rx_status_htc_to_ath(rx_stats, &rxbuf->rxstatus);
+	/* copy from ath9k */
+	rx_stats->is_mybeacon = ath9k_is_mybeacon(priv, hdr);
+	/* copy from ath9k */
+	ath9k_process_rssi(common, hw, rx_stats, rx_status);
 
-	last_rssi = priv->rx.last_rssi;
-
-	if (ieee80211_is_beacon(hdr->frame_control) &&
-	    !is_zero_ether_addr(common->curbssid) &&
-	    ether_addr_equal(hdr->addr3, common->curbssid)) {
-		s8 rssi = rxbuf->rxstatus.rs_rssi;
-
-		if (likely(last_rssi != ATH_RSSI_DUMMY_MARKER))
-			rssi = ATH_EP_RND(last_rssi, ATH_RSSI_EP_MULTIPLIER);
-
-		if (rssi < 0)
-			rssi = 0;
-
-		priv->ah->stats.avgbrssi = rssi;
-	}
-
+	/* FIXME use ath9k_process_tsf to convert mactime */
 	rx_status->mactime = be64_to_cpu(rxbuf->rxstatus.rs_tstamp);
 	rx_status->band = hw->conf.chandef.chan->band;
 	rx_status->freq = hw->conf.chandef.chan->center_freq;
-	rx_status->signal =  rxbuf->rxstatus.rs_rssi + ATH_DEFAULT_NOISE_FLOOR;
 	rx_status->antenna = rxbuf->rxstatus.rs_antenna;
 	rx_status->flag |= RX_FLAG_MACTIME_END;
 

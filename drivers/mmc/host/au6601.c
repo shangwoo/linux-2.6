@@ -21,13 +21,18 @@
 #include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
-#include "sdhci-pci.h"
+//#include "sdhci-pci.h"
+
+#include <linux/mmc/host.h>
 
 #define DRVNAME			"au6601-pci"
 #define PCI_ID_ALCOR_MICRO	0x1aea
 #define PCI_ID_AU6601		0x6601
 
 #define MHZ_TO_HZ(freq)	((freq) * 1000 * 1000)
+
+#define DBG(f, x...) \
+        printk(DRVNAME " [%s()]: " f, __func__,## x)
 
 #define REG_00	0x00
 #define REG_05	0x05
@@ -107,6 +112,11 @@
 		AU6601_INT_DATA_END_BIT)
 #define AU6601_INT_ALL_MASK	((uint32_t)-1)
 
+#define AU6601_MIN_CLOCK		(150 * 1000)
+#define AU6601_MAX_CLOCK		MHZ_TO_HZ(200)
+#define AU6601_MAX_BLOCK_LENGTH		2048
+#define AU6601_MAX_BLOCK_COUNT		65536
+
 u32 reg_list[][4] = {
 	{ 0, 0, 0, 0},
 	{ REG_00, 0, 0, 4},
@@ -156,12 +166,18 @@ u32 reg_list[][4] = {
 struct au6601_host {
 	struct pci_dev *pdev;
 	void __iomem *iobase;
-	spinlock_t lock;
-};
 
-struct mmc_command {
-	u8	opcode;
-	u32	arg;
+	struct mmc_host *mmc;
+	struct mmc_request *mrq;
+	struct mmc_command *cmd;
+	struct mmc_data *data;
+
+	spinlock_t lock;
+
+	struct tasklet_struct card_tasklet;
+	struct tasklet_struct finish_tasklet;
+
+	struct timer_list timer;
 };
 
 static const struct pci_device_id pci_ids[] = {
@@ -183,6 +199,7 @@ static unsigned char au6601_readb(struct au6601_host *host,
 	return val;
 }
 
+#if 0
 static unsigned short au6601_readw(struct au6601_host *host,
 			  unsigned int reg)
 {
@@ -190,6 +207,7 @@ static unsigned short au6601_readw(struct au6601_host *host,
 	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	return val;
 }
+#endif
 
 static unsigned int au6601_readl(struct au6601_host *host,
 			  unsigned int reg)
@@ -257,6 +275,7 @@ static void au6601_reg_snap(struct au6601_host *host)
 	}
 }
 
+#if 0
 static void au6601_regdump(struct au6601_host *host)
 {
 	int i, a = 0;
@@ -269,6 +288,7 @@ static void au6601_regdump(struct au6601_host *host)
 			a++;
 	}
 }
+#endif
 
 static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 {
@@ -278,9 +298,9 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 	ier &= ~clear;
 	ier |= set;
 	au6601_writel(host, ier, AU6601_INT_ENABLE);
-	//sdhci_writel(host, ier, SDHCI_SIGNAL_ENABLE);
 }
 
+#if 0
 static void au6601_unmask_irqs(struct au6601_host *host, u32 irqs)
 {
 	au6601_clear_set_irqs(host, 0, irqs);
@@ -290,8 +310,9 @@ static void au6601_mask_irqs(struct au6601_host *host, u32 irqs)
 {
 	au6601_clear_set_irqs(host, irqs, 0);
 }
+# endif
 
-/* val = 0x1 send data; 0x8 ?*/
+/* val = 0x1 abort command; 0x8 abort data? */
 static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
 {
 	int i;
@@ -313,20 +334,16 @@ static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
 static void au6601_toggle_reg70(struct au6601_host *host, unsigned int value, unsigned int set)
 {
 	u8 tmp1, tmp2;
-	unsigned int reg;
  
 	tmp1 = au6601_readb(host, REG_70);
 	tmp2 = au6601_readb(host, REG_7A);
 	if (set) {
-		au6601_writeb(host, value | tmp1, REG_70);
-		tmp2 |= value;
-		reg = REG_7A;
+		au6601_writeb(host, tmp1 | value, REG_70);
+		au6601_writeb(host, tmp2 | value, REG_7A);
 	} else {
 		au6601_writeb(host, tmp2 & ~value, REG_7A);
-		tmp2 = tmp1 & ~value;
-		reg = REG_70;
+		au6601_writeb(host, tmp1 & ~value, REG_70);
 	}
-	au6601_writeb(host, tmp2, reg);
 }
 
 static void au6601_set_freg_pre(struct au6601_host *host)
@@ -400,23 +417,64 @@ static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 	au6601_writew(host, (div - 1) << 8 | 1 | mult, REG_72);
 }
 
-static void au6601_set_ios(struct au6601_host *host)
+static void au6601_finish_command(struct au6601_host *host)
 {
-	au6601_set_freg_pre(host);
-	au6601_set_clock(host, 150 * 1000);
+	struct mmc_command *cmd = host->cmd;
+        u32 dwdata0 = au6601_readl(host, REG_30);
+        u32 dwdata1 = au6601_readl(host, REG_30);
+        u32 dwdata2 = au6601_readl(host, REG_30);
+        u32 dwdata3 = au6601_readl(host, REG_30);
 
-	/* set power mode */
-	au6601_toggle_reg70(host, 0x1, 1);
+        if (cmd->flags & MMC_RSP_136) {
+                cmd->resp[0] = ((u8) (dwdata1)) |
+                    (((u8) (dwdata0 >> 24)) << 8) |
+                    (((u8) (dwdata0 >> 16)) << 16) |
+                    (((u8) (dwdata0 >> 8)) << 24);
+
+                cmd->resp[1] = ((u8) (dwdata2)) |
+                    (((u8) (dwdata1 >> 24)) << 8) |
+                    (((u8) (dwdata1 >> 16)) << 16) |
+                    (((u8) (dwdata1 >> 8)) << 24);
+
+                cmd->resp[2] = ((u8) (dwdata3)) |
+                    (((u8) (dwdata2 >> 24)) << 8) |
+                    (((u8) (dwdata2 >> 16)) << 16) |
+                    (((u8) (dwdata2 >> 8)) << 24);
+
+                cmd->resp[3] = 0xff |
+                    ((((u8) (dwdata3 >> 24))) << 8) |
+                    (((u8) (dwdata3 >> 16)) << 16) |
+                    (((u8) (dwdata3 >> 8)) << 24);
+        } else {
+                dwdata0 >>= 8;
+                cmd->resp[0] = ((dwdata0 & 0xff) << 24) |
+                    (((dwdata0 >> 8) & 0xff) << 16) |
+                    (((dwdata0 >> 16) & 0xff) << 8) | (dwdata1 & 0xff);
+
+                dwdata1 >>= 8;
+                cmd->resp[1] = ((dwdata1 & 0xff) << 24) |
+                    (((dwdata1 >> 8) & 0xff) << 16) |
+                    (((dwdata1 >> 16) & 0xff) << 8);
+        }
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
-			    struct mmc_command *cmd, u8 ctrl)
+			    struct mmc_command *cmd)
 {
-	u8 flags = 0; /*some mysterious flags and control */
-	//u8 ctrl, flags = 0; /*some mysterious flags and control */
+	u8 ctrl; /*some mysterious flags and control */
+	unsigned long timeout;
 
+        timeout = jiffies;
+        if (!cmd->data && cmd->cmd_timeout_ms > 9000)
+                timeout += DIV_ROUND_UP(cmd->cmd_timeout_ms, 1000) * HZ + HZ;
+        else
+                timeout += 10 * HZ;
+        mod_timer(&host->timer, timeout);
+
+        host->cmd = cmd;
 
 	/* FIXME in some cases we write here REG_6C and REG_83 */
+
 	//writel(0x200, host->iobase + REG_6C);
 	//au6601_writeb(0x80, host->iobase + REG_83);
 
@@ -424,7 +482,6 @@ static void au6601_send_cmd(struct au6601_host *host,
 	au6601_writel(host, cmd->arg, REG_24);
 	//au6601_writel(host, cpu_to_be32(cmd->arg), REG_24);
 
-#if 0
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:
 		ctrl |= 0x0;
@@ -449,10 +506,10 @@ static void au6601_send_cmd(struct au6601_host *host,
 	/* VIA_CRDR_SDCTRL_STOP? */
 	//if (cmd->opcode == 12)
 	//	ctrl |= 0x10;
-#endif
+
 	au6601_writeb(host, ctrl | 0x20, REG_81);
 	/* should be handled by interrupt, not msleep */
-	msleep(10);
+	//msleep(10);
 	//au6601_wait_reg_79(host, 0x1);
 }
 
@@ -467,6 +524,7 @@ static void some_seq(struct au6601_host *host)
 	au6601_writel(host, 0x0, REG_82);
 }
 
+#if 0
 static void testing(struct au6601_host *host)
 {
 	struct mmc_command cmd;
@@ -486,7 +544,6 @@ static void testing(struct au6601_host *host)
 	cmd.arg = 0xaa010000;
 	au6601_send_cmd(host, &cmd, 0x80);
 
-#if 0
 	for (i = 0; i < 20; i++) {
 	//some_seq(host);
 	cmd.opcode = 0x77;
@@ -553,8 +610,59 @@ static void testing(struct au6601_host *host)
 
 	au6601_writel(host, 0x200, REG_6C);
 	au6601_writeb(host, 0x41, REG_83);
-#endif
 }
+#endif
+
+/*****************************************************************************\
+ *                                                                           *
+ * Interrupt handling                                                        *
+ *                                                                           *
+\*****************************************************************************/
+
+static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
+{
+	BUG_ON(intmask == 0);
+
+	if (!host->cmd) {
+		pr_err("%s: Got command interrupt 0x%08x even "
+			"though no command operation was in progress.\n",
+			mmc_hostname(host->mmc), (unsigned)intmask);
+		//sdhci_dumpregs(host);
+		return;
+	}
+
+	if (intmask & AU6601_INT_TIMEOUT)
+		host->cmd->error = -ETIMEDOUT;
+	else if (intmask & (AU6601_INT_CRC | AU6601_INT_END_BIT |
+			AU6601_INT_INDEX))
+		host->cmd->error = -EILSEQ;
+
+	if (host->cmd->error) {
+		tasklet_schedule(&host->finish_tasklet);
+		return;
+	}
+
+	/*
+	 * The host can send and interrupt when the busy state has
+	 * ended, allowing us to wait without wasting CPU cycles.
+	 * Unfortunately this is overloaded on the "data complete"
+	 * interrupt, so we need to take some care when handling
+	 * it.
+	 *
+	 * Note: The 1.0 specification is a bit ambiguous about this
+	 *       feature so there might be some problems with older
+	 *       controllers.
+	 */
+	if (host->cmd->flags & MMC_RSP_BUSY) {
+		if (host->cmd->data)
+			printk("Cannot wait for busy signal when also "
+				"doing a data transfer");
+	}
+
+	if (intmask & AU6601_INT_RESPONSE)
+		au6601_finish_command(host);
+}
+
 
 static irqreturn_t au6601_irq(int irq, void *d)
 {
@@ -601,7 +709,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		au6601_writel(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
 		intmask &= ~AU6601_INT_CMD_MASK;
-		//au6601_cmd_irq(host, intmask & AU6601_INT_CMD_MASK);
+		au6601_cmd_irq(host, intmask & AU6601_INT_CMD_MASK);
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
@@ -633,8 +741,6 @@ static void au6601_init(struct au6601_host *host)
 {
 //	u32 scratch;
 //	u16 v3 = 0xa, Valuea = 0x10;
-
-	spin_lock_init(&host->lock);
 
 	au6601_writeb(host, 0, REG_7F);
 	au6601_readb(host, REG_7F);
@@ -678,9 +784,181 @@ static void au6601_init(struct au6601_host *host)
 
 }
 
+static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
+{
+	struct au6601_host *host;
+	unsigned long flags;
+
+	host = mmc_priv(mmc);
+	spin_lock_irqsave(&host->lock, flags);
+
+	/* check if card is present? then send command and data */
+	au6601_send_cmd(host, mrq->cmd);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
+{
+	struct au6601_host *host;
+	unsigned long flags;
+
+	host = mmc_priv(mmc);
+	spin_lock_irqsave(&host->lock, flags);
+
+	au6601_set_freg_pre(host);
+	au6601_set_clock(host, ios->clock);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+
+	if (ios->power_mode != MMC_POWER_OFF)
+		au6601_toggle_reg70(host, 0x1, 1);
+	else
+		au6601_toggle_reg70(host, 0x1, 0);
+}
+
+#if 0
+static int au6601_sdc_get_ro(struct mmc_host *mmc)
+{
+	return 0;
+}
+#endif
+
+static const struct mmc_host_ops au6601_sdc_ops = {
+        .request = au6601_sdc_request,
+        .set_ios = au6601_sdc_set_ios,
+       // .get_ro = au6601_sdc_get_ro,
+};
+
+/*****************************************************************************\
+ *                                                                           *
+ * Tasklets                                                                  *
+ *                                                                           *
+\*****************************************************************************/
+
+static void au6601_tasklet_card(unsigned long param)
+{
+	struct au6601_host *host = (struct au6601_host*)param;
+
+	//sdhci_card_event(host->mmc);
+
+	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
+}
+
+static void au6601_tasklet_finish(unsigned long param)
+{
+	struct au6601_host *host;
+	unsigned long flags;
+	struct mmc_request *mrq;
+
+	host = (struct au6601_host*)param;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	/*
+	 * If this tasklet gets rescheduled while running, it will
+	 * be run again afterwards but without any active request.
+	 */
+	if (!host->mrq) {
+		spin_unlock_irqrestore(&host->lock, flags);
+		return;
+	}
+
+	del_timer(&host->timer);
+
+	mrq = host->mrq;
+
+	/*
+	 * The controller needs a reset of internal state machines
+	 * upon error conditions.
+	 */
+	if ((mrq->cmd && mrq->cmd->error) ||
+		 (mrq->data && (mrq->data->error ||
+		  (mrq->data->stop && mrq->data->stop->error)))) {
+
+		// do reset over reg_79?
+//		sdhci_reset(host, SDHCI_RESET_CMD);
+//		sdhci_reset(host, SDHCI_RESET_DATA);
+	}
+
+	host->mrq = NULL;
+	host->cmd = NULL;
+	host->data = NULL;
+
+        mmiowb();
+	spin_unlock_irqrestore(&host->lock, flags);
+
+	mmc_request_done(host->mmc, mrq);
+}
+
+static void au6601_timeout_timer(unsigned long data)
+{
+	struct au6601_host *host;
+	unsigned long flags;
+
+	host = (struct au6601_host*)data;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	if (host->mrq) {
+		pr_err("%s: Timeout waiting for hardware "
+			"interrupt.\n", mmc_hostname(host->mmc));
+		//sdhci_dumpregs(host);
+
+		if (host->data) {
+			host->data->error = -ETIMEDOUT;
+			//sdhci_finish_data(host);
+		} else {
+			if (host->cmd)
+				host->cmd->error = -ETIMEDOUT;
+			else
+				host->mrq->cmd->error = -ETIMEDOUT;
+
+			tasklet_schedule(&host->finish_tasklet);
+		}
+	}
+
+	mmiowb();
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+
+
+static void au6601_init_host(struct au6601_host *host)
+{
+	struct mmc_host *mmc = host->mmc;
+	//void __iomem *addrbase;
+	//u32 lenreg;
+	//u32 status;
+
+	//init_timer(&host->timer);
+	//host->timer.data = (unsigned long)host;
+	//host->timer.function = via_sdc_timeout;
+
+	spin_lock_init(&host->lock);
+
+	mmc->f_min = AU6601_MIN_CLOCK;
+	mmc->f_max = AU6601_MAX_CLOCK;
+	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
+	mmc->caps = MMC_CAP_4_BIT_DATA;
+	mmc->ops = &au6601_sdc_ops;
+
+	/*Hardware cannot do scatter lists*/
+	mmc->max_segs = 1;
+
+	mmc->max_blk_size = AU6601_MAX_BLOCK_LENGTH;
+	mmc->max_blk_count = AU6601_MAX_BLOCK_COUNT;
+
+	mmc->max_seg_size = mmc->max_blk_size * mmc->max_blk_count;
+	mmc->max_req_size = mmc->max_seg_size;
+}
+
+
 static int au6601_pci_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *ent)
 {
+	struct mmc_host *mmc;
 	struct au6601_host *host;
         int ret, bar;
 	//u32 scratch_32;
@@ -704,8 +982,13 @@ static int au6601_pci_probe(struct pci_dev *pdev,
         host = devm_kzalloc(&pdev->dev, sizeof(struct au6601_host),
 			    GFP_KERNEL);
         if (!host)
-                return -ENOMEM;
+		return -ENOMEM;
 
+	/* FIXME: are there no managed version of mmc_alloc_host? */
+	mmc = mmc_alloc_host(0, &pdev->dev);
+	if (!mmc)
+		return -ENOMEM;
+	host->mmc = mmc;
         host->pdev = pdev;
 
         ret = pci_request_region(pdev, bar, DRVNAME);
@@ -730,12 +1013,26 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 
         pci_set_drvdata(pdev, host);
 
+	/*
+	 * Init tasklets.
+	 */
+	tasklet_init(&host->card_tasklet,
+		au6601_tasklet_card, (unsigned long)host);
+	tasklet_init(&host->finish_tasklet,
+		au6601_tasklet_finish, (unsigned long)host);
+	setup_timer(&host->timer, au6601_timeout_timer, (unsigned long)host);
+
+	au6601_init_host(host);
 	au6601_reg_snap(host);
 	au6601_init(host);
-	au6601_set_ios(host);
+
+	mmc_add_host(mmc);
+
+	//au6601_set_ios(host);
 	//au6601_regdump(host);
-	testing(host);
-	au6601_reg_snap(host);
+	//testing(host);
+	//au6601_reg_snap(host);
+
 
         return 0;
 }
@@ -757,18 +1054,23 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 
 	au6601_toggle_reg70(host, 0x8, 0);
 
+	del_timer_sync(&host->timer);
+	tasklet_kill(&host->card_tasklet);
+	tasklet_kill(&host->finish_tasklet);
+
+	mmc_free_host(host->mmc);
 	// do some thing here
 }
 
 
-static struct pci_driver sdhci_driver = {
+static struct pci_driver au6601_driver = {
         .name =         DRVNAME,
         .id_table =     pci_ids,
         .probe =        au6601_pci_probe,
         .remove =       au6601_pci_remove,
 };
 
-module_pci_driver(sdhci_driver);
+module_pci_driver(au6601_driver);
 
 MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
 MODULE_DESCRIPTION("Alcor Micro AU6601 Secure Digital Host Controller Interface PCI driver");

@@ -469,6 +469,7 @@ static void au6601_send_cmd(struct au6601_host *host,
                 timeout += DIV_ROUND_UP(cmd->cmd_timeout_ms, 1000) * HZ + HZ;
         else
                 timeout += 10 * HZ;
+	printk("prepare for timeout: %d (%d)\n", timeout, cmd->cmd_timeout_ms);
         mod_timer(&host->timer, timeout);
 
         host->cmd = cmd;
@@ -708,8 +709,8 @@ static irqreturn_t au6601_irq(int irq, void *d)
 
 		au6601_writel(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
-		intmask &= ~AU6601_INT_CMD_MASK;
 		au6601_cmd_irq(host, intmask & AU6601_INT_CMD_MASK);
+		intmask &= ~AU6601_INT_CMD_MASK;
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
@@ -979,15 +980,12 @@ static int au6601_pci_probe(struct pci_dev *pdev,
         if (ret)
                 return ret;
 
-        host = devm_kzalloc(&pdev->dev, sizeof(struct au6601_host),
-			    GFP_KERNEL);
-        if (!host)
-		return -ENOMEM;
-
 	/* FIXME: are there no managed version of mmc_alloc_host? */
-	mmc = mmc_alloc_host(0, &pdev->dev);
+	mmc = mmc_alloc_host(sizeof(struct au6601_host), &pdev->dev);
 	if (!mmc)
 		return -ENOMEM;
+
+	host = mmc_priv(mmc);
 	host->mmc = mmc;
         host->pdev = pdev;
 
@@ -1002,7 +1000,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 	if (!host->iobase)
 		return -ENOMEM;
 
-	ret = devm_request_irq(&pdev->dev, 17, au6601_irq,
+	ret = devm_request_irq(&pdev->dev, pdev->irq, au6601_irq,
 				IRQF_TRIGGER_FALLING, "au6601 host",
 				host);
 

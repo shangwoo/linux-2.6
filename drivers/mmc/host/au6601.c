@@ -612,6 +612,226 @@ static void au6601_finish_command(struct au6601_host *host)
 #endif
 }
 
+static void sdhci_finish_data(struct sdhci_host *host)
+{
+	struct mmc_data *data;
+
+	BUG_ON(!host->data);
+
+	data = host->data;
+	host->data = NULL;
+
+	if (host->flags & SDHCI_REQ_USE_DMA) {
+		if (host->flags & SDHCI_USE_ADMA)
+			sdhci_adma_table_post(host, data);
+		else {
+			dma_unmap_sg(mmc_dev(host->mmc), data->sg,
+				data->sg_len, (data->flags & MMC_DATA_READ) ?
+					DMA_FROM_DEVICE : DMA_TO_DEVICE);
+		}
+	}
+
+	/*
+	 * The specification states that the block count register must
+	 * be updated, but it does not specify at what point in the
+	 * data flow. That makes the register entirely useless to read
+	 * back so we have to assume that nothing made it to the card
+	 * in the event of an error.
+	 */
+	if (data->error)
+		data->bytes_xfered = 0;
+	else
+		data->bytes_xfered = data->blksz * data->blocks;
+
+	/*
+	 * Need to send CMD12 if -
+	 * a) open-ended multiblock transfer (no CMD23)
+	 * b) error in multiblock transfer
+	 */
+	if (data->stop &&
+	    (data->error ||
+	     !host->mrq->sbc)) {
+
+		/*
+		 * The controller needs a reset of internal state machines
+		 * upon error conditions.
+		 */
+		if (data->error) {
+			sdhci_reset(host, SDHCI_RESET_CMD);
+			sdhci_reset(host, SDHCI_RESET_DATA);
+		}
+
+		sdhci_send_command(host, data->stop);
+	} else
+		tasklet_schedule(&host->finish_tasklet);
+}
+
+static void sdhci_prepare_data(struct sdhci_host *host, struct mmc_command *cmd)
+{
+	u8 count;
+	u8 ctrl;
+	struct mmc_data *data = cmd->data;
+	int ret;
+
+	WARN_ON(host->data);
+
+	if (data || (cmd->flags & MMC_RSP_BUSY)) {
+		count = sdhci_calc_timeout(host, cmd);
+		sdhci_writeb(host, count, SDHCI_TIMEOUT_CONTROL);
+	}
+
+	if (!data)
+		return;
+
+	/* Sanity checks */
+	BUG_ON(data->blksz * data->blocks > 524288);
+	BUG_ON(data->blksz > host->mmc->max_blk_size);
+	BUG_ON(data->blocks > 65535);
+
+	host->data = data;
+	host->data_early = 0;
+	host->data->bytes_xfered = 0;
+
+	if (host->flags & (SDHCI_USE_SDMA | SDHCI_USE_ADMA))
+		host->flags |= SDHCI_REQ_USE_DMA;
+
+	/*
+	 * FIXME: This doesn't account for merging when mapping the
+	 * scatterlist.
+	 */
+	if (host->flags & SDHCI_REQ_USE_DMA) {
+		int broken, i;
+		struct scatterlist *sg;
+
+		broken = 0;
+		if (host->flags & SDHCI_USE_ADMA) {
+			if (host->quirks & SDHCI_QUIRK_32BIT_ADMA_SIZE)
+				broken = 1;
+		} else {
+			if (host->quirks & SDHCI_QUIRK_32BIT_DMA_SIZE)
+				broken = 1;
+		}
+
+		if (unlikely(broken)) {
+			for_each_sg(data->sg, sg, data->sg_len, i) {
+				if (sg->length & 0x3) {
+					DBG("Reverting to PIO because of "
+						"transfer size (%d)\n",
+						sg->length);
+					host->flags &= ~SDHCI_REQ_USE_DMA;
+					break;
+				}
+			}
+		}
+	}
+
+	/*
+	 * The assumption here being that alignment is the same after
+	 * translation to device address space.
+	 */
+	if (host->flags & SDHCI_REQ_USE_DMA) {
+		int broken, i;
+		struct scatterlist *sg;
+
+		broken = 0;
+		if (host->flags & SDHCI_USE_ADMA) {
+			/*
+			 * As we use 3 byte chunks to work around
+			 * alignment problems, we need to check this
+			 * quirk.
+			 */
+			if (host->quirks & SDHCI_QUIRK_32BIT_ADMA_SIZE)
+				broken = 1;
+		} else {
+			if (host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR)
+				broken = 1;
+		}
+
+		if (unlikely(broken)) {
+			for_each_sg(data->sg, sg, data->sg_len, i) {
+				if (sg->offset & 0x3) {
+					DBG("Reverting to PIO because of "
+						"bad alignment\n");
+					host->flags &= ~SDHCI_REQ_USE_DMA;
+					break;
+				}
+			}
+		}
+	}
+
+	if (host->flags & SDHCI_REQ_USE_DMA) {
+		if (host->flags & SDHCI_USE_ADMA) {
+			ret = sdhci_adma_table_pre(host, data);
+			if (ret) {
+				/*
+				 * This only happens when someone fed
+				 * us an invalid request.
+				 */
+				WARN_ON(1);
+				host->flags &= ~SDHCI_REQ_USE_DMA;
+			} else {
+				sdhci_writel(host, host->adma_addr,
+					SDHCI_ADMA_ADDRESS);
+			}
+		} else {
+			int sg_cnt;
+
+			sg_cnt = dma_map_sg(mmc_dev(host->mmc),
+					data->sg, data->sg_len,
+					(data->flags & MMC_DATA_READ) ?
+						DMA_FROM_DEVICE :
+						DMA_TO_DEVICE);
+			if (sg_cnt == 0) {
+				/*
+				 * This only happens when someone fed
+				 * us an invalid request.
+				 */
+				WARN_ON(1);
+				host->flags &= ~SDHCI_REQ_USE_DMA;
+			} else {
+				WARN_ON(sg_cnt != 1);
+				sdhci_writel(host, sg_dma_address(data->sg),
+					SDHCI_DMA_ADDRESS);
+			}
+		}
+	}
+
+	/*
+	 * Always adjust the DMA selection as some controllers
+	 * (e.g. JMicron) can't do PIO properly when the selection
+	 * is ADMA.
+	 */
+	if (host->version >= SDHCI_SPEC_200) {
+		ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
+		ctrl &= ~SDHCI_CTRL_DMA_MASK;
+		if ((host->flags & SDHCI_REQ_USE_DMA) &&
+			(host->flags & SDHCI_USE_ADMA))
+			ctrl |= SDHCI_CTRL_ADMA32;
+		else
+			ctrl |= SDHCI_CTRL_SDMA;
+		sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+	}
+
+	if (!(host->flags & SDHCI_REQ_USE_DMA)) {
+		int flags;
+
+		flags = SG_MITER_ATOMIC;
+		if (host->data->flags & MMC_DATA_READ)
+			flags |= SG_MITER_TO_SG;
+		else
+			flags |= SG_MITER_FROM_SG;
+		sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
+		host->blocks = data->blocks;
+	}
+
+	sdhci_set_transfer_irqs(host);
+
+	/* Set the DMA boundary value and block size */
+	sdhci_writew(host, SDHCI_MAKE_BLKSZ(SDHCI_DEFAULT_BOUNDARY_ARG,
+		data->blksz), SDHCI_BLOCK_SIZE);
+	sdhci_writew(host, data->blocks, SDHCI_BLOCK_COUNT);
+}
+
 static void au6601_send_cmd(struct au6601_host *host,
 			    struct mmc_command *cmd)
 {

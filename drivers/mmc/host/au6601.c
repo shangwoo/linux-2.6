@@ -50,7 +50,7 @@
 #define REG_61	0x61
 #define REG_63	0x63
 #define REG_69	0x69
-#define REG_6C	0x6c
+#define AU6601_BLOCK_SIZE	0x6c
 #define REG_70	0x70
 #define REG_72	0x72
 #define REG_74	0x74
@@ -135,7 +135,7 @@ u32 reg_list[][4] = {
 	{ REG_61, 0, 0, 1},
 	{ REG_63, 0, 0, 1},
 	{ REG_69, 0, 0, 1},
-	{ REG_6C, 0, 0, 4},
+	{ AU6601_BLOCK_SIZE, 0, 0, 4},
 	{ REG_70, 0, 0, 1},
 	{ REG_72, 0, 0, 2},
 	{ REG_74, 0, 0, 2},
@@ -612,7 +612,7 @@ static void au6601_finish_command(struct au6601_host *host)
 #endif
 }
 
-static void sdhci_finish_data(struct sdhci_host *host)
+static void au6601_finish_data(struct au6601_host *host)
 {
 	struct mmc_data *data;
 
@@ -621,15 +621,6 @@ static void sdhci_finish_data(struct sdhci_host *host)
 	data = host->data;
 	host->data = NULL;
 
-	if (host->flags & SDHCI_REQ_USE_DMA) {
-		if (host->flags & SDHCI_USE_ADMA)
-			sdhci_adma_table_post(host, data);
-		else {
-			dma_unmap_sg(mmc_dev(host->mmc), data->sg,
-				data->sg_len, (data->flags & MMC_DATA_READ) ?
-					DMA_FROM_DEVICE : DMA_TO_DEVICE);
-		}
-	}
 
 	/*
 	 * The specification states that the block count register must
@@ -657,31 +648,37 @@ static void sdhci_finish_data(struct sdhci_host *host)
 		 * upon error conditions.
 		 */
 		if (data->error) {
-			sdhci_reset(host, SDHCI_RESET_CMD);
-			sdhci_reset(host, SDHCI_RESET_DATA);
+			au6601_wait_reg_79(host, 0x1);
+			au6601_wait_reg_79(host, 0x8);
+			//au6601_reset(host, AU6601_RESET_CMD);
+			//au6601_reset(host, AU6601_RESET_DATA);
 		}
 
-		sdhci_send_command(host, data->stop);
+		au6601_send_command(host, data->stop);
 	} else
 		tasklet_schedule(&host->finish_tasklet);
 }
 
-static void sdhci_prepare_data(struct sdhci_host *host, struct mmc_command *cmd)
+static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cmd)
 {
 	u8 count;
-	u8 ctrl;
+	u8 ctrl = 0;
+	int flags;
 	struct mmc_data *data = cmd->data;
 	int ret;
 
 	WARN_ON(host->data);
 
-	if (data || (cmd->flags & MMC_RSP_BUSY)) {
-		count = sdhci_calc_timeout(host, cmd);
-		sdhci_writeb(host, count, SDHCI_TIMEOUT_CONTROL);
-	}
+	//if (data || (cmd->flags & MMC_RSP_BUSY)) {
+	//	count = au6601_calc_timeout(host, cmd);
+	//	au6601_writeb(host, count, AU6601_TIMEOUT_CONTROL);
+	//}
 
-	if (!data)
+	if (!data) {
+		/* make seure we do not accidantly trigger fifo */
+		au6601_writew(host, 0, REG_83);
 		return;
+	}
 
 	/* Sanity checks */
 	BUG_ON(data->blksz * data->blocks > 524288);
@@ -692,144 +689,21 @@ static void sdhci_prepare_data(struct sdhci_host *host, struct mmc_command *cmd)
 	host->data_early = 0;
 	host->data->bytes_xfered = 0;
 
-	if (host->flags & (SDHCI_USE_SDMA | SDHCI_USE_ADMA))
-		host->flags |= SDHCI_REQ_USE_DMA;
+	flags = SG_MITER_ATOMIC;
+	if (host->data->flags & MMC_DATA_READ)
+		flags |= SG_MITER_TO_SG;
+	else
+		flags |= SG_MITER_FROM_SG;
+	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
+	host->blocks = data->blocks;
 
-	/*
-	 * FIXME: This doesn't account for merging when mapping the
-	 * scatterlist.
-	 */
-	if (host->flags & SDHCI_REQ_USE_DMA) {
-		int broken, i;
-		struct scatterlist *sg;
+	/* do we really need it? */
+	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
 
-		broken = 0;
-		if (host->flags & SDHCI_USE_ADMA) {
-			if (host->quirks & SDHCI_QUIRK_32BIT_ADMA_SIZE)
-				broken = 1;
-		} else {
-			if (host->quirks & SDHCI_QUIRK_32BIT_DMA_SIZE)
-				broken = 1;
-		}
-
-		if (unlikely(broken)) {
-			for_each_sg(data->sg, sg, data->sg_len, i) {
-				if (sg->length & 0x3) {
-					DBG("Reverting to PIO because of "
-						"transfer size (%d)\n",
-						sg->length);
-					host->flags &= ~SDHCI_REQ_USE_DMA;
-					break;
-				}
-			}
-		}
-	}
-
-	/*
-	 * The assumption here being that alignment is the same after
-	 * translation to device address space.
-	 */
-	if (host->flags & SDHCI_REQ_USE_DMA) {
-		int broken, i;
-		struct scatterlist *sg;
-
-		broken = 0;
-		if (host->flags & SDHCI_USE_ADMA) {
-			/*
-			 * As we use 3 byte chunks to work around
-			 * alignment problems, we need to check this
-			 * quirk.
-			 */
-			if (host->quirks & SDHCI_QUIRK_32BIT_ADMA_SIZE)
-				broken = 1;
-		} else {
-			if (host->quirks & SDHCI_QUIRK_32BIT_DMA_ADDR)
-				broken = 1;
-		}
-
-		if (unlikely(broken)) {
-			for_each_sg(data->sg, sg, data->sg_len, i) {
-				if (sg->offset & 0x3) {
-					DBG("Reverting to PIO because of "
-						"bad alignment\n");
-					host->flags &= ~SDHCI_REQ_USE_DMA;
-					break;
-				}
-			}
-		}
-	}
-
-	if (host->flags & SDHCI_REQ_USE_DMA) {
-		if (host->flags & SDHCI_USE_ADMA) {
-			ret = sdhci_adma_table_pre(host, data);
-			if (ret) {
-				/*
-				 * This only happens when someone fed
-				 * us an invalid request.
-				 */
-				WARN_ON(1);
-				host->flags &= ~SDHCI_REQ_USE_DMA;
-			} else {
-				sdhci_writel(host, host->adma_addr,
-					SDHCI_ADMA_ADDRESS);
-			}
-		} else {
-			int sg_cnt;
-
-			sg_cnt = dma_map_sg(mmc_dev(host->mmc),
-					data->sg, data->sg_len,
-					(data->flags & MMC_DATA_READ) ?
-						DMA_FROM_DEVICE :
-						DMA_TO_DEVICE);
-			if (sg_cnt == 0) {
-				/*
-				 * This only happens when someone fed
-				 * us an invalid request.
-				 */
-				WARN_ON(1);
-				host->flags &= ~SDHCI_REQ_USE_DMA;
-			} else {
-				WARN_ON(sg_cnt != 1);
-				sdhci_writel(host, sg_dma_address(data->sg),
-					SDHCI_DMA_ADDRESS);
-			}
-		}
-	}
-
-	/*
-	 * Always adjust the DMA selection as some controllers
-	 * (e.g. JMicron) can't do PIO properly when the selection
-	 * is ADMA.
-	 */
-	if (host->version >= SDHCI_SPEC_200) {
-		ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
-		ctrl &= ~SDHCI_CTRL_DMA_MASK;
-		if ((host->flags & SDHCI_REQ_USE_DMA) &&
-			(host->flags & SDHCI_USE_ADMA))
-			ctrl |= SDHCI_CTRL_ADMA32;
-		else
-			ctrl |= SDHCI_CTRL_SDMA;
-		sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
-	}
-
-	if (!(host->flags & SDHCI_REQ_USE_DMA)) {
-		int flags;
-
-		flags = SG_MITER_ATOMIC;
-		if (host->data->flags & MMC_DATA_READ)
-			flags |= SG_MITER_TO_SG;
-		else
-			flags |= SG_MITER_FROM_SG;
-		sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
-		host->blocks = data->blocks;
-	}
-
-	sdhci_set_transfer_irqs(host);
-
-	/* Set the DMA boundary value and block size */
-	sdhci_writew(host, SDHCI_MAKE_BLKSZ(SDHCI_DEFAULT_BOUNDARY_ARG,
-		data->blksz), SDHCI_BLOCK_SIZE);
-	sdhci_writew(host, data->blocks, SDHCI_BLOCK_COUNT);
+	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
+	if (host->data->flags & MMC_DATA_WRITE)
+		ctrl = 0x80;
+	au6601_writew(host, ctrl | 0x1, REG_83);	
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
@@ -847,10 +721,11 @@ static void au6601_send_cmd(struct au6601_host *host,
         mod_timer(&host->timer, timeout);
 
         host->cmd = cmd;
+	au6601_prepare_data(host, cmd);
 
-	/* FIXME in some cases we write here REG_6C and REG_83 */
+	/* FIXME in some cases we write here AU6601_BLOCK_SIZE and REG_83 */
 
-	//writel(0x200, host->iobase + REG_6C);
+	//writel(0x200, host->iobase + AU6601_BLOCK_SIZE);
 	//au6601_writeb(0x80, host->iobase + REG_83);
 
 	au6601_writeb(host, cmd->opcode | 0x40, REG_23);
@@ -961,6 +836,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 	u32 command;
 	BUG_ON(intmask == 0);
 
+#if 0
 	/* CMD19 generates _only_ Buffer Read Ready interrupt */
 	if (intmask & AU6601_INT_DATA_AVAIL) {
 		command = AU6601_GET_CMD(au6601_readw(host, AU6601_COMMAND));
@@ -971,6 +847,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 			return;
 		}
 	}
+#endif
 
 	if (!host->data) {
 		/*
@@ -988,7 +865,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 		pr_err("%s: Got data interrupt 0x%08x even "
 			"though no data operation was in progress.\n",
 			mmc_hostname(host->mmc), (unsigned)intmask);
-		au6601_dumpregs(host);
+		//au6601_dumpregs(host);
 
 		return;
 	}

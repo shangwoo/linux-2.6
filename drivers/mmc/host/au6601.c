@@ -36,7 +36,7 @@
 
 #define REG_00	0x00
 #define REG_05	0x05
-#define REG_08	0x08
+#define AU6601_BUFFER	0x08
 #define REG_0C	0x0c
 #define REG_10	0x10
 #define REG_23	0x23
@@ -121,7 +121,7 @@ u32 reg_list[][4] = {
 	{ 0, 0, 0, 0},
 	{ REG_00, 0, 0, 4},
 	{ REG_05, 0, 0, 2},
-//	{ REG_08, 0, 0, 4},
+//	{ AU6601_BUFFER, 0, 0, 4},
 	{ REG_0C, 0, 0, 1},
 	{ REG_10, 0, 0, 4},
 	{ REG_23, 0, 0, 1},
@@ -171,6 +171,7 @@ struct au6601_host {
 	struct mmc_request *mrq;
 	struct mmc_command *cmd;
 	struct mmc_data *data;
+        unsigned int data_early:1;      /* Data finished before cmd */
 
 	spinlock_t lock;
 
@@ -181,6 +182,7 @@ struct au6601_host {
 
 	struct sg_mapping_iter sg_miter;	/* SG state for PIO */
 	unsigned int blocks;		/* remaining PIO blocks */
+        int sg_count;           /* Mapped sg entries */
 };
 
 static const struct pci_device_id pci_ids[] = {
@@ -456,10 +458,12 @@ static void au6601_transfer_pio(struct au6601_host *host)
 	if (host->blocks == 0)
 		return;
 
+#if 0
 	if (host->data->flags & MMC_DATA_READ)
 		mask = AU6601_DATA_AVAILABLE;
 	else
 		mask = AU6601_SPACE_AVAILABLE;
+
 
 	/*
 	 * Some controllers (JMicron JMB38x) mess up the buffer bits
@@ -469,20 +473,18 @@ static void au6601_transfer_pio(struct au6601_host *host)
 	if ((host->quirks & AU6601_QUIRK_BROKEN_SMALL_PIO) &&
 		(host->data->blocks == 1))
 		mask = ~0;
-
-	while (au6601_readl(host, AU6601_PRESENT_STATE) & mask) {
-		if (host->quirks & AU6601_QUIRK_PIO_NEEDS_DELAY)
-			udelay(100);
-
+#endif
+	//FIXME: do we have state register?
+	//while (au6601_readl(host, AU6601_PRESENT_STATE) & mask) {
 		if (host->data->flags & MMC_DATA_READ)
 			au6601_read_block_pio(host);
 		else
 			au6601_write_block_pio(host);
 
 		host->blocks--;
-		if (host->blocks == 0)
-			break;
-	}
+	//	if (host->blocks == 0)
+	//		break;
+	//}
 
 	DBG("PIO transfer complete.\n");
 }
@@ -775,50 +777,14 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 		host->data->error = -ETIMEDOUT;
 	else if (intmask & AU6601_INT_DATA_END_BIT)
 		host->data->error = -EILSEQ;
-	else if ((intmask & AU6601_INT_DATA_CRC) &&
-		AU6601_GET_CMD(au6601_readw(host, AU6601_COMMAND))
-			!= MMC_BUS_TEST_R)
+	else if (intmask & AU6601_INT_DATA_CRC)
 		host->data->error = -EILSEQ;
-	else if (intmask & AU6601_INT_ADMA_ERROR) {
-		pr_err("%s: ADMA error\n", mmc_hostname(host->mmc));
-		au6601_show_adma_error(host);
-		host->data->error = -EIO;
-		if (host->ops->adma_workaround)
-			host->ops->adma_workaround(host, intmask);
-	}
 
 	if (host->data->error)
 		au6601_finish_data(host);
 	else {
 		if (intmask & (AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL))
 			au6601_transfer_pio(host);
-
-		/*
-		 * We currently don't do anything fancy with DMA
-		 * boundaries, but as we can't disable the feature
-		 * we need to at least restart the transfer.
-		 *
-		 * According to the spec au6601_readl(host, AU6601_DMA_ADDRESS)
-		 * should return a valid address to continue from, but as
-		 * some controllers are faulty, don't trust them.
-		 */
-		if (intmask & AU6601_INT_DMA_END) {
-			u32 dmastart, dmanow;
-			dmastart = sg_dma_address(host->data->sg);
-			dmanow = dmastart + host->data->bytes_xfered;
-			/*
-			 * Force update to the next DMA block boundary.
-			 */
-			dmanow = (dmanow &
-				~(AU6601_DEFAULT_BOUNDARY_SIZE - 1)) +
-				AU6601_DEFAULT_BOUNDARY_SIZE;
-			host->data->bytes_xfered = dmanow - dmastart;
-			DBG("%s: DMA base 0x%08x, transferred 0x%06x bytes,"
-				" next 0x%08x\n",
-				mmc_hostname(host->mmc), dmastart,
-				host->data->bytes_xfered, dmanow);
-			au6601_writel(host, dmanow, AU6601_DMA_ADDRESS);
-		}
 
 		if (intmask & AU6601_INT_DATA_END) {
 			if (host->cmd) {

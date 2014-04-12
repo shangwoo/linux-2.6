@@ -185,6 +185,10 @@ struct au6601_host {
         int sg_count;           /* Mapped sg entries */
 };
 
+static void au6601_send_cmd(struct au6601_host *host,
+			    struct mmc_command *cmd);
+static void au6601_finish_data(struct au6601_host *host);
+
 static const struct pci_device_id pci_ids[] = {
 	{
 		.vendor         = PCI_ID_ALCOR_MICRO,
@@ -386,6 +390,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 		while (len) {
 			if (chunk == 0) {
 				scratch = au6601_readl(host, AU6601_BUFFER);
+				//scratch = be32_to_cpu(au6601_readl(host, AU6601_BUFFER));
 				chunk = 4;
 			}
 
@@ -451,7 +456,7 @@ static void au6601_write_block_pio(struct au6601_host *host)
 
 static void au6601_transfer_pio(struct au6601_host *host)
 {
-	u32 mask;
+	//u32 mask;
 
 	BUG_ON(!host->data);
 
@@ -482,7 +487,8 @@ static void au6601_transfer_pio(struct au6601_host *host)
 			au6601_write_block_pio(host);
 
 		host->blocks--;
-	//	if (host->blocks == 0)
+		//if (host->blocks == 0)
+	//		au6601_finish_data(host);
 	//		break;
 	//}
 
@@ -654,18 +660,18 @@ static void au6601_finish_data(struct au6601_host *host)
 			//au6601_reset(host, AU6601_RESET_DATA);
 		}
 
-		au6601_send_command(host, data->stop);
+		au6601_send_cmd(host, data->stop);
 	} else
 		tasklet_schedule(&host->finish_tasklet);
 }
 
 static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cmd)
 {
-	u8 count;
+	//u8 count;
 	u8 ctrl = 0;
 	int flags;
 	struct mmc_data *data = cmd->data;
-	int ret;
+	//int ret;
 
 	WARN_ON(host->data);
 
@@ -717,7 +723,7 @@ static void au6601_send_cmd(struct au6601_host *host,
                 timeout += DIV_ROUND_UP(cmd->cmd_timeout_ms, 1000) * HZ + HZ;
         else
                 timeout += 10 * HZ;
-	printk("prepare for timeout: %d (%d)\n", timeout, cmd->cmd_timeout_ms);
+	printk("prepare for timeout: %d (%d)\n", (int)timeout, (int)cmd->cmd_timeout_ms);
         mod_timer(&host->timer, timeout);
 
         host->cmd = cmd;
@@ -833,7 +839,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 
 static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 {
-	u32 command;
+	//u32 command;
 	BUG_ON(intmask == 0);
 
 #if 0
@@ -950,8 +956,8 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		printk("0x70003A (DATA/FIFO) got IRQ with %x", intmask);
 		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
+		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
 		intmask &= ~AU6601_INT_DATA_MASK;
-		//au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
 	}
 
 	if (intmask & 0x100) {

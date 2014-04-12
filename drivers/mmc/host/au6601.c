@@ -114,7 +114,7 @@
 
 #define AU6601_MIN_CLOCK		(150 * 1000)
 #define AU6601_MAX_CLOCK		MHZ_TO_HZ(200)
-#define AU6601_MAX_BLOCK_LENGTH		2048
+#define AU6601_MAX_BLOCK_LENGTH		512
 #define AU6601_MAX_BLOCK_COUNT		65536
 
 u32 reg_list[][4] = {
@@ -178,6 +178,9 @@ struct au6601_host {
 	struct tasklet_struct finish_tasklet;
 
 	struct timer_list timer;
+
+	struct sg_mapping_iter sg_miter;	/* SG state for PIO */
+	unsigned int blocks;		/* remaining PIO blocks */
 };
 
 static const struct pci_device_id pci_ids[] = {
@@ -345,6 +348,143 @@ static void au6601_toggle_reg70(struct au6601_host *host, unsigned int value, un
 		au6601_writeb(host, tmp2 & ~value, REG_7A);
 		au6601_writeb(host, tmp1 & ~value, REG_70);
 	}
+}
+
+/*****************************************************************************\
+ *                                                                           *
+ * Core functions                                                            *
+ *                                                                           *
+\*****************************************************************************/
+
+static void au6601_read_block_pio(struct au6601_host *host)
+{
+	unsigned long flags;
+	size_t blksize, len, chunk;
+	u32 uninitialized_var(scratch);
+	u8 *buf;
+
+	DBG("PIO reading\n");
+
+	blksize = host->data->blksz;
+	chunk = 0;
+
+	local_irq_save(flags);
+
+	while (blksize) {
+		if (!sg_miter_next(&host->sg_miter))
+			BUG();
+
+		len = min(host->sg_miter.length, blksize);
+
+		blksize -= len;
+		host->sg_miter.consumed = len;
+
+		buf = host->sg_miter.addr;
+
+		while (len) {
+			if (chunk == 0) {
+				scratch = au6601_readl(host, AU6601_BUFFER);
+				chunk = 4;
+			}
+
+			*buf = scratch & 0xFF;
+
+			buf++;
+			scratch >>= 8;
+			chunk--;
+			len--;
+		}
+	}
+
+	sg_miter_stop(&host->sg_miter);
+
+	local_irq_restore(flags);
+}
+
+static void au6601_write_block_pio(struct au6601_host *host)
+{
+	unsigned long flags;
+	size_t blksize, len, chunk;
+	u32 scratch;
+	u8 *buf;
+
+	DBG("PIO writing\n");
+
+	blksize = host->data->blksz;
+	chunk = 0;
+	scratch = 0;
+
+	local_irq_save(flags);
+
+	while (blksize) {
+		if (!sg_miter_next(&host->sg_miter))
+			BUG();
+
+		len = min(host->sg_miter.length, blksize);
+
+		blksize -= len;
+		host->sg_miter.consumed = len;
+
+		buf = host->sg_miter.addr;
+
+		while (len) {
+			scratch |= (u32)*buf << (chunk * 8);
+
+			buf++;
+			chunk++;
+			len--;
+
+			if ((chunk == 4) || ((len == 0) && (blksize == 0))) {
+				au6601_writel(host, scratch, AU6601_BUFFER);
+				chunk = 0;
+				scratch = 0;
+			}
+		}
+	}
+
+	sg_miter_stop(&host->sg_miter);
+
+	local_irq_restore(flags);
+}
+
+static void au6601_transfer_pio(struct au6601_host *host)
+{
+	u32 mask;
+
+	BUG_ON(!host->data);
+
+	if (host->blocks == 0)
+		return;
+
+	if (host->data->flags & MMC_DATA_READ)
+		mask = AU6601_DATA_AVAILABLE;
+	else
+		mask = AU6601_SPACE_AVAILABLE;
+
+	/*
+	 * Some controllers (JMicron JMB38x) mess up the buffer bits
+	 * for transfers < 4 bytes. As long as it is just one block,
+	 * we can ignore the bits.
+	 */
+	if ((host->quirks & AU6601_QUIRK_BROKEN_SMALL_PIO) &&
+		(host->data->blocks == 1))
+		mask = ~0;
+
+	while (au6601_readl(host, AU6601_PRESENT_STATE) & mask) {
+		if (host->quirks & AU6601_QUIRK_PIO_NEEDS_DELAY)
+			udelay(100);
+
+		if (host->data->flags & MMC_DATA_READ)
+			au6601_read_block_pio(host);
+		else
+			au6601_write_block_pio(host);
+
+		host->blocks--;
+		if (host->blocks == 0)
+			break;
+	}
+
+	DBG("PIO transfer complete.\n");
 }
 
 static void au6601_set_freg_pre(struct au6601_host *host)
@@ -537,95 +677,6 @@ static void some_seq(struct au6601_host *host)
 	au6601_writel(host, 0x0, REG_82);
 }
 
-#if 0
-static void testing(struct au6601_host *host)
-{
-	struct mmc_command cmd;
-	int i;
-
-	/* this sequence happens on forst command */
-	au6601_writeb(host, 0x80, REG_83);
-	au6601_writeb(host, 0x7d, REG_69);
-	au6601_readb(host, REG_74);
-
-	cmd.opcode = 0;
-	cmd.arg = 0;
-	au6601_send_cmd(host, &cmd, 0x0);
-
-	some_seq(host);
-	cmd.opcode = 8;
-	cmd.arg = 0xaa010000;
-	au6601_send_cmd(host, &cmd, 0x80);
-
-	for (i = 0; i < 20; i++) {
-	//some_seq(host);
-	cmd.opcode = 0x77;
-	cmd.arg = 0x0;
-	au6601_send_cmd(host, &cmd, 0x40);
-
-	//some_seq(host);
-	cmd.opcode = 0x69;
-	cmd.arg = 0xfc51;
-	au6601_send_cmd(host, &cmd, 0xa0);
-	}
-
-	cmd.opcode = 2;
-	cmd.arg = 0x0;
-	au6601_send_cmd(host, &cmd, 0xc0);
-
-	cmd.opcode = 3;
-	cmd.arg = 0x0;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	cmd.opcode = 0x49;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0xe0);
-
-	cmd.opcode = 0x47;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	cmd.opcode = 0x4d;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	cmd.opcode = 0x77;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	au6601_writeb(host, 0x8, REG_6C);
-	au6601_writeb(host, 0x1, REG_83);
-	cmd.opcode = 0x73;
-	cmd.arg = 0x0;
-	au6601_send_cmd(host, &cmd, 0x60);
-	au6601_readl(host, REG_08);
-	au6601_readl(host, REG_08);
-	msleep(1);
-
-	cmd.opcode = 0x77;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	cmd.opcode = 0x46;
-	cmd.arg = 0x2000000;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	au6601_writel(host, 0x9949000, REG_00);
-	au6601_readl(host, REG_00);
-	cmd.opcode = 0x4d;
-	cmd.arg = 0x0700;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	au6601_writeb(host, 0x0, REG_83);
-	cmd.opcode = 0x51;
-	cmd.arg = 0x0;
-	au6601_send_cmd(host, &cmd, 0x60);
-
-	au6601_writel(host, 0x200, REG_6C);
-	au6601_writeb(host, 0x41, REG_83);
-}
-#endif
-
 /*****************************************************************************\
  *                                                                           *
  * Interrupt handling                                                        *
@@ -643,7 +694,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		pr_err("%s: Got command interrupt 0x%08x even "
 			"though no command operation was in progress.\n",
 			mmc_hostname(host->mmc), (unsigned)intmask);
-		//sdhci_dumpregs(host);
+		//au6601_dumpregs(host);
 		return;
 	}
 
@@ -654,7 +705,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		host->cmd->error = -EILSEQ;
 
 	if (host->cmd->error) {
-	printk("===%s:%i\n", __func__, __LINE__);
+		printk("===%s:%i\n", __func__, __LINE__);
 		tasklet_schedule(&host->finish_tasklet);
 		return;
 	}
@@ -683,6 +734,106 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		mmc_request_done(host->mmc, host->mrq);
 }
 
+static void au6601_data_irq(struct au6601_host *host, u32 intmask)
+{
+	u32 command;
+	BUG_ON(intmask == 0);
+
+	/* CMD19 generates _only_ Buffer Read Ready interrupt */
+	if (intmask & AU6601_INT_DATA_AVAIL) {
+		command = AU6601_GET_CMD(au6601_readw(host, AU6601_COMMAND));
+		if (command == MMC_SEND_TUNING_BLOCK ||
+		    command == MMC_SEND_TUNING_BLOCK_HS200) {
+			host->tuning_done = 1;
+			wake_up(&host->buf_ready_int);
+			return;
+		}
+	}
+
+	if (!host->data) {
+		/*
+		 * The "data complete" interrupt is also used to
+		 * indicate that a busy state has ended. See comment
+		 * above in au6601_cmd_irq().
+		 */
+		if (host->cmd && (host->cmd->flags & MMC_RSP_BUSY)) {
+			if (intmask & AU6601_INT_DATA_END) {
+				au6601_finish_command(host);
+				return;
+			}
+		}
+
+		pr_err("%s: Got data interrupt 0x%08x even "
+			"though no data operation was in progress.\n",
+			mmc_hostname(host->mmc), (unsigned)intmask);
+		au6601_dumpregs(host);
+
+		return;
+	}
+
+	if (intmask & AU6601_INT_DATA_TIMEOUT)
+		host->data->error = -ETIMEDOUT;
+	else if (intmask & AU6601_INT_DATA_END_BIT)
+		host->data->error = -EILSEQ;
+	else if ((intmask & AU6601_INT_DATA_CRC) &&
+		AU6601_GET_CMD(au6601_readw(host, AU6601_COMMAND))
+			!= MMC_BUS_TEST_R)
+		host->data->error = -EILSEQ;
+	else if (intmask & AU6601_INT_ADMA_ERROR) {
+		pr_err("%s: ADMA error\n", mmc_hostname(host->mmc));
+		au6601_show_adma_error(host);
+		host->data->error = -EIO;
+		if (host->ops->adma_workaround)
+			host->ops->adma_workaround(host, intmask);
+	}
+
+	if (host->data->error)
+		au6601_finish_data(host);
+	else {
+		if (intmask & (AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL))
+			au6601_transfer_pio(host);
+
+		/*
+		 * We currently don't do anything fancy with DMA
+		 * boundaries, but as we can't disable the feature
+		 * we need to at least restart the transfer.
+		 *
+		 * According to the spec au6601_readl(host, AU6601_DMA_ADDRESS)
+		 * should return a valid address to continue from, but as
+		 * some controllers are faulty, don't trust them.
+		 */
+		if (intmask & AU6601_INT_DMA_END) {
+			u32 dmastart, dmanow;
+			dmastart = sg_dma_address(host->data->sg);
+			dmanow = dmastart + host->data->bytes_xfered;
+			/*
+			 * Force update to the next DMA block boundary.
+			 */
+			dmanow = (dmanow &
+				~(AU6601_DEFAULT_BOUNDARY_SIZE - 1)) +
+				AU6601_DEFAULT_BOUNDARY_SIZE;
+			host->data->bytes_xfered = dmanow - dmastart;
+			DBG("%s: DMA base 0x%08x, transferred 0x%06x bytes,"
+				" next 0x%08x\n",
+				mmc_hostname(host->mmc), dmastart,
+				host->data->bytes_xfered, dmanow);
+			au6601_writel(host, dmanow, AU6601_DMA_ADDRESS);
+		}
+
+		if (intmask & AU6601_INT_DATA_END) {
+			if (host->cmd) {
+				/*
+				 * Data managed to finish before the
+				 * command completed. Make sure we do
+				 * things in the proper order.
+				 */
+				host->data_early = 1;
+			} else {
+				au6601_finish_data(host);
+			}
+		}
+	}
+}
 
 static irqreturn_t au6601_irq(int irq, void *d)
 {
@@ -861,7 +1012,7 @@ static void au6601_tasklet_card(unsigned long param)
 {
 	struct au6601_host *host = (struct au6601_host*)param;
 
-	//sdhci_card_event(host->mmc);
+	//au6601_card_event(host->mmc);
 
 	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
 }
@@ -899,8 +1050,8 @@ static void au6601_tasklet_finish(unsigned long param)
 		  (mrq->data->stop && mrq->data->stop->error)))) {
 
 		// do reset over reg_79?
-//		sdhci_reset(host, SDHCI_RESET_CMD);
-//		sdhci_reset(host, SDHCI_RESET_DATA);
+//		au6601_reset(host, AU6601_RESET_CMD);
+//		au6601_reset(host, AU6601_RESET_DATA);
 	}
 
 	host->mrq = NULL;
@@ -926,11 +1077,11 @@ static void au6601_timeout_timer(unsigned long data)
 	if (host->mrq) {
 		pr_err("%s: Timeout waiting for hardware "
 			"interrupt.\n", mmc_hostname(host->mmc));
-		//sdhci_dumpregs(host);
+		//au6601_dumpregs(host);
 
 		if (host->data) {
 			host->data->error = -ETIMEDOUT;
-			//sdhci_finish_data(host);
+			//au6601_finish_data(host);
 		} else {
 			if (host->cmd)
 				host->cmd->error = -ETIMEDOUT;

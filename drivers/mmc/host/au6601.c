@@ -113,6 +113,7 @@
 #define AU6601_INT_ALL_MASK	((uint32_t)-1)
 
 #define AU6601_MIN_CLOCK		(150 * 1000)
+//#define AU6601_MAX_CLOCK		(400 * 1000)
 #define AU6601_MAX_CLOCK		MHZ_TO_HZ(200)
 #define AU6601_MAX_BLOCK_LENGTH		512
 #define AU6601_MAX_BLOCK_COUNT		65536
@@ -206,7 +207,7 @@ static unsigned char au6601_readb(struct au6601_host *host,
 			  unsigned int reg)
 {
 	unsigned char val = readb(host->iobase + reg);
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	return val;
 }
 
@@ -224,28 +225,28 @@ static unsigned int au6601_readl(struct au6601_host *host,
 			  unsigned int reg)
 {
 	unsigned int val = readl(host->iobase + reg);
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	return val;
 }
 
 static void au6601_writeb(struct au6601_host *host,
 			  u8 val, unsigned int reg)
 {
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	writeb(val, host->iobase + reg);
 }
 
 static void au6601_writew(struct au6601_host *host,
 			  u16 val, unsigned int reg)
 {
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	writew(val, host->iobase + reg);
 }
 
 static void au6601_writel(struct au6601_host *host,
 			  u32 val, unsigned int reg)
 {
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
 	writel(val, host->iobase + reg);
 }
 
@@ -253,7 +254,7 @@ static void au6601_reg_snap(struct au6601_host *host)
 {
 	int a, b;
 
-//return;
+return;
 	b = reg_list[0][1] ? 2 : 1;
 	reg_list[0][b] = 1;
 
@@ -595,15 +596,19 @@ static void au6601_finish_command(struct au6601_host *host)
 		/* Processed actual command. */
 		if (host->data) {
 			printk("===%s:%i\n", __func__, __LINE__);
+			//if (readw)
+			//au6601_transfer_pio(host);
+			//au6601_finish_data(host);
+
 			if (host->data_early)
 				au6601_finish_data(host);
-			else {
+			else if (host->data->blksz > 0x200) {
 #if 0
 				u8 ctrl = 0;
 				au6601_writel(host, host->data->blksz, AU6601_BLOCK_SIZE);
 				if (host->data->flags & MMC_DATA_WRITE)
 					ctrl = 0x80;
-				au6601_writew(host, ctrl | 0x41, REG_83);	
+				au6601_writeb(host, ctrl | 0x41, REG_83);	
 #else
 				//au6601_prepare_data(host, cmd);
 #endif
@@ -703,13 +708,15 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	host->blocks = data->blocks;
 
 	/* do we really need it? */
-	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
+//	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
 
 #if 1
+//	if (data->blksz >= 0x200)
+//		return;
 	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
-	au6601_writew(host, ctrl | 0x1, REG_83);	
+	au6601_writeb(host, ctrl | 0x1, REG_83);	
 #endif
 }
 
@@ -761,8 +768,8 @@ static void au6601_send_cmd(struct au6601_host *host,
 	}
 
 	/* VIA_CRDR_SDCTRL_STOP? */
-	//if (cmd->opcode == 12)
-	//	ctrl |= 0x10;
+	if (cmd->opcode == 12)
+		ctrl |= 0x10;
 
 	au6601_writeb(host, ctrl | 0x20, REG_81);
 	/* should be handled by interrupt, not msleep */
@@ -1137,6 +1144,8 @@ static void au6601_tasklet_finish(unsigned long param)
 	host->mrq = NULL;
 	host->cmd = NULL;
 	host->data = NULL;
+	au6601_wait_reg_79(host, 0x1);
+	au6601_wait_reg_79(host, 0x8);
 
         mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -1196,7 +1205,8 @@ static void au6601_init_host(struct au6601_host *host)
 	mmc->f_max = AU6601_MAX_CLOCK;
 	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
 	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
-	mmc->caps = MMC_CAP_4_BIT_DATA;
+	//mmc->caps = MMC_CAP_4_BIT_DATA;
+	mmc->caps2 = MMC_CAP2_NO_MULTI_READ;
 	mmc->ops = &au6601_sdc_ops;
 
 	/*Hardware cannot do scatter lists*/

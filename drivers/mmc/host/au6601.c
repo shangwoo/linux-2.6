@@ -251,7 +251,7 @@ static void au6601_reg_snap(struct au6601_host *host)
 {
 	int a, b;
 
-return;
+//return;
 	b = reg_list[0][1] ? 2 : 1;
 	reg_list[0][b] = 1;
 
@@ -932,7 +932,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		au6601_writeb(host, intmask & (AU6601_INT_CARD_INSERT |
 			      AU6601_INT_CARD_REMOVE), AU6601_INT_STATUS);
 		intmask &= ~(AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE);
-		//tasklet_schedule(&host->card_tasklet);
+		tasklet_schedule(&host->card_tasklet);
 	}
 	if (intmask & 0x110000)
 		printk("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
@@ -1298,6 +1298,7 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 	tasklet_kill(&host->card_tasklet);
 	tasklet_kill(&host->finish_tasklet);
 
+	mmc_remove_host(host->mmc);
 	mmc_free_host(host->mmc);
 	// do some thing here
 }

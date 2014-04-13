@@ -500,7 +500,7 @@ static void au6601_transfer_pio(struct au6601_host *host)
 static void au6601_set_freg_pre(struct au6601_host *host)
 {
 	u8 tmp;
-	au6601_toggle_reg70(host, 0x8, 0);
+	//au6601_toggle_reg70(host, 0x8, 0);
 	au6601_writeb(host, 0, REG_85);
 	au6601_writeb(host, 0x31, REG_7B);
 	au6601_writeb(host, 0x33, REG_7C);
@@ -598,13 +598,15 @@ static void au6601_finish_command(struct au6601_host *host)
 			if (host->data_early)
 				au6601_finish_data(host);
 			else {
+#if 0
 				u8 ctrl = 0;
 				au6601_writel(host, host->data->blksz, AU6601_BLOCK_SIZE);
 				if (host->data->flags & MMC_DATA_WRITE)
 					ctrl = 0x80;
 				au6601_writew(host, ctrl | 0x41, REG_83);	
-
+#else
 				//au6601_prepare_data(host, cmd);
+#endif
 			}
 		} else
 			tasklet_schedule(&host->finish_tasklet);
@@ -679,7 +681,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 
 	if (!data) {
 		/* make seure we do not accidantly trigger fifo */
-		au6601_writew(host, 0, REG_83);
+	//	au6601_writew(host, 0, REG_83);
 		return;
 	}
 
@@ -703,18 +705,18 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	/* do we really need it? */
 	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
 
-#if 0
+#if 1
 	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
-	au6601_writew(host, ctrl | 0x41, REG_83);	
+	au6601_writew(host, ctrl | 0x1, REG_83);	
 #endif
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
 			    struct mmc_command *cmd)
 {
-	u8 ctrl; /*some mysterious flags and control */
+	u8 ctrl = 0; /*some mysterious flags and control */
 	unsigned long timeout;
 
         timeout = jiffies;
@@ -737,9 +739,9 @@ static void au6601_send_cmd(struct au6601_host *host,
 	//au6601_writel(host, cmd->arg, REG_24);
 	au6601_writel(host, cpu_to_be32(cmd->arg), REG_24);
 
+	printk("===%s:%i resp type %x\n", __func__, __LINE__, mmc_resp_type(cmd));
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:
-		ctrl |= 0x0;
 		break;
 	case MMC_RSP_R1:
 		ctrl |= 0x40;
@@ -1054,6 +1056,17 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		au6601_toggle_reg70(host, 0x1, 1);
 	else
 		au6601_toggle_reg70(host, 0x1, 0);
+
+#if 0
+	if (ios->chip_select == MMC_CS_HIGH) {
+		au6601_toggle_reg70(host, 0x8, 1);
+	else
+		au6601_toggle_reg70(host, 0x8, 0);
+#endif
+
+        au6601_writeb(host, 0x80, REG_83);
+        au6601_writeb(host, 0x7d, REG_69);
+        au6601_readb(host, REG_74);
 }
 
 #if 0
@@ -1145,6 +1158,7 @@ static void au6601_timeout_timer(unsigned long data)
 		pr_err("%s: Timeout waiting for hardware "
 			"interrupt.\n", mmc_hostname(host->mmc));
 		//au6601_dumpregs(host);
+		au6601_reg_snap(host);
 
 		if (host->data) {
 			host->data->error = -ETIMEDOUT;

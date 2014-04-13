@@ -187,6 +187,8 @@ struct au6601_host {
 
 static void au6601_send_cmd(struct au6601_host *host,
 			    struct mmc_command *cmd);
+
+static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cmd);
 static void au6601_finish_data(struct au6601_host *host);
 
 static const struct pci_device_id pci_ids[] = {
@@ -569,53 +571,46 @@ static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 static void au6601_finish_command(struct au6601_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
-	if (mmc_resp_type(cmd) == MMC_RSP_NONE)
-		return;
 
-        cmd->resp[0] = be32_to_cpu(au6601_readl(host, REG_30));
-        cmd->resp[1] = be32_to_cpu(au6601_readl(host, REG_34));
-        cmd->resp[2] = be32_to_cpu(au6601_readl(host, REG_38));
-        cmd->resp[3] = be32_to_cpu(au6601_readl(host, REG_3C));
+	BUG_ON(host->cmd == NULL);
 
-#if 0
-        u32 dwdata0 = be32_to_cpu(au6601_readl(host, REG_30));
-        u32 dwdata1 = be32_to_cpu(au6601_readl(host, REG_34));
-        u32 dwdata2 = be32_to_cpu(au6601_readl(host, REG_38));
-        u32 dwdata3 = be32_to_cpu(au6601_readl(host, REG_3C));
+	if (host->cmd->flags & MMC_RSP_PRESENT) {
+		cmd->resp[0] = be32_to_cpu(au6601_readl(host, REG_30));
+		if (host->cmd->flags & MMC_RSP_136) {
+			cmd->resp[1] = be32_to_cpu(au6601_readl(host, REG_34));
+			cmd->resp[2] = be32_to_cpu(au6601_readl(host, REG_38));
+			cmd->resp[3] = be32_to_cpu(au6601_readl(host, REG_3C));
+		}
 
+	}
 
-        if (cmd->flags & MMC_RSP_136) {
-                cmd->resp[0] = ((u8) (dwdata1)) |
-                    (((u8) (dwdata0 >> 24)) << 8) |
-                    (((u8) (dwdata0 >> 16)) << 16) |
-                    (((u8) (dwdata0 >> 8)) << 24);
+	host->cmd->error = 0;
 
-                cmd->resp[1] = ((u8) (dwdata2)) |
-                    (((u8) (dwdata1 >> 24)) << 8) |
-                    (((u8) (dwdata1 >> 16)) << 16) |
-                    (((u8) (dwdata1 >> 8)) << 24);
+	/* Finished CMD23, now send actual command. */
+	if (host->cmd == host->mrq->sbc) {
+		host->cmd = NULL;
+		au6601_send_cmd(host, host->mrq->cmd);
+	} else {
+		printk("===%s:%i\n", __func__, __LINE__);
+		/* Processed actual command. */
+		if (host->data) {
+			printk("===%s:%i\n", __func__, __LINE__);
+			if (host->data_early)
+				au6601_finish_data(host);
+			else {
+				u8 ctrl = 0;
+				au6601_writel(host, host->data->blksz, AU6601_BLOCK_SIZE);
+				if (host->data->flags & MMC_DATA_WRITE)
+					ctrl = 0x80;
+				au6601_writew(host, ctrl | 0x41, REG_83);	
 
-                cmd->resp[2] = ((u8) (dwdata3)) |
-                    (((u8) (dwdata2 >> 24)) << 8) |
-                    (((u8) (dwdata2 >> 16)) << 16) |
-                    (((u8) (dwdata2 >> 8)) << 24);
+				//au6601_prepare_data(host, cmd);
+			}
+		} else
+			tasklet_schedule(&host->finish_tasklet);
 
-                cmd->resp[3] = 0xff |
-                    ((((u8) (dwdata3 >> 24))) << 8) |
-                    (((u8) (dwdata3 >> 16)) << 16) |
-                    (((u8) (dwdata3 >> 8)) << 24);
-        } else {
-                dwdata0 >>= 8;
-                cmd->resp[0] = ((dwdata0 & 0xff) << 24) |
-                    (((dwdata0 >> 8) & 0xff) << 16) |
-                    (((dwdata0 >> 16) & 0xff) << 8) | (dwdata1 & 0xff);
-
-                dwdata1 >>= 8;
-                cmd->resp[1] = ((dwdata1 & 0xff) << 24) |
-                    (((dwdata1 >> 8) & 0xff) << 16) |
-                    (((dwdata1 >> 16) & 0xff) << 8);
-        }
-#endif
+		host->cmd = NULL;
+	}
 }
 
 static void au6601_finish_data(struct au6601_host *host)
@@ -623,6 +618,7 @@ static void au6601_finish_data(struct au6601_host *host)
 	struct mmc_data *data;
 
 	BUG_ON(!host->data);
+	printk("===%s:%i\n", __func__, __LINE__);
 
 	data = host->data;
 	host->data = NULL;
@@ -673,6 +669,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	struct mmc_data *data = cmd->data;
 	//int ret;
 
+	printk("===%s:%i\n", __func__, __LINE__);
 	WARN_ON(host->data);
 
 	//if (data || (cmd->flags & MMC_RSP_BUSY)) {
@@ -706,10 +703,12 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	/* do we really need it? */
 	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
 
+#if 0
 	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
-	au6601_writew(host, ctrl | 0x1, REG_83);	
+	au6601_writew(host, ctrl | 0x41, REG_83);	
+#endif
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
@@ -790,8 +789,6 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 {
 	BUG_ON(intmask == 0);
 
-	del_timer(&host->timer);
-
 	printk("===%s:%i\n", __func__, __LINE__);
 	if (!host->cmd) {
 		pr_err("%s: Got command interrupt 0x%08x even "
@@ -833,8 +830,8 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 	if (intmask & AU6601_INT_RESPONSE)
 		au6601_finish_command(host);
 
-	if (host->mrq)
-		mmc_request_done(host->mmc, host->mrq);
+//	if (host->mrq)
+//		mmc_request_done(host->mmc, host->mrq);
 }
 
 static void au6601_data_irq(struct au6601_host *host, u32 intmask)
@@ -918,6 +915,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 
 	/* some thing bad */
 	if (!intmask || intmask == 0xffffffff) {
+		printk("zero IRQ\n");
 		ret = IRQ_NONE;
 		goto exit;
 	}
@@ -1150,7 +1148,7 @@ static void au6601_timeout_timer(unsigned long data)
 
 		if (host->data) {
 			host->data->error = -ETIMEDOUT;
-			//au6601_finish_data(host);
+			au6601_finish_data(host);
 		} else {
 			if (host->cmd)
 				host->cmd->error = -ETIMEDOUT;

@@ -21,7 +21,6 @@
 #include <linux/io.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
-//#include "sdhci-pci.h"
 
 #include <linux/mmc/host.h>
 
@@ -207,7 +206,7 @@ static unsigned char au6601_readb(struct au6601_host *host,
 			  unsigned int reg)
 {
 	unsigned char val = readb(host->iobase + reg);
-//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+	DBG("addr = %x, val = %x\n", reg, val);
 	return val;
 }
 
@@ -225,28 +224,28 @@ static unsigned int au6601_readl(struct au6601_host *host,
 			  unsigned int reg)
 {
 	unsigned int val = readl(host->iobase + reg);
-//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+	DBG("addr = %x, val = %x\n", reg, val);
 	return val;
 }
 
 static void au6601_writeb(struct au6601_host *host,
 			  u8 val, unsigned int reg)
 {
-//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+	DBG("addr = %x, val = %x\n", reg, val);
 	writeb(val, host->iobase + reg);
 }
 
 static void au6601_writew(struct au6601_host *host,
 			  u16 val, unsigned int reg)
 {
-//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+	DBG("addr = %x, val = %x\n", reg, val);
 	writew(val, host->iobase + reg);
 }
 
 static void au6601_writel(struct au6601_host *host,
 			  u32 val, unsigned int reg)
 {
-//	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
+	DBG("addr = %x, val = %x\n", reg, val);
 	writel(val, host->iobase + reg);
 }
 
@@ -267,18 +266,18 @@ return;
 		else if (reg_list[a][3] == 4)
 			reg_list[a][b] = readl(host->iobase + reg_list[a][0]);
 		else
-			printk("-- wrong lenght\n");
+			DBG("-- wrong lenght\n");
 	}
 
 	/* if we have two version, compare them */
 	if (reg_list[0][1] && reg_list[0][2]) {
 		for (a = 1; a < ARRAY_SIZE(reg_list); a++) {
 			if (reg_list[a][1] != reg_list[a][2])
-				printk("-- reg %02x: %08x %s %08x\n",
-					reg_list[a][0],
-					reg_list[a][1],
-					b == 1 ? "<" : ">",
-					reg_list[a][2]);
+				DBG("-- reg %02x: %08x %s %08x\n",
+				    reg_list[a][0],
+				    reg_list[a][1],
+				    b == 1 ? "<" : ">",
+				    reg_list[a][2]);
 		}
 
 		if (b == 1)
@@ -393,7 +392,6 @@ static void au6601_read_block_pio(struct au6601_host *host)
 		while (len) {
 			if (chunk == 0) {
 				scratch = au6601_readl(host, AU6601_BUFFER);
-				//scratch = be32_to_cpu(au6601_readl(host, AU6601_BUFFER));
 				chunk = 4;
 			}
 
@@ -592,14 +590,8 @@ static void au6601_finish_command(struct au6601_host *host)
 		host->cmd = NULL;
 		au6601_send_cmd(host, host->mrq->cmd);
 	} else {
-		printk("===%s:%i\n", __func__, __LINE__);
 		/* Processed actual command. */
 		if (host->data) {
-			printk("===%s:%i\n", __func__, __LINE__);
-			//if (readw)
-			//au6601_transfer_pio(host);
-			//au6601_finish_data(host);
-
 			if (host->data_early)
 				au6601_finish_data(host);
 			else if (host->data->blksz > 0x200) {
@@ -609,8 +601,6 @@ static void au6601_finish_command(struct au6601_host *host)
 				if (host->data->flags & MMC_DATA_WRITE)
 					ctrl = 0x80;
 				au6601_writeb(host, ctrl | 0x41, REG_83);	
-#else
-				//au6601_prepare_data(host, cmd);
 #endif
 			}
 		} else
@@ -625,7 +615,7 @@ static void au6601_finish_data(struct au6601_host *host)
 	struct mmc_data *data;
 
 	BUG_ON(!host->data);
-	printk("===%s:%i\n", __func__, __LINE__);
+	DBG("\n");
 
 	data = host->data;
 	host->data = NULL;
@@ -659,10 +649,7 @@ static void au6601_finish_data(struct au6601_host *host)
 		if (data->error) {
 			au6601_wait_reg_79(host, 0x1);
 			au6601_wait_reg_79(host, 0x8);
-			//au6601_reset(host, AU6601_RESET_CMD);
-			//au6601_reset(host, AU6601_RESET_DATA);
 		}
-
 		au6601_send_cmd(host, data->stop);
 	} else
 		tasklet_schedule(&host->finish_tasklet);
@@ -676,7 +663,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	struct mmc_data *data = cmd->data;
 	//int ret;
 
-	printk("===%s:%i\n", __func__, __LINE__);
+	DBG("\n");
 	WARN_ON(host->data);
 
 	//if (data || (cmd->flags & MMC_RSP_BUSY)) {
@@ -684,11 +671,8 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	//	au6601_writeb(host, count, AU6601_TIMEOUT_CONTROL);
 	//}
 
-	if (!data) {
-		/* make seure we do not accidantly trigger fifo */
-	//	au6601_writew(host, 0, REG_83);
+	if (!data)
 		return;
-	}
 
 	/* Sanity checks */
 	BUG_ON(data->blksz * data->blocks > 524288);
@@ -707,17 +691,12 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
 	host->blocks = data->blocks;
 
-	/* do we really need it? */
-//	au6601_clear_set_irqs(host, 0, AU6601_INT_DATA_AVAIL | AU6601_INT_SPACE_AVAIL);
-
-#if 1
 //	if (data->blksz >= 0x200)
 //		return;
 	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
 	au6601_writeb(host, ctrl | 0x1, REG_83);	
-#endif
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
@@ -726,24 +705,18 @@ static void au6601_send_cmd(struct au6601_host *host,
 	u8 ctrl = 0; /*some mysterious flags and control */
 	unsigned long timeout;
 
+	DBG("\n");
         timeout = jiffies;
         if (!cmd->data && cmd->cmd_timeout_ms > 9000)
                 timeout += DIV_ROUND_UP(cmd->cmd_timeout_ms, 1000) * HZ + HZ;
         else
                 timeout += 10 * HZ;
-	printk("prepare for timeout: %d (%d)\n", (int)timeout, (int)cmd->cmd_timeout_ms);
         mod_timer(&host->timer, timeout);
 
         host->cmd = cmd;
 	au6601_prepare_data(host, cmd);
 
-	/* FIXME in some cases we write here AU6601_BLOCK_SIZE and REG_83 */
-
-	//writel(0x200, host->iobase + AU6601_BLOCK_SIZE);
-	//au6601_writeb(0x80, host->iobase + REG_83);
-
 	au6601_writeb(host, cmd->opcode | 0x40, REG_23);
-	//au6601_writel(host, cmd->arg, REG_24);
 	au6601_writel(host, cpu_to_be32(cmd->arg), REG_24);
 
 	printk("===%s:%i resp type %x\n", __func__, __LINE__, mmc_resp_type(cmd));
@@ -772,9 +745,6 @@ static void au6601_send_cmd(struct au6601_host *host,
 		ctrl |= 0x10;
 
 	au6601_writeb(host, ctrl | 0x20, REG_81);
-	/* should be handled by interrupt, not msleep */
-	//msleep(10);
-	//au6601_wait_reg_79(host, 0x1);
 }
 
 static void some_seq(struct au6601_host *host)
@@ -798,7 +768,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 {
 	BUG_ON(intmask == 0);
 
-	printk("===%s:%i\n", __func__, __LINE__);
+	DBG("\n");
 	if (!host->cmd) {
 		pr_err("%s: Got command interrupt 0x%08x even "
 			"though no command operation was in progress.\n",
@@ -814,7 +784,6 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		host->cmd->error = -EILSEQ;
 
 	if (host->cmd->error) {
-		printk("===%s:%i\n", __func__, __LINE__);
 		tasklet_schedule(&host->finish_tasklet);
 		return;
 	}
@@ -838,9 +807,6 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 
 	if (intmask & AU6601_INT_RESPONSE)
 		au6601_finish_command(host);
-
-//	if (host->mrq)
-//		mmc_request_done(host->mmc, host->mrq);
 }
 
 static void au6601_data_irq(struct au6601_host *host, u32 intmask)
@@ -932,9 +898,9 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	if (intmask & (AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE)) {
 		/* this check can be remove */
 		if (intmask & AU6601_INT_CARD_REMOVE) {
-			printk("IRQ for removed card\n");
+			DBG("card removed\n");
 		} else {
-			printk("IRQ for inserted card\n");
+			DBG("card inserted\n");
 		}
 		au6601_writeb(host, intmask & (AU6601_INT_CARD_INSERT |
 			      AU6601_INT_CARD_REMOVE), AU6601_INT_STATUS);
@@ -960,7 +926,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		printk("0x70003A (DATA/FIFO) got IRQ with %x", intmask);
+		printk("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
 		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -986,8 +952,6 @@ exit:
 
 static void au6601_init(struct au6601_host *host)
 {
-//	u32 scratch;
-//	u16 v3 = 0xa, Valuea = 0x10;
 
 	au6601_writeb(host, 0, REG_7F);
 	au6601_readb(host, REG_7F);
@@ -1001,9 +965,6 @@ static void au6601_init(struct au6601_host *host)
 	au6601_writeb(host, 68, REG_7B);
 	au6601_writeb(host, 68, REG_7C);
 //	au6601_writeb(host, 0, REG_7D);
-
-	//au6601_toggle_reg70(host, 0x8, 1);
-
 
 	/* why do we need this read? */
 	au6601_readb(host, REG_76);
@@ -1076,17 +1037,9 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
         au6601_readb(host, REG_74);
 }
 
-#if 0
-static int au6601_sdc_get_ro(struct mmc_host *mmc)
-{
-	return 0;
-}
-#endif
-
 static const struct mmc_host_ops au6601_sdc_ops = {
         .request = au6601_sdc_request,
         .set_ios = au6601_sdc_set_ios,
-       // .get_ro = au6601_sdc_get_ro,
 };
 
 /*****************************************************************************\
@@ -1112,9 +1065,9 @@ static void au6601_tasklet_finish(unsigned long param)
 
 	host = (struct au6601_host*)param;
 
+	DBG("\n");
 	spin_lock_irqsave(&host->lock, flags);
 
-	printk("===%s:%i\n", __func__, __LINE__);
 	/*
 	 * If this tasklet gets rescheduled while running, it will
 	 * be run again afterwards but without any active request.
@@ -1136,21 +1089,17 @@ static void au6601_tasklet_finish(unsigned long param)
 		 (mrq->data && (mrq->data->error ||
 		  (mrq->data->stop && mrq->data->stop->error)))) {
 
-		// do reset over reg_79?
-//		au6601_reset(host, AU6601_RESET_CMD);
-//		au6601_reset(host, AU6601_RESET_DATA);
+		au6601_wait_reg_79(host, 0x1);
+		au6601_wait_reg_79(host, 0x8);
 	}
 
 	host->mrq = NULL;
 	host->cmd = NULL;
 	host->data = NULL;
-	au6601_wait_reg_79(host, 0x1);
-	au6601_wait_reg_79(host, 0x8);
 
         mmiowb();
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	printk("===%s:%i\n", __func__, __LINE__);
 	mmc_request_done(host->mmc, mrq);
 }
 
@@ -1226,7 +1175,6 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 	struct mmc_host *mmc;
 	struct au6601_host *host;
         int ret, bar;
-	//u32 scratch_32;
 
         BUG_ON(pdev == NULL);
         BUG_ON(ent == NULL);
@@ -1289,13 +1237,6 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 	au6601_init(host);
 
 	mmc_add_host(mmc);
-
-	//au6601_set_ios(host);
-	//au6601_regdump(host);
-	//testing(host);
-	//au6601_reg_snap(host);
-
-
         return 0;
 }
 
@@ -1322,7 +1263,6 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 
 	mmc_remove_host(host->mmc);
 	mmc_free_host(host->mmc);
-	// do some thing here
 }
 
 

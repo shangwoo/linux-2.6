@@ -685,7 +685,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 static void au6601_send_cmd(struct au6601_host *host,
 			    struct mmc_command *cmd)
 {
-	u8 ctrl = 0; /*some mysterious flags and control */
+	u8 ctrl; /*some mysterious flags and control */
 	unsigned long timeout;
 
 	DBG("\n");
@@ -702,30 +702,30 @@ static void au6601_send_cmd(struct au6601_host *host,
 	au6601_writeb(host, cmd->opcode | 0x40, REG_23);
 	au6601_writel(host, cpu_to_be32(cmd->arg), REG_24);
 
-	printk("===%s:%i resp type %x\n", __func__, __LINE__, mmc_resp_type(cmd));
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:
+		ctrl = 0;
 		break;
 	case MMC_RSP_R1:
-		ctrl |= 0x40;
+		ctrl = 0x40;
 		break;
 	case MMC_RSP_R1B:
-		ctrl |= 0x40 | 0x10;
+		ctrl = 0x40 | 0x10;
 		break;
 	case MMC_RSP_R2:
-		ctrl |= 0xc0;
+		ctrl = 0xc0;
 		break;
 	case MMC_RSP_R3:
-		ctrl |= 0x80;
+		ctrl = 0x80;
 		break;
 	default:
 		pr_err("%s: cmd->flag is not valid\n", mmc_hostname(host->mmc));
 		break;
 	}
 
-	/* VIA_CRDR_SDCTRL_STOP? */
 	if (cmd->opcode == 12)
-		ctrl |= 0x10;
+		printk("--- opcode 12 ");
+	//	ctrl |= 0x10;
 
 	au6601_writeb(host, ctrl | 0x20, REG_81);
 }

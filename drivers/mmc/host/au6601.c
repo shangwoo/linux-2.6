@@ -30,6 +30,14 @@
 
 #define MHZ_TO_HZ(freq)	((freq) * 1000 * 1000)
 
+#define AU6601_MIN_CLOCK		(150 * 1000)
+//#define AU6601_MAX_CLOCK		(400 * 1000)
+#define AU6601_MAX_CLOCK		MHZ_TO_HZ(200)
+#define AU6601_MAX_BLOCK_LENGTH		512
+#define AU6601_MAX_BLOCK_COUNT		65536
+
+
+
 //#define AU6601_DEBUG 1
 
 #ifdef AU6601_DEBUG
@@ -116,12 +124,6 @@
 		AU6601_INT_DATA_TIMEOUT | AU6601_INT_DATA_CRC | \
 		AU6601_INT_DATA_END_BIT)
 #define AU6601_INT_ALL_MASK	((uint32_t)-1)
-
-#define AU6601_MIN_CLOCK		(150 * 1000)
-//#define AU6601_MAX_CLOCK		(400 * 1000)
-#define AU6601_MAX_CLOCK		MHZ_TO_HZ(200)
-#define AU6601_MAX_BLOCK_LENGTH		512
-#define AU6601_MAX_BLOCK_COUNT		65536
 
 u32 reg_list[][4] = {
 	{ 0, 0, 0, 0},
@@ -307,6 +309,16 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 	au6601_writel(host, ier, AU6601_INT_ENABLE);
 }
 
+static void au6601_clear_set_reg86(struct au6601_host *host, u32 clear, u32 set)
+{
+	u32 val;
+
+	val = au6601_readl(host, REG_86);
+	val &= ~clear;
+	val |= set;
+	au6601_writel(host, val, REG_86);
+}
+
 /* val = 0x1 abort command; 0x8 abort data? */
 static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
 {
@@ -483,7 +495,6 @@ static void au6601_transfer_pio(struct au6601_host *host)
 
 static void au6601_set_freg_pre(struct au6601_host *host)
 {
-	u8 tmp;
 	au6601_writeb(host, 0, REG_85);
 	au6601_writeb(host, 0x31, REG_7B);
 	au6601_writeb(host, 0x33, REG_7C);
@@ -494,8 +505,8 @@ static void au6601_set_freg_pre(struct au6601_host *host)
 	au6601_writeb(host, 0, REG_82);
 
 	/* other possible variant tmp | 0xc0 */
-	tmp = au6601_readb(host, REG_86);
-	au6601_writeb(host, tmp & 0x3f, REG_86);
+//	tmp = au6601_readb(host, REG_86);
+//	au6601_writeb(host, tmp & 0x3f, REG_86);
 }
 
 static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
@@ -548,6 +559,7 @@ static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 		mult = 0x0;	/* reversed 150 * 200 = 30MHz */
 		div = 200;	/* 150 KHZ mesured */
 	}
+	printk("set freq %d, %x, %x\n", clock, div, mult);
 	au6601_writew(host, (div - 1) << 8 | 1 | mult, REG_72);
 }
 
@@ -724,10 +736,6 @@ static void au6601_send_cmd(struct au6601_host *host,
 		break;
 	}
 
-	if (cmd->opcode == 12)
-		printk("--- opcode 12 ");
-	//	ctrl |= 0x10;
-
 	au6601_writeb(host, ctrl | 0x20, REG_81);
 }
 
@@ -892,16 +900,10 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		tasklet_schedule(&host->card_tasklet);
 	}
 	if (intmask & 0x110000)
-		printk("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
+		DBG("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
 
 	if (intmask & AU6601_INT_CMD_MASK) {
-		printk("0xF0001 (CMD) got IRQ with %x ", intmask);
-		if (intmask & 0x1)
-			printk("ACK\n");
-		else if (intmask & 0x10000)
-			printk("REJECT\n");
-		else
-			printk("Uknown\n");
+		DBG("0xF0001 (CMD) got IRQ with %x\n", intmask);
 
 		au6601_writel(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
@@ -910,7 +912,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		printk("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
+		DBG("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
 		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -991,6 +993,8 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+
+
 static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct au6601_host *host;
@@ -1000,9 +1004,20 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	spin_lock_irqsave(&host->lock, flags);
 
 	au6601_set_freg_pre(host);
+
+	if (ios->bus_width == MMC_BUS_WIDTH_1) {
+		printk("BUS width 1 \n");
+		au6601_writeb(host, 0x0, REG_82);
+		au6601_clear_set_reg86(host, 0xc0, 0);
+	} else if (ios->bus_width == MMC_BUS_WIDTH_4) {
+		printk("BUS width 4 \n");
+		au6601_writeb(host, 0x20, REG_82);
+		au6601_clear_set_reg86(host, 0, 0xc0);
+	} else
+		printk("unknown BUS mode \n");
+
 	au6601_set_clock(host, ios->clock);
 
-	spin_unlock_irqrestore(&host->lock, flags);
 
 	switch (ios->power_mode) {
 	case MMC_POWER_OFF:
@@ -1022,6 +1037,7 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
         au6601_writeb(host, 0x80, REG_83);
         au6601_writeb(host, 0x7d, REG_69);
         au6601_readb(host, REG_74);
+	spin_unlock_irqrestore(&host->lock, flags);
 }
 
 static const struct mmc_host_ops au6601_sdc_ops = {
@@ -1140,8 +1156,8 @@ static void au6601_init_host(struct au6601_host *host)
 	mmc->f_min = AU6601_MIN_CLOCK;
 	mmc->f_max = AU6601_MAX_CLOCK;
 	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34 | MMC_VDD_165_195;
-	//mmc->caps = MMC_CAP_4_BIT_DATA;
+	mmc->ocr_avail = MMC_VDD_33_34 ;
+	mmc->caps = MMC_CAP_4_BIT_DATA;
 	mmc->caps2 = MMC_CAP2_NO_MULTI_READ;
 	mmc->ops = &au6601_sdc_ops;
 

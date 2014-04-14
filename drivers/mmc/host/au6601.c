@@ -30,7 +30,7 @@
 
 #define MHZ_TO_HZ(freq)	((freq) * 1000 * 1000)
 
-#define AU6601_DEBUG 1
+//#define AU6601_DEBUG 1
 
 #ifdef AU6601_DEBUG
 #define DBG(f, x...) \
@@ -322,11 +322,12 @@ static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
 }
 
 /*
- * 0x1 + set - pull up CMD pin
- * 0x8 + set - pull up VCC pin
+ * - 0x8	only Vcc is on
+ * - 0x1	Vcc and other pins are on
+ * - 0x1 | 0x8	like 0x1, but DAT2 is off
  */
 
-static void au6601_toggle_reg70(struct au6601_host *host, unsigned int value, unsigned int set)
+static void au6601_set_power(struct au6601_host *host, unsigned int value, unsigned int set)
 {
 	u8 tmp1, tmp2;
  
@@ -334,6 +335,7 @@ static void au6601_toggle_reg70(struct au6601_host *host, unsigned int value, un
 	tmp2 = au6601_readb(host, REG_7A);
 	if (set) {
 		au6601_writeb(host, tmp1 | value, REG_70);
+		msleep(20);
 		au6601_writeb(host, tmp2 | value, REG_7A);
 	} else {
 		au6601_writeb(host, tmp2 & ~value, REG_7A);
@@ -482,7 +484,6 @@ static void au6601_transfer_pio(struct au6601_host *host)
 static void au6601_set_freg_pre(struct au6601_host *host)
 {
 	u8 tmp;
-	//au6601_toggle_reg70(host, 0x8, 0);
 	au6601_writeb(host, 0, REG_85);
 	au6601_writeb(host, 0x31, REG_7B);
 	au6601_writeb(host, 0x33, REG_7C);
@@ -970,8 +971,8 @@ static void au6601_init(struct au6601_host *host)
 //	au6601_writeb(host, 0x0, REG_61);
 //	au6601_writeb(host, 0x0, REG_63);
 
-	/* if sd was detected */
-	au6601_toggle_reg70(host, 0x1, 0);
+	au6601_set_power(host, 0x1, 0);
+	au6601_set_power(host, 0x8, 0);
 
 }
 
@@ -1003,17 +1004,20 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	spin_unlock_irqrestore(&host->lock, flags);
 
-	if (ios->power_mode != MMC_POWER_OFF)
-		au6601_toggle_reg70(host, 0x1, 1);
-	else
-		au6601_toggle_reg70(host, 0x1, 0);
-
-#if 0
-	if (ios->chip_select == MMC_CS_HIGH) {
-		au6601_toggle_reg70(host, 0x8, 1);
-	else
-		au6601_toggle_reg70(host, 0x8, 0);
-#endif
+	switch (ios->power_mode) {
+	case MMC_POWER_OFF:
+		au6601_set_power(host, 0x1 | 0x8, 0);
+		break;
+	case MMC_POWER_UP:
+		au6601_set_power(host, 0x8, 1);
+		break;
+	case MMC_POWER_ON:
+		au6601_set_power(host, 0x1, 1);
+		au6601_set_power(host, 0x8, 0);
+		break;
+	default:
+		printk("unknown power parametr\n");
+	}
 
         au6601_writeb(host, 0x80, REG_83);
         au6601_writeb(host, 0x7d, REG_69);
@@ -1233,12 +1237,12 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 	au6601_writeb(host, 0x0, REG_76);
 	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK, 0);
 
-	au6601_toggle_reg70(host, 0x1, 0);
+	au6601_set_power(host, 0x1, 0);
 
 	au6601_writeb(host, 0x0, REG_85);
 	au6601_writeb(host, 0x0, REG_B4);
 
-	au6601_toggle_reg70(host, 0x8, 0);
+	au6601_set_power(host, 0x8, 0);
 
 	del_timer_sync(&host->timer);
 	tasklet_kill(&host->card_tasklet);

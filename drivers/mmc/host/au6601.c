@@ -30,8 +30,14 @@
 
 #define MHZ_TO_HZ(freq)	((freq) * 1000 * 1000)
 
+#define AU6601_DEBUG 1
+
+#ifdef AU6601_DEBUG
 #define DBG(f, x...) \
         printk(DRVNAME " [%s()]: " f, __func__,## x)
+#else
+#define DBG(f, x...)
+#endif
 
 #define REG_00	0x00
 #define REG_05	0x05

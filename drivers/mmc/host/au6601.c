@@ -216,16 +216,6 @@ static unsigned char au6601_readb(struct au6601_host *host,
 	return val;
 }
 
-#if 0
-static unsigned short au6601_readw(struct au6601_host *host,
-			  unsigned int reg)
-{
-	unsigned short val = readw(host->iobase + reg);
-	printk("%s: addr = %x, data = %x\n", __func__, reg, val);
-	return val;
-}
-#endif
-
 static unsigned int au6601_readl(struct au6601_host *host,
 			  unsigned int reg)
 {
@@ -259,7 +249,6 @@ static void au6601_reg_snap(struct au6601_host *host)
 {
 	int a, b;
 
-return;
 	b = reg_list[0][1] ? 2 : 1;
 	reg_list[0][b] = 1;
 
@@ -317,18 +306,6 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 	ier |= set;
 	au6601_writel(host, ier, AU6601_INT_ENABLE);
 }
-
-#if 0
-static void au6601_unmask_irqs(struct au6601_host *host, u32 irqs)
-{
-	au6601_clear_set_irqs(host, 0, irqs);
-}
-
-static void au6601_mask_irqs(struct au6601_host *host, u32 irqs)
-{
-	au6601_clear_set_irqs(host, irqs, 0);
-}
-# endif
 
 /* val = 0x1 abort command; 0x8 abort data? */
 static void au6601_wait_reg_79(struct au6601_host *host, u8 val)

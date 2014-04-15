@@ -377,6 +377,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 	local_irq_save(flags);
 
+	//printk("pio Y\n");
 	while (blksize) {
 		if (!sg_miter_next(&host->sg_miter))
 			BUG();
@@ -402,6 +403,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			len--;
 		}
 	}
+	//printk("pio _\n");
 
 	sg_miter_stop(&host->sg_miter);
 
@@ -511,60 +513,6 @@ static void au6601_set_freg_pre(struct au6601_host *host)
 //	au6601_writeb(host, tmp & 0x3f, REG_86);
 }
 
-static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
-{
-	unsigned int div, mult;
-
-	/* FIXME: mesuered and calculated values are different.
-	 * the clock is unstable in some mult/div combinations.
-	 */
-	if (clock >= MHZ_TO_HZ(208)) {
-		mult = 0xb0;	/* 30 * ? / 2 = ?MHz */
-		div = 2;
-	} else if (clock >= MHZ_TO_HZ(194)) {
-		mult = 0x30;	/* 30 * 14 / 2 = 210MHz */
-		div = 2;
-	} else if (clock >= MHZ_TO_HZ(130)) {
-		mult = 0x30;	/* 30 * 14 / 3 = 140MHz */
-		div = 3;
-	} else if (clock >= MHZ_TO_HZ(100)) {
-		mult = 0x30;	/* 30 * 14 / 4 = 105MHz */
-		div = 4;
-	} else if (clock >= MHZ_TO_HZ(80)) {
-		mult = 0x30;	/* 30 * 14 / 5 = 84MHz */
-		div = 5;
-	} else if (clock >= MHZ_TO_HZ(60)) {
-		mult = 0x30;	/* 30 * 14 / 7 = 60MHz */
-		div = 7;
-	} else if (clock >= MHZ_TO_HZ(50)) {
-		mult = 0x10;	/* 30 * 2 / 1 = 60MHz */
-		div = 1;
-	} else if (clock >= MHZ_TO_HZ(40)) {
-		mult = 0x30;	/* 30 * 14 / 10 = 42MHz */
-		div = 10;
-	} else if (clock >= MHZ_TO_HZ(25)) {
-		mult = 0x10;	/* 30 * 2 / 2 = 30MHz */
-		div = 2;
-	} else if (clock >= MHZ_TO_HZ(20)) {
-		mult = 0x20;	/* 30 * 4 / 7 = 17MHz */
-		div = 7;
-	} else if (clock >= MHZ_TO_HZ(10)) {
-		mult = 0x10;	/* 30 * 2 / 5 = 12MHz */
-		div = 5;
-	} else if (clock >= MHZ_TO_HZ(5)) {
-		mult = 0x10;	/* 30 * 2 / 10 = 6MHz */
-		div = 10;
-	} else if (clock >= MHZ_TO_HZ(1)) {
-		mult = 0x0;	/* 30 / 16 = 1,8 MHz */
-		div = 16;
-	} else {
-		mult = 0x0;	/* reversed 150 * 200 = 30MHz */
-		div = 200;	/* 150 KHZ mesured */
-	}
-	printk("set freq %d, %x, %x\n", clock, div, mult);
-	au6601_writew(host, (div - 1) << 8 | 1 | mult, REG_72);
-}
-
 static void au6601_finish_command(struct au6601_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
@@ -621,7 +569,7 @@ static void au6601_finish_data(struct au6601_host *host)
 
 	data = host->data;
 	host->data = NULL;
-
+	//printk("d-stop\n");
 
 	/*
 	 * The specification states that the block count register must
@@ -745,6 +693,7 @@ static void au6601_send_cmd(struct au6601_host *host,
 	}
 
 	au6601_writeb(host, ctrl | 0x20, REG_81);
+	//printk("opc %d\n", cmd->opcode);
 }
 
 static void some_seq(struct au6601_host *host)
@@ -828,7 +777,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 #endif
 
 	if (!host->data) {
-		/*
+		/* FIXME: Ist is same for AU6601
 		 * The "data complete" interrupt is also used to
 		 * indicate that a busy state has ended. See comment
 		 * above in au6601_cmd_irq().
@@ -843,8 +792,11 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 		pr_err("%s: Got data interrupt 0x%08x even "
 			"though no data operation was in progress.\n",
 			mmc_hostname(host->mmc), (unsigned)intmask);
-		//au6601_dumpregs(host);
 
+		if (intmask & AU6601_INT_ERROR_MASK) {
+			host->cmd->error = -ETIMEDOUT;
+			tasklet_schedule(&host->finish_tasklet);
+		}
 		return;
 	}
 
@@ -911,7 +863,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		DBG("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
 
 	if (intmask & AU6601_INT_CMD_MASK) {
-		DBG("0xF0001 (CMD) got IRQ with %x\n", intmask);
+		//printk("CMD IRQ %x\n", intmask);
 
 		au6601_writel(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
@@ -920,7 +872,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-//		printk("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
+		//printk("DATA IRQ %x\n", intmask);
 		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -1001,7 +953,61 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
+{
+	unsigned int div = 0, mult = 0, ctrl = 0x1;
 
+	/* FIXME: mesuered and calculated values are different.
+	 * the clock is unstable in some mult/div combinations.
+	 */
+	if (clock >= MHZ_TO_HZ(208)) {
+		mult = 0xb0;	/* 30 * ? / 2 = ?MHz */
+		div = 2;
+	} else if (clock >= MHZ_TO_HZ(194)) {
+		mult = 0x30;	/* 30 * 14 / 2 = 210MHz */
+		div = 2;
+	} else if (clock >= MHZ_TO_HZ(130)) {
+		mult = 0x30;	/* 30 * 14 / 3 = 140MHz */
+		div = 3;
+	} else if (clock >= MHZ_TO_HZ(100)) {
+		mult = 0x30;	/* 30 * 14 / 4 = 105MHz */
+		div = 4;
+	} else if (clock >= MHZ_TO_HZ(80)) {
+		mult = 0x30;	/* 30 * 14 / 5 = 84MHz */
+		div = 5;
+	} else if (clock >= MHZ_TO_HZ(60)) {
+		mult = 0x30;	/* 30 * 14 / 7 = 60MHz */
+		div = 7;
+	} else if (clock >= MHZ_TO_HZ(50)) {
+		mult = 0x10;	/* 30 * 2 / 1 = 60MHz */
+		div = 1;
+	} else if (clock >= MHZ_TO_HZ(40)) {
+		mult = 0x30;	/* 30 * 14 / 10 = 42MHz */
+		div = 10;
+	} else if (clock >= MHZ_TO_HZ(25)) {
+		mult = 0x10;	/* 30 * 2 / 2 = 30MHz */
+		div = 2;
+	} else if (clock >= MHZ_TO_HZ(20)) {
+		mult = 0x20;	/* 30 * 4 / 7 = 17MHz */
+		div = 7;
+	} else if (clock >= MHZ_TO_HZ(10)) {
+		mult = 0x10;	/* 30 * 2 / 5 = 12MHz */
+		div = 5;
+	} else if (clock >= MHZ_TO_HZ(5)) {
+		mult = 0x10;	/* 30 * 2 / 10 = 6MHz */
+		div = 10;
+	} else if (clock >= MHZ_TO_HZ(1)) {
+		mult = 0x0;	/* 30 / 16 = 1,8 MHz */
+		div = 16;
+	} else if (clock == 0) {
+		ctrl = 0;
+	} else {
+		mult = 0x0;	/* reversed 150 * 200 = 30MHz */
+		div = 200;	/* 150 KHZ mesured */
+	}
+	printk("set freq %d, %x, %x\n", clock, div, mult);
+	au6601_writew(host, (div - 1) << 8 | mult | ctrl, REG_72);
+}
 
 static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
@@ -1024,6 +1030,7 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	} else
 		printk("unknown BUS mode \n");
 
+	printk("time %x. ", ios->timing);
 	au6601_set_clock(host, ios->clock);
 
 
@@ -1156,9 +1163,9 @@ static void au6601_init_host(struct au6601_host *host)
 
 	mmc->f_min = AU6601_MIN_CLOCK;
 	mmc->f_max = AU6601_MAX_CLOCK;
-	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->ocr_avail = MMC_VDD_33_34 | MMC_VDD_165_195;
-	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12;
+	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+	//mmc->ocr_avail = MMC_VDD_33_34 | MMC_VDD_165_195;
+	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12;
 	mmc->ops = &au6601_sdc_ops;
 
 	/*Hardware cannot do scatter lists*/

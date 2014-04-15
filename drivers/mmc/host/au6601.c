@@ -947,8 +947,14 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	spin_lock_irqsave(&host->lock, flags);
 
 	host->mrq = mrq;
-	/* check if card is present? then send command and data */
-	au6601_send_cmd(host, mrq->cmd);
+
+	/* check if card is present then send command and data */
+	if (au6601_readb(host, REG_76) & 0x1)
+		au6601_send_cmd(host, mrq->cmd);
+	else {
+		mrq->cmd->error = -ENOMEDIUM;
+		tasklet_schedule(&host->finish_tasklet);
+	}
 
 	spin_unlock_irqrestore(&host->lock, flags);
 }

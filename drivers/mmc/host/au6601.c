@@ -23,6 +23,7 @@
 #include <linux/interrupt.h>
 
 #include <linux/mmc/host.h>
+#include <linux/mmc/mmc.h>
 
 #define DRVNAME			"au6601-pci"
 #define PCI_ID_ALCOR_MICRO	0x1aea
@@ -33,7 +34,7 @@
 #define AU6601_MIN_CLOCK		(150 * 1000)
 //#define AU6601_MAX_CLOCK		(400 * 1000)
 #define AU6601_MAX_CLOCK		MHZ_TO_HZ(208)
-#define AU6601_MAX_BLOCK_LENGTH		2048
+#define AU6601_MAX_BLOCK_LENGTH		512
 #define AU6601_MAX_BLOCK_COUNT		1
 
 
@@ -250,7 +251,7 @@ static void au6601_writel(struct au6601_host *host,
 static void au6601_reg_snap(struct au6601_host *host)
 {
 	int a, b;
-
+return;
 	b = reg_list[0][1] ? 2 : 1;
 	reg_list[0][b] = 1;
 
@@ -270,7 +271,8 @@ static void au6601_reg_snap(struct au6601_host *host)
 	if (reg_list[0][1] && reg_list[0][2]) {
 		for (a = 1; a < ARRAY_SIZE(reg_list); a++) {
 			if (reg_list[a][1] != reg_list[a][2])
-				DBG("-- reg %02x: %08x %s %08x\n",
+				//DBG("-- reg %02x: %08x %s %08x\n",
+				printk("-- reg %02x: %08x %s %08x\n",
 				    reg_list[a][0],
 				    reg_list[a][1],
 				    b == 1 ? "<" : ">",
@@ -590,10 +592,14 @@ static void au6601_finish_command(struct au6601_host *host)
 		if (host->data) {
 			if (host->data_early)
 				au6601_finish_data(host);
-			else if (host->data->blksz > 0x200) {
+			else if (host->cmd->opcode == MMC_READ_MULTIPLE_BLOCK ||
+				 host->cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK) {
+
 #if 0
+				printk("tada\n");
+				au6601_clear_set_reg86(host, 0xc0, 0);
 				u8 ctrl = 0;
-				au6601_writel(host, host->data->blksz, AU6601_BLOCK_SIZE);
+				au6601_writel(host, host->data->blksz * host->data->blocks, AU6601_BLOCK_SIZE);
 				if (host->data->flags & MMC_DATA_WRITE)
 					ctrl = 0x80;
 				au6601_writeb(host, ctrl | 0x41, REG_83);	
@@ -655,7 +661,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 {
 	//u8 count;
 	u8 ctrl = 0;
-	int flags;
+	unsigned int flags, data_size;
 	struct mmc_data *data = cmd->data;
 	//int ret;
 
@@ -687,9 +693,11 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
 	host->blocks = data->blocks;
 
+//	printk("opcode %d[%x], %d\n", cmd->opcode, cpu_to_be32(cmd->arg), data->blocks);
 //	if (data->blksz >= 0x200)
+//	if (cmd->opcode == MMC_READ_MULTIPLE_BLOCK || cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK)
 //		return;
-	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
+	au6601_writel(host, data->blksz * data->blocks, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
 	au6601_writeb(host, ctrl | 0x1, REG_83);	
@@ -912,7 +920,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		DBG("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
+//		printk("0x70003A (DATA/FIFO) got IRQ with %x\n", intmask);
 		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -1024,11 +1032,11 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		au6601_set_power(host, 0x1 | 0x8, 0);
 		break;
 	case MMC_POWER_UP:
-		au6601_set_power(host, 0x8, 1);
-		break;
+	//	au6601_set_power(host, 0x8, 1);
+	//	break;
 	case MMC_POWER_ON:
 		au6601_set_power(host, 0x1, 1);
-		au6601_set_power(host, 0x8, 0);
+	//	au6601_set_power(host, 0x8, 0);
 		break;
 	default:
 		printk("unknown power parametr\n");
@@ -1143,22 +1151,14 @@ static void au6601_timeout_timer(unsigned long data)
 static void au6601_init_host(struct au6601_host *host)
 {
 	struct mmc_host *mmc = host->mmc;
-	//void __iomem *addrbase;
-	//u32 lenreg;
-	//u32 status;
-
-	//init_timer(&host->timer);
-	//host->timer.data = (unsigned long)host;
-	//host->timer.function = via_sdc_timeout;
 
 	spin_lock_init(&host->lock);
 
 	mmc->f_min = AU6601_MIN_CLOCK;
 	mmc->f_max = AU6601_MAX_CLOCK;
 	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
-	mmc->ocr_avail = MMC_VDD_33_34 ;
-	mmc->caps = MMC_CAP_4_BIT_DATA;
-	mmc->caps2 = MMC_CAP2_NO_MULTI_READ;
+	mmc->ocr_avail = MMC_VDD_33_34 | MMC_VDD_165_195;
+	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12;
 	mmc->ops = &au6601_sdc_ops;
 
 	/*Hardware cannot do scatter lists*/

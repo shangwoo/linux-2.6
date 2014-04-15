@@ -638,7 +638,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	/* Sanity checks */
 	BUG_ON(data->blksz * data->blocks > 524288);
 	BUG_ON(data->blksz > host->mmc->max_blk_size);
-	BUG_ON(data->blocks > 65535);
+	BUG_ON(data->blocks > AU6601_MAX_BLOCK_COUNT);
 
 	host->data = data;
 	host->data_early = 0;

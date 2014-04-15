@@ -357,6 +357,19 @@ static void au6601_set_power(struct au6601_host *host, unsigned int value, unsig
 	}
 }
 
+static void au6601_trigger_data_transfer(struct au6601_host *host)
+{
+	struct mmc_data *data = host->data;
+	u8 ctrl = 0;
+
+	BUG_ON(data == NULL);
+
+	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
+	if (host->data->flags & MMC_DATA_WRITE)
+		ctrl = 0x80;
+	au6601_writeb(host, ctrl | 0x1, REG_83);
+}
+
 /*****************************************************************************\
  *                                                                           *
  * Core functions                                                            *
@@ -645,10 +658,8 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 //	if (data->blksz >= 0x200)
 //	if (cmd->opcode == MMC_READ_MULTIPLE_BLOCK || cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK)
 //		return;
-	au6601_writel(host, data->blksz * data->blocks, AU6601_BLOCK_SIZE);
-	if (host->data->flags & MMC_DATA_WRITE)
-		ctrl = 0x80;
-	au6601_writeb(host, ctrl | 0x1, REG_83);	
+
+	au6601_trigger_data_transfer(host);
 }
 
 static void au6601_send_cmd(struct au6601_host *host,

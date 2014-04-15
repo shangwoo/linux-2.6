@@ -620,9 +620,7 @@ static void au6601_finish_data(struct au6601_host *host)
 
 static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cmd)
 {
-	//u8 count;
-	u8 ctrl = 0;
-	unsigned int flags, data_size;
+	unsigned int flags;
 	struct mmc_data *data = cmd->data;
 	//int ret;
 
@@ -653,11 +651,6 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 		flags |= SG_MITER_FROM_SG;
 	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
 	host->blocks = data->blocks;
-
-//	printk("opcode %d[%x], %d\n", cmd->opcode, cpu_to_be32(cmd->arg), data->blocks);
-//	if (data->blksz >= 0x200)
-//	if (cmd->opcode == MMC_READ_MULTIPLE_BLOCK || cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK)
-//		return;
 
 	au6601_trigger_data_transfer(host);
 }

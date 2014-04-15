@@ -286,21 +286,6 @@ return;
 	}
 }
 
-#if 0
-static void au6601_regdump(struct au6601_host *host)
-{
-	int i, a = 0;
-	for (i = 0; i < 0xff; i++) {
-		printk("0x%02x ", readb(host->iobase + i));
-		if (a == 15) {
-			printk("\n");
-			a = 0;
-		} else
-			a++;
-	}
-}
-#endif
-
 static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 {
 	u32 ier;
@@ -340,7 +325,6 @@ static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
  * - 0x1	Vcc and other pins are on
  * - 0x1 | 0x8	like 0x1, but DAT2 is off
  */
-
 static void au6601_set_power(struct au6601_host *host, unsigned int value, unsigned int set)
 {
 	u8 tmp1, tmp2;

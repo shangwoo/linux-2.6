@@ -771,9 +771,14 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 				 * things in the proper order.
 				 */
 				host->data_early = 1;
-			} else {
+			} else if (host->blocks) {
+				/*
+				 * Probably we do multi block operation.
+				 * Prepare PIO for next block.
+				 */
+				au6601_trigger_data_transfer(host);
+			} else
 				au6601_finish_data(host);
-			}
 		}
 	}
 }

@@ -471,41 +471,17 @@ static void au6601_write_block_pio(struct au6601_host *host)
 
 static void au6601_transfer_pio(struct au6601_host *host)
 {
-	//u32 mask;
-
 	BUG_ON(!host->data);
 
 	if (host->blocks == 0)
 		return;
 
-#if 0
 	if (host->data->flags & MMC_DATA_READ)
-		mask = AU6601_DATA_AVAILABLE;
+		au6601_read_block_pio(host);
 	else
-		mask = AU6601_SPACE_AVAILABLE;
+		au6601_write_block_pio(host);
 
-
-	/*
-	 * Some controllers (JMicron JMB38x) mess up the buffer bits
-	 * for transfers < 4 bytes. As long as it is just one block,
-	 * we can ignore the bits.
-	 */
-	if ((host->quirks & AU6601_QUIRK_BROKEN_SMALL_PIO) &&
-		(host->data->blocks == 1))
-		mask = ~0;
-#endif
-	//FIXME: do we have state register?
-	//while (au6601_readl(host, AU6601_PRESENT_STATE) & mask) {
-		if (host->data->flags & MMC_DATA_READ)
-			au6601_read_block_pio(host);
-		else
-			au6601_write_block_pio(host);
-
-		host->blocks--;
-		//if (host->blocks == 0)
-	//		au6601_finish_data(host);
-	//		break;
-	//}
+	host->blocks--;
 
 	DBG("PIO transfer complete.\n");
 }

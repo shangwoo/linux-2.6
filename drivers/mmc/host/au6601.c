@@ -573,11 +573,6 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	DBG("\n");
 	WARN_ON(host->data);
 
-	//if (data || (cmd->flags & MMC_RSP_BUSY)) {
-	//	count = au6601_calc_timeout(host, cmd);
-	//	au6601_writeb(host, count, AU6601_TIMEOUT_CONTROL);
-	//}
-
 	if (!data)
 		return;
 

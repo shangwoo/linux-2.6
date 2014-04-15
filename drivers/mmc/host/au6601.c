@@ -510,24 +510,10 @@ static void au6601_finish_command(struct au6601_host *host)
 		au6601_send_cmd(host, host->mrq->cmd);
 	} else {
 		/* Processed actual command. */
-		if (host->data) {
-			if (host->data_early)
-				au6601_finish_data(host);
-			else if (host->cmd->opcode == MMC_READ_MULTIPLE_BLOCK ||
-				 host->cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK) {
-
-#if 0
-				printk("tada\n");
-				au6601_clear_set_reg86(host, 0xc0, 0);
-				u8 ctrl = 0;
-				au6601_writel(host, host->data->blksz * host->data->blocks, AU6601_BLOCK_SIZE);
-				if (host->data->flags & MMC_DATA_WRITE)
-					ctrl = 0x80;
-				au6601_writeb(host, ctrl | 0x41, REG_83);	
-#endif
-			}
-		} else
+		if (!host->data)
 			tasklet_schedule(&host->finish_tasklet);
+		else if (host->data_early)
+			au6601_finish_data(host);
 
 		host->cmd = NULL;
 	}

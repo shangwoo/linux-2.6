@@ -833,39 +833,6 @@ exit:
 	return ret;
 }
 
-static void au6601_hw_init(struct au6601_host *host)
-{
-
-	au6601_writeb(host, 0, REG_74);
-
-	au6601_writeb(host, 0, REG_76);
-	/* disable DlinkMode? disabled by default. */
-	au6601_writeb(host, 0x80, REG_76);
-
-	au6601_wait_reg_79(host, 0x1);
-
-	/* first sequence after reg_79 check. Same sequence is used on
-	 * olmost every command. */
-	au6601_writeb(host, 0x0, REG_05);
-	au6601_writeb(host, 0x1, REG_75);
-	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
-		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
-		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
-		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
-	au6601_writel(host, 0x0, REG_82);
-
-	au6601_wait_reg_79(host, 0x8);
-
-	au6601_writeb(host, 0x0, REG_05);
-	au6601_writeb(host, 0x0, REG_85);
-	au6601_writeb(host, 0x8, REG_75);
-	au6601_writel(host, 0x3d00fa, REG_B4);
-
-	au6601_set_power(host, 0x1, 0);
-	au6601_set_power(host, 0x8, 0);
-
-}
-
 static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct au6601_host *host;
@@ -1110,6 +1077,38 @@ static void au6601_init_mmc(struct au6601_host *host)
 	mmc->max_req_size = mmc->max_seg_size;
 }
 
+static void au6601_hw_init(struct au6601_host *host)
+{
+
+	au6601_writeb(host, 0, REG_74);
+
+	au6601_writeb(host, 0, REG_76);
+	/* disable DlinkMode? disabled by default. */
+	au6601_writeb(host, 0x80, REG_76);
+
+	au6601_wait_reg_79(host, 0x1);
+
+	/* first sequence after reg_79 check. Same sequence is used on
+	 * olmost every command. */
+	au6601_writeb(host, 0x0, REG_05);
+	au6601_writeb(host, 0x1, REG_75);
+	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
+		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
+		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
+		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
+	au6601_writel(host, 0x0, REG_82);
+
+	au6601_wait_reg_79(host, 0x8);
+
+	au6601_writeb(host, 0x0, REG_05);
+	au6601_writeb(host, 0x0, REG_85);
+	au6601_writeb(host, 0x8, REG_75);
+	au6601_writel(host, 0x3d00fa, REG_B4);
+
+	au6601_set_power(host, 0x1, 0);
+	au6601_set_power(host, 0x8, 0);
+
+}
 
 static int au6601_pci_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *ent)

@@ -468,22 +468,6 @@ static void au6601_transfer_pio(struct au6601_host *host)
 	DBG("PIO transfer complete.\n");
 }
 
-static void au6601_set_freg_pre(struct au6601_host *host)
-{
-	au6601_writeb(host, 0, REG_85);
-	au6601_writeb(host, 0x31, REG_7B);
-	au6601_writeb(host, 0x33, REG_7C);
-//	au6601_writeb(host, 0, REG_7D);
-	au6601_writeb(host, 1, REG_75);
-	au6601_writeb(host, 0, REG_85);
-	au6601_writeb(host, 0x30, REG_86);
-	au6601_writeb(host, 0, REG_82);
-
-	/* other possible variant tmp | 0xc0 */
-//	tmp = au6601_readb(host, REG_86);
-//	au6601_writeb(host, tmp & 0x3f, REG_86);
-}
-
 static void au6601_finish_command(struct au6601_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
@@ -852,6 +836,17 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+static void au6601_set_freg_pre(struct au6601_host *host)
+{
+	au6601_writeb(host, 0, REG_85);
+	au6601_writeb(host, 0x31, REG_7B);
+	au6601_writeb(host, 0x33, REG_7C);
+	au6601_writeb(host, 1, REG_75);
+	au6601_writeb(host, 0, REG_85);
+	au6601_writeb(host, 0x30, REG_86);
+	au6601_writeb(host, 0, REG_82);
 }
 
 static void au6601_set_clock(struct au6601_host *host, unsigned int clock)

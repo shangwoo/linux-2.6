@@ -477,11 +477,11 @@ static void au6601_finish_command(struct au6601_host *host)
 	BUG_ON(host->cmd == NULL);
 
 	if (host->cmd->flags & MMC_RSP_PRESENT) {
-		cmd->resp[0] = be32_to_cpu(au6601_read32(host, REG_30));
+		cmd->resp[0] = ioread32be(host->iobase + REG_30);
 		if (host->cmd->flags & MMC_RSP_136) {
-			cmd->resp[1] = be32_to_cpu(au6601_read32(host, REG_34));
-			cmd->resp[2] = be32_to_cpu(au6601_read32(host, REG_38));
-			cmd->resp[3] = be32_to_cpu(au6601_read32(host, REG_3C));
+			cmd->resp[1] = ioread32be(host->iobase + REG_34);
+			cmd->resp[2] = ioread32be(host->iobase + REG_38);
+			cmd->resp[3] = ioread32be(host->iobase + REG_3C);
 		}
 
 	}
@@ -597,8 +597,8 @@ static void au6601_send_cmd(struct au6601_host *host,
         host->cmd = cmd;
 	au6601_prepare_data(host, cmd);
 
-	au6601_write8(host, cmd->opcode | 0x40, REG_23);
-	au6601_write32(host, cpu_to_be32(cmd->arg), REG_24);
+	iowrite8(cmd->opcode | 0x40, host->iobase + REG_23);
+	iowrite32be(cmd->arg, host->iobase + REG_24);
 
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:

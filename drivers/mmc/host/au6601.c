@@ -833,7 +833,7 @@ exit:
 	return ret;
 }
 
-static void au6601_init(struct au6601_host *host)
+static void au6601_hw_init(struct au6601_host *host)
 {
 
 	au6601_writeb(host, 0, REG_74);
@@ -1177,7 +1177,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 
 	au6601_init_mmc(host);
 	au6601_reg_snap(host);
-	au6601_init(host);
+	au6601_hw_init(host);
 
 	mmc_add_host(mmc);
         return 0;

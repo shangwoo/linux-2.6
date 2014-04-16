@@ -211,41 +211,41 @@ static const struct pci_device_id pci_ids[] = {
 };
 MODULE_DEVICE_TABLE(pci, pci_ids);
 
-static unsigned char au6601_readb(struct au6601_host *host,
+static unsigned char au6601_read8(struct au6601_host *host,
 			  unsigned int reg)
 {
-	unsigned char val = readb(host->iobase + reg);
+	unsigned char val = ioread8(host->iobase + reg);
 	DBG("addr = %x, val = %x\n", reg, val);
 	return val;
 }
 
-static unsigned int au6601_readl(struct au6601_host *host,
+static unsigned int au6601_read32(struct au6601_host *host,
 			  unsigned int reg)
 {
-	unsigned int val = readl(host->iobase + reg);
+	unsigned int val = ioread32(host->iobase + reg);
 	DBG("addr = %x, val = %x\n", reg, val);
 	return val;
 }
 
-static void au6601_writeb(struct au6601_host *host,
+static void au6601_write8(struct au6601_host *host,
 			  u8 val, unsigned int reg)
 {
 	DBG("addr = %x, val = %x\n", reg, val);
-	writeb(val, host->iobase + reg);
+	iowrite8(val, host->iobase + reg);
 }
 
-static void au6601_writew(struct au6601_host *host,
+static void au6601_write16(struct au6601_host *host,
 			  u16 val, unsigned int reg)
 {
 	DBG("addr = %x, val = %x\n", reg, val);
-	writew(val, host->iobase + reg);
+	iowrite16(val, host->iobase + reg);
 }
 
-static void au6601_writel(struct au6601_host *host,
+static void au6601_write32(struct au6601_host *host,
 			  u32 val, unsigned int reg)
 {
 	DBG("addr = %x, val = %x\n", reg, val);
-	writel(val, host->iobase + reg);
+	iowrite32(val, host->iobase + reg);
 }
 
 static void au6601_reg_snap(struct au6601_host *host)
@@ -290,30 +290,30 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 {
 	u32 ier;
 
-	ier = au6601_readl(host, AU6601_INT_ENABLE);
+	ier = au6601_read32(host, AU6601_INT_ENABLE);
 	ier &= ~clear;
 	ier |= set;
-	au6601_writel(host, ier, AU6601_INT_ENABLE);
+	au6601_write32(host, ier, AU6601_INT_ENABLE);
 }
 
 static void au6601_clear_set_reg86(struct au6601_host *host, u32 clear, u32 set)
 {
 	u32 val;
 
-	val = au6601_readl(host, REG_86);
+	val = au6601_read32(host, REG_86);
 	val &= ~clear;
 	val |= set;
-	au6601_writel(host, val, REG_86);
+	au6601_write32(host, val, REG_86);
 }
 
 /* val = 0x1 abort command; 0x8 abort data? */
 static void au6601_wait_reg_79(struct au6601_host *host, u8 val)
 {
 	int i;
-	au6601_writeb(host, val | 0x80, REG_79);
+	au6601_write8(host, val | 0x80, REG_79);
 	/* what is bets value here? 500? */
 	for (i = 0; i < 500; i++) {
-		if (!(au6601_readb(host, REG_79) & val))
+		if (!(au6601_read8(host, REG_79) & val))
 			return;
 		msleep(1);
 	}
@@ -329,15 +329,15 @@ static void au6601_set_power(struct au6601_host *host, unsigned int value, unsig
 {
 	u8 tmp1, tmp2;
  
-	tmp1 = au6601_readb(host, REG_70);
-	tmp2 = au6601_readb(host, REG_7A);
+	tmp1 = au6601_read8(host, REG_70);
+	tmp2 = au6601_read8(host, REG_7A);
 	if (set) {
-		au6601_writeb(host, tmp1 | value, REG_70);
+		au6601_write8(host, tmp1 | value, REG_70);
 		msleep(20);
-		au6601_writeb(host, tmp2 | value, REG_7A);
+		au6601_write8(host, tmp2 | value, REG_7A);
 	} else {
-		au6601_writeb(host, tmp2 & ~value, REG_7A);
-		au6601_writeb(host, tmp1 & ~value, REG_70);
+		au6601_write8(host, tmp2 & ~value, REG_7A);
+		au6601_write8(host, tmp1 & ~value, REG_70);
 	}
 }
 
@@ -348,10 +348,10 @@ static void au6601_trigger_data_transfer(struct au6601_host *host)
 
 	BUG_ON(data == NULL);
 
-	au6601_writel(host, data->blksz, AU6601_BLOCK_SIZE);
+	au6601_write32(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl = 0x80;
-	au6601_writeb(host, ctrl | 0x1, REG_83);
+	au6601_write8(host, ctrl | 0x1, REG_83);
 }
 
 /*****************************************************************************\
@@ -385,9 +385,10 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 		buf = host->sg_miter.addr;
 
+		//printk("pio Y\n");
 		while (len) {
 			if (chunk == 0) {
-				scratch = au6601_readl(host, AU6601_BUFFER);
+				scratch = au6601_read32(host, AU6601_BUFFER);
 				chunk = 4;
 			}
 
@@ -398,6 +399,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			chunk--;
 			len--;
 		}
+		//printk("pio _\n");
 	}
 
 	sg_miter_stop(&host->sg_miter);
@@ -439,7 +441,7 @@ static void au6601_write_block_pio(struct au6601_host *host)
 			len--;
 
 			if ((chunk == 4) || ((len == 0) && (blksize == 0))) {
-				au6601_writel(host, scratch, AU6601_BUFFER);
+				au6601_write32(host, scratch, AU6601_BUFFER);
 				chunk = 0;
 				scratch = 0;
 			}
@@ -475,11 +477,11 @@ static void au6601_finish_command(struct au6601_host *host)
 	BUG_ON(host->cmd == NULL);
 
 	if (host->cmd->flags & MMC_RSP_PRESENT) {
-		cmd->resp[0] = be32_to_cpu(au6601_readl(host, REG_30));
+		cmd->resp[0] = be32_to_cpu(au6601_read32(host, REG_30));
 		if (host->cmd->flags & MMC_RSP_136) {
-			cmd->resp[1] = be32_to_cpu(au6601_readl(host, REG_34));
-			cmd->resp[2] = be32_to_cpu(au6601_readl(host, REG_38));
-			cmd->resp[3] = be32_to_cpu(au6601_readl(host, REG_3C));
+			cmd->resp[1] = be32_to_cpu(au6601_read32(host, REG_34));
+			cmd->resp[2] = be32_to_cpu(au6601_read32(host, REG_38));
+			cmd->resp[3] = be32_to_cpu(au6601_read32(host, REG_3C));
 		}
 
 	}
@@ -595,8 +597,8 @@ static void au6601_send_cmd(struct au6601_host *host,
         host->cmd = cmd;
 	au6601_prepare_data(host, cmd);
 
-	au6601_writeb(host, cmd->opcode | 0x40, REG_23);
-	au6601_writel(host, cpu_to_be32(cmd->arg), REG_24);
+	au6601_write8(host, cmd->opcode | 0x40, REG_23);
+	au6601_write32(host, cpu_to_be32(cmd->arg), REG_24);
 
 	switch (mmc_resp_type(cmd)) {
 	case MMC_RSP_NONE:
@@ -619,7 +621,7 @@ static void au6601_send_cmd(struct au6601_host *host,
 		break;
 	}
 
-	au6601_writeb(host, ctrl | 0x20, REG_81);
+	au6601_write8(host, ctrl | 0x20, REG_81);
 	//printk("opc %d\n", cmd->opcode);
 }
 
@@ -759,7 +761,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	spin_lock(&host->lock);
 
 	au6601_reg_snap(host);
-	intmask = au6601_readl(host, AU6601_INT_STATUS);
+	intmask = au6601_read32(host, AU6601_INT_STATUS);
 
 	/* some thing bad */
 	if (!intmask || intmask == 0xffffffff) {
@@ -775,7 +777,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		} else {
 			DBG("card inserted\n");
 		}
-		au6601_writeb(host, intmask & (AU6601_INT_CARD_INSERT |
+		au6601_write8(host, intmask & (AU6601_INT_CARD_INSERT |
 			      AU6601_INT_CARD_REMOVE), AU6601_INT_STATUS);
 		intmask &= ~(AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE);
 		tasklet_schedule(&host->card_tasklet);
@@ -786,7 +788,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	if (intmask & AU6601_INT_CMD_MASK) {
 		//printk("CMD IRQ %x\n", intmask);
 
-		au6601_writel(host, intmask & AU6601_INT_CMD_MASK,
+		au6601_write32(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
 		au6601_cmd_irq(host, intmask & AU6601_INT_CMD_MASK);
 		intmask &= ~AU6601_INT_CMD_MASK;
@@ -794,7 +796,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 
 	if (intmask & AU6601_INT_DATA_MASK) {
 		//printk("DATA IRQ %x\n", intmask);
-		au6601_writel(host, intmask & AU6601_INT_DATA_MASK,
+		au6601_write32(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
 		intmask &= ~AU6601_INT_DATA_MASK;
@@ -802,13 +804,13 @@ static irqreturn_t au6601_irq(int irq, void *d)
 
 	if (intmask & 0x100) {
 		printk("0x100 (card INT) got IRQ with %x\n", intmask);
-		au6601_writel(host, 0x100, AU6601_INT_STATUS);
+		au6601_write32(host, 0x100, AU6601_INT_STATUS);
 		intmask &= ~0x100;
 	}
 
 	if (intmask & 0xFFFF7FFF) {
 		printk("0xFFFF7FFF got IRQ with %x\n", intmask);
-		au6601_writel(host, intmask & 0xFFFF7FFF, AU6601_INT_STATUS);
+		au6601_write32(host, intmask & 0xFFFF7FFF, AU6601_INT_STATUS);
 	}
 
 exit:
@@ -828,7 +830,7 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	host->mrq = mrq;
 
 	/* check if card is present then send command and data */
-	if (au6601_readb(host, REG_76) & 0x1)
+	if (au6601_read8(host, REG_76) & 0x1)
 		au6601_send_cmd(host, mrq->cmd);
 	else {
 		mrq->cmd->error = -ENOMEDIUM;
@@ -840,13 +842,13 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 static void au6601_set_freg_pre(struct au6601_host *host)
 {
-	au6601_writeb(host, 0, REG_85);
-	au6601_writeb(host, 0x31, REG_7B);
-	au6601_writeb(host, 0x33, REG_7C);
-	au6601_writeb(host, 1, REG_75);
-	au6601_writeb(host, 0, REG_85);
-	au6601_writeb(host, 0x30, REG_86);
-	au6601_writeb(host, 0, REG_82);
+	au6601_write8(host, 0, REG_85);
+	au6601_write8(host, 0x31, REG_7B);
+	au6601_write8(host, 0x33, REG_7C);
+	au6601_write8(host, 1, REG_75);
+	au6601_write8(host, 0, REG_85);
+	au6601_write8(host, 0x30, REG_86);
+	au6601_write8(host, 0, REG_82);
 }
 
 static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
@@ -902,7 +904,7 @@ static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 		div = 200;	/* 150 KHZ mesured */
 	}
 	printk("set freq %d, %x, %x\n", clock, div, mult);
-	au6601_writew(host, (div - 1) << 8 | mult | ctrl, REG_72);
+	au6601_write16(host, (div - 1) << 8 | mult | ctrl, REG_72);
 }
 
 static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
@@ -915,18 +917,20 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 
 	au6601_set_freg_pre(host);
 
+	//if (ios->signal_voltage == MMC_SIGNAL_VOLTAGE_330)
+
 	if (ios->bus_width == MMC_BUS_WIDTH_1) {
 		printk("BUS width 1 \n");
-		au6601_writeb(host, 0x0, REG_82);
+		au6601_write8(host, 0x0, REG_82);
 		au6601_clear_set_reg86(host, 0xc0, 0);
 	} else if (ios->bus_width == MMC_BUS_WIDTH_4) {
 		printk("BUS width 4 \n");
-		au6601_writeb(host, 0x20, REG_82);
+		au6601_write8(host, 0x20, REG_82);
 		au6601_clear_set_reg86(host, 0, 0xc0);
 	} else
 		printk("unknown BUS mode \n");
 
-	printk("time %x. ", ios->timing);
+	printk("time %x. vdd: %x ", ios->timing, ios->signal_voltage);
 	au6601_set_clock(host, ios->clock);
 
 
@@ -945,9 +949,9 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 		printk("unknown power parametr\n");
 	}
 
-        au6601_writeb(host, 0x80, REG_83);
-        au6601_writeb(host, 0x7d, REG_69);
-        au6601_readb(host, REG_74);
+        au6601_write8(host, 0x80, REG_83);
+        au6601_write8(host, 0x7d, REG_69);
+        au6601_read8(host, REG_74);
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
@@ -1057,8 +1061,8 @@ static void au6601_init_mmc(struct au6601_host *host)
 
 	mmc->f_min = AU6601_MIN_CLOCK;
 	mmc->f_max = AU6601_MAX_CLOCK;
-	mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
-	//mmc->ocr_avail = MMC_VDD_33_34 | MMC_VDD_165_195;
+	//mmc->ocr_avail = MMC_VDD_32_33 | MMC_VDD_33_34;
+	mmc->ocr_avail = MMC_VDD_33_34 | MMC_VDD_165_195;
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12;
 	mmc->ops = &au6601_sdc_ops;
 
@@ -1075,30 +1079,35 @@ static void au6601_init_mmc(struct au6601_host *host)
 static void au6601_hw_init(struct au6601_host *host)
 {
 
-	au6601_writeb(host, 0, REG_74);
+	//au6601_write8(host, 0, REG_7F);
+//	printk("%x\n", au6601_read8(host, REG_7F));
+//	au6601_write8(host, 1, REG_7F);
+//	printk("%x\n", au6601_read8(host, REG_7F));
+	
+	au6601_write8(host, 0, REG_74);
 
-	au6601_writeb(host, 0, REG_76);
+	au6601_write8(host, 0, REG_76);
 	/* disable DlinkMode? disabled by default. */
-	au6601_writeb(host, 0x80, REG_76);
+	au6601_write8(host, 0x80, REG_76);
 
 	au6601_wait_reg_79(host, 0x1);
 
 	/* first sequence after reg_79 check. Same sequence is used on
 	 * olmost every command. */
-	au6601_writeb(host, 0x0, REG_05);
-	au6601_writeb(host, 0x1, REG_75);
+	au6601_write8(host, 0x0, REG_05);
+	au6601_write8(host, 0x1, REG_75);
 	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
 		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
 		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
 		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
-	au6601_writel(host, 0x0, REG_82);
+	au6601_write32(host, 0x0, REG_82);
 
 	au6601_wait_reg_79(host, 0x8);
 
-	au6601_writeb(host, 0x0, REG_05);
-	au6601_writeb(host, 0x0, REG_85);
-	au6601_writeb(host, 0x8, REG_75);
-	au6601_writel(host, 0x3d00fa, REG_B4);
+	au6601_write8(host, 0x0, REG_05);
+	au6601_write8(host, 0x0, REG_85);
+	au6601_write8(host, 0x8, REG_75);
+	au6601_write32(host, 0x3d00fa, REG_B4);
 
 	au6601_set_power(host, 0x1, 0);
 	au6601_set_power(host, 0x8, 0);
@@ -1184,13 +1193,13 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 
 	host = pci_get_drvdata(pdev);
 
-	au6601_writeb(host, 0x0, REG_76);
+	au6601_write8(host, 0x0, REG_76);
 	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK, 0);
 
 	au6601_set_power(host, 0x1, 0);
 
-	au6601_writeb(host, 0x0, REG_85);
-	au6601_writeb(host, 0x0, REG_B4);
+	au6601_write8(host, 0x0, REG_85);
+	au6601_write8(host, 0x0, REG_B4);
 
 	au6601_set_power(host, 0x8, 0);
 

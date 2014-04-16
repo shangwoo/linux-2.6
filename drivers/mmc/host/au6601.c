@@ -374,7 +374,6 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 	local_irq_save(flags);
 
-	//printk("pio Y\n");
 	while (blksize) {
 		if (!sg_miter_next(&host->sg_miter))
 			BUG();
@@ -400,7 +399,6 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			len--;
 		}
 	}
-	//printk("pio _\n");
 
 	sg_miter_stop(&host->sg_miter);
 
@@ -641,17 +639,6 @@ static void au6601_send_cmd(struct au6601_host *host,
 	//printk("opc %d\n", cmd->opcode);
 }
 
-static void some_seq(struct au6601_host *host)
-{
-	au6601_writeb(host, 0x0, REG_05);
-	au6601_writeb(host, 0x1, REG_75);
-	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
-		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
-		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
-		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
-	au6601_writel(host, 0x0, REG_82);
-}
-
 /*****************************************************************************\
  *                                                                           *
  * Interrupt handling                                                        *
@@ -849,39 +836,30 @@ exit:
 static void au6601_init(struct au6601_host *host)
 {
 
-	au6601_writeb(host, 0, REG_7F);
-	au6601_readb(host, REG_7F);
-	au6601_writeb(host, 1, REG_7F);
-	au6601_readb(host, REG_7F);
-
-	au6601_readb(host, REG_77);
-
 	au6601_writeb(host, 0, REG_74);
-	/* set ExtPadDrive size */
-	au6601_writeb(host, 68, REG_7B);
-	au6601_writeb(host, 68, REG_7C);
-//	au6601_writeb(host, 0, REG_7D);
 
-	/* why do we need this read? */
-	au6601_readb(host, REG_76);
 	au6601_writeb(host, 0, REG_76);
 	/* disable DlinkMode? disabled by default. */
 	au6601_writeb(host, 0x80, REG_76);
-	au6601_readb(host, REG_76);
 
 	au6601_wait_reg_79(host, 0x1);
 
 	/* first sequence after reg_79 check. Same sequence is used on
 	 * olmost every command. */
-	some_seq(host);
+	au6601_writeb(host, 0x0, REG_05);
+	au6601_writeb(host, 0x1, REG_75);
+	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
+		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
+		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
+		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
+	au6601_writel(host, 0x0, REG_82);
+
 	au6601_wait_reg_79(host, 0x8);
 
 	au6601_writeb(host, 0x0, REG_05);
 	au6601_writeb(host, 0x0, REG_85);
 	au6601_writeb(host, 0x8, REG_75);
 	au6601_writel(host, 0x3d00fa, REG_B4);
-//	au6601_writeb(host, 0x0, REG_61);
-//	au6601_writeb(host, 0x0, REG_63);
 
 	au6601_set_power(host, 0x1, 0);
 	au6601_set_power(host, 0x8, 0);
@@ -1111,11 +1089,9 @@ static void au6601_timeout_timer(unsigned long data)
 
 
 
-static void au6601_init_host(struct au6601_host *host)
+static void au6601_init_mmc(struct au6601_host *host)
 {
 	struct mmc_host *mmc = host->mmc;
-
-	spin_lock_init(&host->lock);
 
 	mmc->f_min = AU6601_MIN_CLOCK;
 	mmc->f_max = AU6601_MAX_CLOCK;
@@ -1124,7 +1100,7 @@ static void au6601_init_host(struct au6601_host *host)
 	mmc->caps = MMC_CAP_4_BIT_DATA | MMC_CAP_SD_HIGHSPEED | MMC_CAP_MMC_HIGHSPEED | MMC_CAP_UHS_SDR104 | MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 | MMC_CAP_UHS_SDR25 | MMC_CAP_UHS_SDR12;
 	mmc->ops = &au6601_sdc_ops;
 
-	/*Hardware cannot do scatter lists*/
+	/* Hardware cannot do scatter lists? */
 	mmc->max_segs = 1;
 
 	mmc->max_blk_size = AU6601_MAX_BLOCK_LENGTH;
@@ -1189,6 +1165,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 
         pci_set_drvdata(pdev, host);
 
+	spin_lock_init(&host->lock);
 	/*
 	 * Init tasklets.
 	 */
@@ -1198,7 +1175,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 		au6601_tasklet_finish, (unsigned long)host);
 	setup_timer(&host->timer, au6601_timeout_timer, (unsigned long)host);
 
-	au6601_init_host(host);
+	au6601_init_mmc(host);
 	au6601_reg_snap(host);
 	au6601_init(host);
 

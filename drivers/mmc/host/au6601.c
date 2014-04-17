@@ -32,7 +32,6 @@
 #define MHZ_TO_HZ(freq)	((freq) * 1000 * 1000)
 
 #define AU6601_MIN_CLOCK		(150 * 1000)
-//#define AU6601_MAX_CLOCK		(400 * 1000)
 #define AU6601_MAX_CLOCK		MHZ_TO_HZ(208)
 #define AU6601_MAX_BLOCK_LENGTH		512
 #define AU6601_MAX_BLOCK_COUNT		65536
@@ -176,13 +175,14 @@ struct au6601_host {
 	struct pci_dev *pdev;
 	void __iomem *iobase;
 	void __iomem *virt_base;
-	dma_addr_t *phys_base;
+	dma_addr_t phys_base;
 
 	struct mmc_host *mmc;
 	struct mmc_request *mrq;
 	struct mmc_command *cmd;
 	struct mmc_data *data;
         unsigned int data_early:1;      /* Data finished before cmd */
+        unsigned int dma_on:1;
 
 	spinlock_t lock;
 
@@ -343,20 +343,26 @@ static void au6601_set_power(struct au6601_host *host, unsigned int value, unsig
 	}
 }
 
-static void au6601_trigger_data_transfer(struct au6601_host *host)
+static void au6601_trigger_data_transfer(struct au6601_host *host,
+		unsigned int dma)
 {
 	struct mmc_data *data = host->data;
 	u8 ctrl = 0;
 
 	BUG_ON(data == NULL);
+	WARN_ON_ONCE(host->dma_on == 1);
 
-	//au6601_write32(host, host->phys_base, REG_00);
-	au6601_write32(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
 		ctrl |= 0x80;
-	else
+
+	if (dma) {
+		au6601_write32(host, host->phys_base, REG_00);
 		ctrl |= 0x40;
-	
+		host->dma_on = 1;
+	}
+
+	//printk("--- phy(%i): %x %d %d\n", dma, host->phys_base, data->blksz, host->blocks);
+	au6601_write32(host, data->blksz, AU6601_BLOCK_SIZE);
 	au6601_write8(host, ctrl | 0x1, REG_83);
 }
 
@@ -391,8 +397,13 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 		buf = host->sg_miter.addr;
 
-		printk("pio Y\n");
+	//	printk("pio Y %i\n", host->dma_on);
 		while (len) {
+		if (host->dma_on) {
+			//printk("pio I\n");
+			memcpy_fromio(buf, host->virt_base, len);
+			len = 0;
+		} else {
 			if (chunk == 0) {
 				scratch = au6601_read32(host, AU6601_BUFFER);
 				chunk = 4;
@@ -405,11 +416,12 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			chunk--;
 			len--;
 		}
-		printk("pio _\n");
+
+		}
+	//	printk("pio _\n");
 	}
 
 	sg_miter_stop(&host->sg_miter);
-
 	local_irq_restore(flags);
 }
 
@@ -472,6 +484,13 @@ static void au6601_transfer_pio(struct au6601_host *host)
 		au6601_write_block_pio(host);
 
 	host->blocks--;
+	if (host->dma_on) {
+		host->dma_on = 0;
+		if (host->blocks)
+			au6601_trigger_data_transfer(host, 1);
+		else
+			au6601_finish_data(host);
+	}
 
 	DBG("PIO transfer complete.\n");
 }
@@ -484,6 +503,7 @@ static void au6601_finish_command(struct au6601_host *host)
 
 	if (host->cmd->flags & MMC_RSP_PRESENT) {
 		cmd->resp[0] = ioread32be(host->iobase + REG_30);
+		//printk("zzz res: %x\n", cmd->resp[0]);
 		if (host->cmd->flags & MMC_RSP_136) {
 			cmd->resp[1] = ioread32be(host->iobase + REG_34);
 			cmd->resp[2] = ioread32be(host->iobase + REG_38);
@@ -504,6 +524,8 @@ static void au6601_finish_command(struct au6601_host *host)
 			tasklet_schedule(&host->finish_tasklet);
 		else if (host->data_early)
 			au6601_finish_data(host);
+	//	else
+	//		au6601_trigger_data_transfer(host);
 
 		host->cmd = NULL;
 	}
@@ -518,6 +540,7 @@ static void au6601_finish_data(struct au6601_host *host)
 
 	data = host->data;
 	host->data = NULL;
+	host->dma_on = 0;
 	//printk("d-stop\n");
 
 	/*
@@ -583,7 +606,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
 	host->blocks = data->blocks;
 
-	au6601_trigger_data_transfer(host);
+	au6601_trigger_data_transfer(host, data->blocks > 1 ? 1 : 0);
 }
 
 static void au6601_send_cmd(struct au6601_host *host,
@@ -628,7 +651,7 @@ static void au6601_send_cmd(struct au6601_host *host,
 	}
 
 	au6601_write8(host, ctrl | 0x20, REG_81);
-	//printk("opc %d\n", cmd->opcode);
+//	printk("opc %d\n", cmd->opcode);
 }
 
 /*****************************************************************************\
@@ -745,14 +768,19 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 				 * things in the proper order.
 				 */
 				host->data_early = 1;
-			} else if (host->blocks) {
+			} else if (host->blocks && !host->dma_on) {
 				/*
 				 * Probably we do multi block operation.
 				 * Prepare PIO for next block.
 				 */
-				au6601_trigger_data_transfer(host);
-			} else
+				au6601_trigger_data_transfer(host, 0);
+			} else if (host->blocks && host->dma_on) {
+				au6601_transfer_pio(host);
+			} else {
+				if (host->dma_on)
+					au6601_transfer_pio(host);
 				au6601_finish_data(host);
+			}
 		}
 	}
 }
@@ -792,7 +820,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		DBG("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
 
 	if (intmask & AU6601_INT_CMD_MASK) {
-		printk("CMD IRQ %x\n", intmask);
+		//printk("CMD IRQ %x\n", intmask);
 
 		au6601_write32(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
@@ -801,7 +829,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		printk("DATA IRQ %x\n", intmask);
+		//printk("DATA IRQ %x\n", intmask);
 		au6601_write32(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -1118,6 +1146,7 @@ static void au6601_hw_init(struct au6601_host *host)
 	au6601_set_power(host, 0x1, 0);
 	au6601_set_power(host, 0x8, 0);
 
+	host->dma_on = 0;
 }
 
 static int au6601_pci_probe(struct pci_dev *pdev,
@@ -1172,13 +1201,20 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 		return -ENOMEM;
 	}
 
-	host->virt_base = dmam_alloc_coherent(&pdev->dev, AU6601_MAX_BLOCK_LENGTH,
-					      host->phys_base, GFP_KERNEL);
+	host->virt_base = dmam_alloc_coherent(&pdev->dev,
+		AU6601_MAX_BLOCK_LENGTH, &host->phys_base, GFP_KERNEL);
 	if (!host->virt_base) {
 		dev_err(&pdev->dev, "failed to alloc DMA\n");
 		return -ENOMEM;
 	}
 
+	ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+	if (ret) {
+		dev_err(&pdev->dev, "failed to set DMA mask\n");
+		return ret;
+	}
+
+	pci_set_master(pdev);
         pci_set_drvdata(pdev, host);
 
 	spin_lock_init(&host->lock);

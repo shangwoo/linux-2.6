@@ -175,6 +175,8 @@ u32 reg_list[][4] = {
 struct au6601_host {
 	struct pci_dev *pdev;
 	void __iomem *iobase;
+	void __iomem *virt_base;
+	dma_addr_t *phys_base;
 
 	struct mmc_host *mmc;
 	struct mmc_request *mrq;
@@ -348,9 +350,13 @@ static void au6601_trigger_data_transfer(struct au6601_host *host)
 
 	BUG_ON(data == NULL);
 
+	//au6601_write32(host, host->phys_base, REG_00);
 	au6601_write32(host, data->blksz, AU6601_BLOCK_SIZE);
 	if (host->data->flags & MMC_DATA_WRITE)
-		ctrl = 0x80;
+		ctrl |= 0x80;
+	else
+		ctrl |= 0x40;
+	
 	au6601_write8(host, ctrl | 0x1, REG_83);
 }
 
@@ -385,7 +391,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 		buf = host->sg_miter.addr;
 
-		//printk("pio Y\n");
+		printk("pio Y\n");
 		while (len) {
 			if (chunk == 0) {
 				scratch = au6601_read32(host, AU6601_BUFFER);
@@ -399,7 +405,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			chunk--;
 			len--;
 		}
-		//printk("pio _\n");
+		printk("pio _\n");
 	}
 
 	sg_miter_stop(&host->sg_miter);
@@ -786,7 +792,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		DBG("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
 
 	if (intmask & AU6601_INT_CMD_MASK) {
-		//printk("CMD IRQ %x\n", intmask);
+		printk("CMD IRQ %x\n", intmask);
 
 		au6601_write32(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
@@ -795,7 +801,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		//printk("DATA IRQ %x\n", intmask);
+		printk("DATA IRQ %x\n", intmask);
 		au6601_write32(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -1163,6 +1169,13 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 
 	if (ret) {
 		dev_err(&pdev->dev, "failed to get irq for data line\n");
+		return -ENOMEM;
+	}
+
+	host->virt_base = dmam_alloc_coherent(&pdev->dev, AU6601_MAX_BLOCK_LENGTH,
+					      host->phys_base, GFP_KERNEL);
+	if (!host->virt_base) {
+		dev_err(&pdev->dev, "failed to alloc DMA\n");
 		return -ENOMEM;
 	}
 

@@ -80,7 +80,16 @@
 #define REG_81	0x81
 #define REG_82	0x82
 #define REG_83	0x83
-#define REG_84	0x84
+
+#define AU6601_BUS_STATUS	0x84
+ #define AU6601_BUS_STAT_CMD	BIT(15)
+/* BIT(4) - BIT(7) are permanently 1.
+ * May be reseved or not attached DAT4-DAT7 */
+ #define AU6601_BUS_STAT_DAT3	BIT(3)
+ #define AU6601_BUS_STAT_DAT2	BIT(2)
+ #define AU6601_BUS_STAT_DAT1	BIT(1)
+ #define AU6601_BUS_STAT_DAT0	BIT(0)
+
 #define REG_85	0x85
 #define REG_86	0x86
 #define AU6601_INT_STATUS	0x90 /* IRQ intmask */
@@ -160,7 +169,7 @@ u32 reg_list[][4] = {
 	{ REG_81, 0, 0, 1},
 	{ REG_82, 0, 0, 1},
 	{ REG_83, 0, 0, 1},
-	{ REG_84, 0, 0, 2},
+	{ AU6601_BUS_STATUS, 0, 0, 2},
 	{ REG_85, 0, 0, 1},
 	{ REG_86, 0, 0, 1},
 	{ AU6601_INT_STATUS, 0, 0, 4},
@@ -174,6 +183,7 @@ u32 reg_list[][4] = {
 
 struct au6601_host {
 	struct pci_dev *pdev;
+	struct  device *dev;
 	void __iomem *iobase;
 	void __iomem *virt_base;
 	dma_addr_t phys_base;
@@ -301,6 +311,18 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
 	ier &= ~clear;
 	ier |= set;
 	au6601_write32(host, ier, AU6601_INT_ENABLE);
+}
+
+/*
+ * check if one of data line is pulled down
+ */
+static inline int au6601_card_busy(struct au6601_host *host)
+{
+	u16 status;
+	status = ioread16(host->iobase + AU6601_BUS_STATUS) &
+			(AU6601_BUS_STAT_DAT0 | AU6601_BUS_STAT_DAT1 |
+			 AU6601_BUS_STAT_DAT2 | AU6601_BUS_STAT_DAT3);
+	return ~status ? 1 : 0;
 }
 
 static void au6601_clear_set_reg86(struct au6601_host *host, u32 clear, u32 set)
@@ -675,11 +697,13 @@ static void au6601_send_cmd(struct au6601_host *host,
 	case MMC_RSP_R2:
 		ctrl = 0xc0;
 		break;
+	case MMC_RSP_PRESENT | MMC_RSP_OPCODE:
 	case MMC_RSP_R3:
 		ctrl = 0x80;
 		break;
 	default:
-		pr_err("%s: cmd->flag is not valid\n", mmc_hostname(host->mmc));
+		dev_err(host->dev, "%s: cmd->flag (0x%02x) is not valid\n",
+			mmc_hostname(host->mmc), mmc_resp_type(cmd));
 		break;
 	}
 
@@ -1022,9 +1046,19 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+static int au6601_ops_card_busy(struct mmc_host *mmc)
+{
+	struct au6601_host *host;
+	host = mmc_priv(mmc);
+
+	return au6601_card_busy(host);
+}
+
 static const struct mmc_host_ops au6601_sdc_ops = {
         .request = au6601_sdc_request,
         .set_ios = au6601_sdc_set_ios,
+
+	.card_busy = au6601_ops_card_busy,
 };
 
 /*****************************************************************************\
@@ -1215,6 +1249,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 	host = mmc_priv(mmc);
 	host->mmc = mmc;
         host->pdev = pdev;
+        host->dev = &pdev->dev;
 
         ret = pci_request_region(pdev, bar, DRVNAME);
         if (ret) {

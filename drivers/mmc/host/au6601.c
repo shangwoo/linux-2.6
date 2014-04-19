@@ -1270,13 +1270,8 @@ static int au6601_pci_probe(struct pci_dev *pdev,
         return 0;
 }
 
-
-static void au6601_pci_remove(struct pci_dev *pdev)
+static void au6601_hw_uninit(struct au6601_host *host)
 {
-	struct au6601_host *host;
-
-	host = pci_get_drvdata(pdev);
-
 	au6601_write8(host, 0x0, REG_76);
 	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK, 0);
 
@@ -1286,6 +1281,15 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 	au6601_write8(host, 0x0, REG_B4);
 
 	au6601_set_power(host, 0x8, 0);
+}
+
+static void au6601_pci_remove(struct pci_dev *pdev)
+{
+	struct au6601_host *host;
+
+	host = pci_get_drvdata(pdev);
+
+	au6601_hw_uninit(host);
 
 	del_timer_sync(&host->timer);
 	tasklet_kill(&host->card_tasklet);
@@ -1295,12 +1299,55 @@ static void au6601_pci_remove(struct pci_dev *pdev)
 	mmc_free_host(host->mmc);
 }
 
+#ifdef CONFIG_PM
+
+static int au6601_suspend(struct pci_dev *pdev, pm_message_t state)
+{
+	struct au6601_host *host;
+        host = pci_get_drvdata(pdev);
+
+	au6601_hw_uninit(host);
+
+	pci_save_state(pdev);
+	pci_enable_wake(pdev, pci_choose_state(pdev, state), 0);
+	pci_disable_device(pdev);
+	pci_set_power_state(pdev, pci_choose_state(pdev, state));
+
+	return 0;
+}
+
+static int au6601_resume(struct pci_dev *pdev)
+{
+	struct au6601_host *host;
+	int ret;
+
+        host = pci_get_drvdata(pdev);
+
+	pci_set_power_state(pdev, PCI_D0);
+	pci_restore_state(pdev);
+	ret = pci_enable_device(pdev);
+	if (ret)
+		return ret;
+
+	au6601_hw_init(host);
+        return 0;
+}
+
+
+#else /* CONFIG_PM */
+
+#define au6601_suspend NULL
+#define au6601_resume NULL
+
+#endif /* CONFIG_PM */
 
 static struct pci_driver au6601_driver = {
         .name =         DRVNAME,
         .id_table =     pci_ids,
         .probe =        au6601_pci_probe,
         .remove =       au6601_pci_remove,
+	.suspend = au6601_suspend,
+	.resume = au6601_resume,
 };
 
 module_pci_driver(au6601_driver);

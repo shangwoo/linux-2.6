@@ -85,10 +85,11 @@
  #define AU6601_BUS_STAT_CMD	BIT(15)
 /* BIT(4) - BIT(7) are permanently 1.
  * May be reseved or not attached DAT4-DAT7 */
- #define AU6601_BUS_STAT_DAT3	BIT(3)
- #define AU6601_BUS_STAT_DAT2	BIT(2)
- #define AU6601_BUS_STAT_DAT1	BIT(1)
- #define AU6601_BUS_STAT_DAT0	BIT(0)
+ #define AU6601_BUS_STAT_DAT3		BIT(3)
+ #define AU6601_BUS_STAT_DAT2		BIT(2)
+ #define AU6601_BUS_STAT_DAT1		BIT(1)
+ #define AU6601_BUS_STAT_DAT0		BIT(0)
+ #define AU6601_BUS_STAT_DAT_MASK	0xf
 
 #define REG_85	0x85
 #define REG_86	0x86
@@ -318,11 +319,16 @@ static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
  */
 static inline int au6601_card_busy(struct au6601_host *host)
 {
-	u16 status;
-	status = ioread16(host->iobase + AU6601_BUS_STATUS) &
-			(AU6601_BUS_STAT_DAT0 | AU6601_BUS_STAT_DAT1 |
-			 AU6601_BUS_STAT_DAT2 | AU6601_BUS_STAT_DAT3);
-	return ~status ? 1 : 0;
+	u8 status;
+
+	status = (ioread8(host->iobase + AU6601_BUS_STATUS) &
+		AU6601_BUS_STAT_DAT_MASK);
+	/* If all data lines are up, then card is not busy */
+	if (status == (AU6601_BUS_STAT_DAT0 | AU6601_BUS_STAT_DAT1 |
+		       AU6601_BUS_STAT_DAT2 | AU6601_BUS_STAT_DAT3))
+		return 0;
+
+	return 1;
 }
 
 static void au6601_clear_set_reg86(struct au6601_host *host, u32 clear, u32 set)

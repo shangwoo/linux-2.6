@@ -694,12 +694,12 @@ static void au6601_send_cmd(struct au6601_host *host,
 	case MMC_RSP_NONE:
 		ctrl = 0;
 		break;
+	case MMC_RSP_R1B:
 	case MMC_RSP_R1:
 		ctrl = 0x40;
 		break;
-	case MMC_RSP_R1B:
-		ctrl = 0x40 | 0x10;
-		break;
+	//	ctrl = 0x40 | 0x10;
+	//	break;
 	case MMC_RSP_R2:
 		ctrl = 0xc0;
 		break;
@@ -712,6 +712,8 @@ static void au6601_send_cmd(struct au6601_host *host,
 			mmc_hostname(host->mmc), mmc_resp_type(cmd));
 		break;
 	}
+	if (cmd->opcode == 12)
+		ctrl |= 0x10;
 
 	au6601_write8(host, ctrl | 0x20, REG_81);
 	//printk("opc %d\n", cmd->opcode);

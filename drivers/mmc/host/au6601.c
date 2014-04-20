@@ -34,6 +34,7 @@
 #define AU6601_MIN_CLOCK		(150 * 1000)
 #define AU6601_MAX_CLOCK		MHZ_TO_HZ(208)
 #define AU6601_MAX_BLOCK_LENGTH		512
+#define AU6601_MAX_DMA_BLOCKS		8
 //#define AU6601_MAX_BLOCK_COUNT		2
 #define AU6601_MAX_BLOCK_COUNT		65536
 
@@ -209,6 +210,7 @@ struct au6601_host {
 
 	struct sg_mapping_iter sg_miter;	/* SG state for PIO */
 	unsigned int blocks;		/* remaining PIO blocks */
+	unsigned int requested_blocks;		/* count of requested */
         int sg_count;           /* Mapped sg entries */
 };
 
@@ -385,7 +387,6 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 	BUG_ON(data == NULL);
 	WARN_ON_ONCE(host->dma_on == 1);
 
-
 	if (data->flags & MMC_DATA_WRITE)
 		ctrl |= 0x80;
 
@@ -393,12 +394,21 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 		au6601_write32(host, host->phys_base, REG_00);
 		ctrl |= 0x40;
 		host->dma_on = 1;
+
+		if (data->flags & MMC_DATA_WRITE)
+			goto done;
 		/* prepare first DMA buffer for write operation */
-			
+		if (host->blocks > AU6601_MAX_DMA_BLOCKS)
+			host->requested_blocks = AU6601_MAX_DMA_BLOCKS;
+		else
+			host->requested_blocks = host->blocks;
+
 	}
 
+done:
 //	printk("--- phy(%i): w:%x %d %d\n", dma, data->flags & MMC_DATA_WRITE,data->blksz, host->blocks);
-	au6601_write32(host, data->blksz, AU6601_BLOCK_SIZE);
+	au6601_write32(host, data->blksz * host->requested_blocks,
+			AU6601_BLOCK_SIZE);
 	au6601_write8(host, ctrl | 0x1, REG_83);
 }
 
@@ -413,15 +423,17 @@ static void au6601_read_block_pio(struct au6601_host *host)
 	unsigned long flags;
 	size_t blksize, len, chunk;
 	u32 uninitialized_var(scratch);
+	void __iomem *virt_base = host->virt_base;
 	u8 *buf;
 
 	DBG("PIO reading\n");
 
-	blksize = host->data->blksz;
+	blksize = host->data->blksz * host->requested_blocks;
 	chunk = 0;
 
 	local_irq_save(flags);
 
+	//printk("PIOR Y\n");
 	while (blksize) {
 		if (!sg_miter_next(&host->sg_miter))
 			BUG();
@@ -435,7 +447,8 @@ static void au6601_read_block_pio(struct au6601_host *host)
 
 		while (len) {
 			if (host->dma_on) {
-				memcpy_fromio(buf, host->virt_base, len);
+				memcpy_fromio(buf, virt_base, len);
+				virt_base += len;
 				len = 0;
 			} else {
 				if (chunk == 0) {
@@ -453,6 +466,7 @@ static void au6601_read_block_pio(struct au6601_host *host)
 			}
 		}
 	}
+	//printk("PIOR _\n");
 
 	sg_miter_stop(&host->sg_miter);
 	local_irq_restore(flags);
@@ -462,12 +476,13 @@ static void au6601_write_block_pio(struct au6601_host *host)
 {
 	unsigned long flags;
 	size_t blksize, len, chunk;
+	void __iomem *virt_base = host->virt_base;
 	u32 scratch;
 	u8 *buf;
 
 	DBG("PIO writing\n");
 
-	blksize = host->data->blksz;
+	blksize = host->data->blksz * host->requested_blocks;
 	chunk = 0;
 	scratch = 0;
 
@@ -484,12 +499,11 @@ static void au6601_write_block_pio(struct au6601_host *host)
 
 		buf = host->sg_miter.addr;
 
-		//printk("PIOW Y %d\n", len);
 		if (host->dma_on) {
-			//printk("PIOW #\n");
-			memcpy_toio(host->virt_base, buf, len);
+			memcpy_toio(virt_base, buf, len);
+			virt_base += len;
+			len = 0;
 		} else {
-			//printk("PIOW !\n");
 			while (len) {
 				scratch |= (u32)*buf << (chunk * 8);
 
@@ -506,7 +520,6 @@ static void au6601_write_block_pio(struct au6601_host *host)
 				}
 			}
 		}
-		//printk("PIOW _\n");
 	}
 
 	sg_miter_stop(&host->sg_miter);
@@ -526,7 +539,7 @@ static void au6601_transfer_pio(struct au6601_host *host)
 	else
 		au6601_write_block_pio(host);
 
-	host->blocks--;
+	host->blocks -= host->requested_blocks;
 	if (host->dma_on) {
 		host->dma_on = 0;
 		if (host->blocks || (!host->blocks &&
@@ -645,6 +658,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	host->data = data;
 	host->data_early = 0;
 	host->data->bytes_xfered = 0;
+	host->requested_blocks = 1;
 
 	flags = SG_MITER_ATOMIC;
 	if (host->data->flags & MMC_DATA_READ)
@@ -655,8 +669,9 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	host->blocks = data->blocks;
 
 	//if (data->blocks > 1 && !(data->flags & MMC_DATA_WRITE)) {
-	if (data->blocks > 1) {
+	if (host->blocks > 1) {
 		enable_dma = 1;
+
 		if (data->flags & MMC_DATA_WRITE) {
 			/* prepare first write buffer */
 		//	au6601_transfer_pio(host);
@@ -694,12 +709,12 @@ static void au6601_send_cmd(struct au6601_host *host,
 	case MMC_RSP_NONE:
 		ctrl = 0;
 		break;
-	case MMC_RSP_R1B:
 	case MMC_RSP_R1:
 		ctrl = 0x40;
 		break;
-	//	ctrl = 0x40 | 0x10;
-	//	break;
+	case MMC_RSP_R1B:
+		ctrl = 0x40 | 0x10;
+		break;
 	case MMC_RSP_R2:
 		ctrl = 0xc0;
 		break;
@@ -712,8 +727,8 @@ static void au6601_send_cmd(struct au6601_host *host,
 			mmc_hostname(host->mmc), mmc_resp_type(cmd));
 		break;
 	}
-	if (cmd->opcode == 12)
-		ctrl |= 0x10;
+//	if (cmd->opcode == 12)
+//		ctrl |= 0x10;
 
 	au6601_write8(host, ctrl | 0x20, REG_81);
 	//printk("opc %d\n", cmd->opcode);
@@ -1280,7 +1295,8 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 	}
 
 	host->virt_base = dmam_alloc_coherent(&pdev->dev,
-		AU6601_MAX_BLOCK_LENGTH, &host->phys_base, GFP_KERNEL);
+		AU6601_MAX_BLOCK_LENGTH * AU6601_MAX_DMA_BLOCKS,
+		&host->phys_base, GFP_KERNEL);
 	if (!host->virt_base) {
 		dev_err(&pdev->dev, "failed to alloc DMA\n");
 		return -ENOMEM;

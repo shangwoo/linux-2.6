@@ -383,7 +383,7 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 		unsigned int dma)
 {
 	struct mmc_data *data = host->data;
-	u32 hw_addr, hw_len;
+	u32 hw_addr = 0, hw_len;
 	u8 ctrl = 0;
 
 	BUG_ON(data == NULL);
@@ -393,6 +393,7 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 		ctrl |= 0x80;
 
 	if (dma) {
+		printk("DMA: ");
 		BUG_ON(host->current_sg == NULL);
 		hw_addr = sg_dma_address(host->current_sg);
 		hw_len = sg_dma_len(host->current_sg);
@@ -400,12 +401,14 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 		ctrl |= 0x40;
 		host->dma_on = 1;
 		host->requested_blocks = hw_len / data->blksz;
+		printk(" %d.. ", host->current_sg->length);
 	} else {
+		printk("PIO: ");
 		hw_len = data->blksz;
 		host->dma_on = 0;
 	}
 
-//	printk("--- phy(%i): w:%x %d %d\n", dma, data->flags & MMC_DATA_WRITE,data->blksz, host->blocks);
+	printk(" addr: %x, les %x\n", hw_addr, hw_len);
 	au6601_write32(host, hw_len, AU6601_BLOCK_SIZE);
 	au6601_write8(host, ctrl | 0x1, REG_83);
 }
@@ -691,6 +694,7 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 		sg_count = dma_map_sg(host->dev, data->sg, data->sg_len,
 				au6601_get_dma_direction(data));
 
+		printk("%s: map %d/%d\n", __func__, sg_count, data->sg_len);
 		/* FIXME: proper error handling */
 		if (sg_count < 1)
 			printk("%s: map filed\n", __func__);
@@ -923,7 +927,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 		DBG("0x110000 (DATA/CMD timeout) got IRQ with %x\n", intmask);
 
 	if (intmask & AU6601_INT_CMD_MASK) {
-		//printk("CMD IRQ %x\n", intmask);
+		printk("CMD IRQ %x\n", intmask);
 
 		au6601_write32(host, intmask & AU6601_INT_CMD_MASK,
 			      AU6601_INT_STATUS);
@@ -932,7 +936,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 	if (intmask & AU6601_INT_DATA_MASK) {
-		//printk("DATA IRQ %x\n", intmask);
+		printk("DATA IRQ %x\n", intmask);
 		au6601_write32(host, intmask & AU6601_INT_DATA_MASK,
 			      AU6601_INT_STATUS);
 		au6601_data_irq(host, intmask & AU6601_INT_DATA_MASK);
@@ -1317,6 +1321,7 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 		return -ENOMEM;
 	}
 
+#if 0
 	host->virt_base = dmam_alloc_coherent(&pdev->dev,
 		AU6601_MAX_BLOCK_LENGTH * AU6601_MAX_DMA_BLOCKS,
 		&host->phys_base, GFP_KERNEL);
@@ -1324,8 +1329,12 @@ static int au6601_pci_probe(struct pci_dev *pdev,
 		dev_err(&pdev->dev, "failed to alloc DMA\n");
 		return -ENOMEM;
 	}
+#endif
 
 	ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
+	//ret = dma_set_mask_and_coherent(&pdev->dev, 0xff000000);
+	ret = dma_set_mask_and_coherent(&pdev->dev, DMA_BIT_MASK(27));
+//	ret = pci_set_dma_mask(pdev, 0xffff0000);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to set DMA mask\n");
 		return ret;

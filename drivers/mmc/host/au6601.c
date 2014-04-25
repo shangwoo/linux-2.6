@@ -1193,13 +1193,13 @@ static void au6601_init_mmc(struct au6601_host *host)
 	mmc->ops = &au6601_sdc_ops;
 
 	/* Hardware cannot do scatter lists? */
-	mmc->max_segs = 1;
+	mmc->max_segs = 512;
 
 	mmc->max_blk_size = AU6601_MAX_BLOCK_LENGTH;
 	mmc->max_blk_count = AU6601_MAX_BLOCK_COUNT;
 
-	mmc->max_seg_size = mmc->max_blk_size * mmc->max_blk_count;
-	mmc->max_req_size = mmc->max_seg_size;
+	mmc->max_seg_size = AU6601_MAX_BLOCK_LENGTH * AU6601_MAX_DMA_BLOCKS;
+	mmc->max_req_size = mmc->max_seg_size * mmc->max_segs;
 }
 
 static void au6601_hw_init(struct au6601_host *host)

@@ -638,9 +638,21 @@ static void au6601_finish_data(struct au6601_host *host)
 		tasklet_schedule(&host->finish_tasklet);
 }
 
+static void au6601_prepare_sg_miter(struct au6601_host *host)
+{
+	unsigned int flags = SG_MITER_ATOMIC;
+	struct mmc_data *data = host->data;
+
+	if (data->flags & MMC_DATA_READ)
+		flags |= SG_MITER_TO_SG;
+	else
+		flags |= SG_MITER_FROM_SG;
+	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
+}
+
 static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cmd)
 {
-	unsigned int flags, enable_dma = 0;
+	unsigned int enable_dma = 0;
 	struct mmc_data *data = cmd->data;
 	//int ret;
 
@@ -660,21 +672,14 @@ static void au6601_prepare_data(struct au6601_host *host, struct mmc_command *cm
 	host->data->bytes_xfered = 0;
 	host->requested_blocks = 1;
 
-	flags = SG_MITER_ATOMIC;
-	if (host->data->flags & MMC_DATA_READ)
-		flags |= SG_MITER_TO_SG;
-	else
-		flags |= SG_MITER_FROM_SG;
-	sg_miter_start(&host->sg_miter, data->sg, data->sg_len, flags);
+	au6601_prepare_sg_miter(host);
 	host->blocks = data->blocks;
 
-	//if (data->blocks > 1 && !(data->flags & MMC_DATA_WRITE)) {
-	if (host->blocks > 1) {
+	if (host->blocks > 1 && data->blksz == host->mmc->max_blk_size) {
 		enable_dma = 1;
 
 		if (data->flags & MMC_DATA_WRITE) {
 			/* prepare first write buffer */
-		//	au6601_transfer_pio(host);
 			/* Don't trigger data transfer now.
 			 * DMA may start it too eraly */
 			host->trigger_dma_dac = 1;

@@ -1199,6 +1199,7 @@ static void ath9k_hw_set_operating_mode(struct ath_hw *ah, int opmode)
 	u32 mask = AR_STA_ID1_STA_AP | AR_STA_ID1_ADHOC;
 	u32 set = AR_STA_ID1_KSRCH_MODE;
 
+	ENABLE_REG_RMW_BUFFER(ah);
 	switch (opmode) {
 	case NL80211_IFTYPE_ADHOC:
 		set |= AR_STA_ID1_ADHOC;
@@ -1217,6 +1218,7 @@ static void ath9k_hw_set_operating_mode(struct ath_hw *ah, int opmode)
 		break;
 	}
 	REG_RMW(ah, AR_STA_ID1, set, mask);
+	REG_RMW_BUFFER_FLUSH(ah);
 }
 
 void ath9k_hw_get_delta_slope_vals(struct ath_hw *ah, u32 coef_scaled,
@@ -1908,6 +1910,7 @@ int ath9k_hw_reset(struct ath_hw *ah, struct ath9k_channel *chan,
 	if (!ath9k_hw_mci_is_enabled(ah))
 		REG_WRITE(ah, AR_OBS, 8);
 
+	ENABLE_REG_RMW_BUFFER(ah);
 	if (ah->config.rx_intr_mitigation) {
 		REG_RMW_FIELD(ah, AR_RIMT, AR_RIMT_LAST, ah->config.rimt_last);
 		REG_RMW_FIELD(ah, AR_RIMT, AR_RIMT_FIRST, ah->config.rimt_first);
@@ -1917,6 +1920,7 @@ int ath9k_hw_reset(struct ath_hw *ah, struct ath9k_channel *chan,
 		REG_RMW_FIELD(ah, AR_TIMT, AR_TIMT_LAST, 300);
 		REG_RMW_FIELD(ah, AR_TIMT, AR_TIMT_FIRST, 750);
 	}
+	REG_RMW_BUFFER_FLUSH(ah);
 
 	ath9k_hw_init_bb(ah, chan);
 

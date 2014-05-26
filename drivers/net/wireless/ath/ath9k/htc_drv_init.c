@@ -356,15 +356,120 @@ static void ath9k_regwrite_flush(void *hw_priv)
 	mutex_unlock(&priv->wmi->multi_write_mutex);
 }
 
+static void ath9k_reg_rmw_buffer(void *hw_priv,
+				 u32 reg_offset, u32 set, u32 clr)
+{
+	struct ath_hw *ah = (struct ath_hw *) hw_priv;
+	struct ath_common *common = ath9k_hw_common(ah);
+	struct ath9k_htc_priv *priv = (struct ath9k_htc_priv *) common->priv;
+	u32 rsp_status;
+	int r;
+
+	mutex_lock(&priv->wmi->multi_rmw_mutex);
+
+	/* Store the register/value */
+	priv->wmi->multi_rmw[priv->wmi->multi_rmw_idx].reg =
+		cpu_to_be32(reg_offset);
+	priv->wmi->multi_rmw[priv->wmi->multi_rmw_idx].set =
+		cpu_to_be32(set);
+	priv->wmi->multi_rmw[priv->wmi->multi_rmw_idx].clr =
+		cpu_to_be32(clr);
+
+	priv->wmi->multi_rmw_idx++;
+
+	/* If the buffer is full, send it out. */
+	if (priv->wmi->multi_rmw_idx == MAX_RMW_CMD_NUMBER) {
+		r = ath9k_wmi_cmd(priv->wmi, WMI_REG_RMW_CMDID,
+			  (u8 *) &priv->wmi->multi_rmw,
+			  sizeof(struct register_write) * priv->wmi->multi_rmw_idx,
+			  (u8 *) &rsp_status, sizeof(rsp_status),
+			  100);
+		if (unlikely(r)) {
+			ath_dbg(common, WMI,
+				"REGISTER RMW FAILED, multi len: %d\n",
+				priv->wmi->multi_rmw_idx);
+		}
+		priv->wmi->multi_rmw_idx = 0;
+	}
+
+	mutex_unlock(&priv->wmi->multi_rmw_mutex);
+}
+
+static void ath9k_reg_rmw_flush(void *hw_priv)
+{
+	struct ath_hw *ah = (struct ath_hw *) hw_priv;
+	struct ath_common *common = ath9k_hw_common(ah);
+	struct ath9k_htc_priv *priv = (struct ath9k_htc_priv *) common->priv;
+	u32 rsp_status;
+	int r;
+
+	atomic_dec(&priv->wmi->m_rmw_cnt);
+
+	mutex_lock(&priv->wmi->multi_rmw_mutex);
+
+	if (priv->wmi->multi_rmw_idx) {
+		r = ath9k_wmi_cmd(priv->wmi, WMI_REG_RMW_CMDID,
+			  (u8 *) &priv->wmi->multi_rmw,
+			  sizeof(struct register_rmw) * priv->wmi->multi_rmw_idx,
+			  (u8 *) &rsp_status, sizeof(rsp_status),
+			  100);
+		if (unlikely(r)) {
+			ath_dbg(common, WMI,
+				"REGISTER RMW FAILED, multi len: %d\n",
+				priv->wmi->multi_rmw_idx);
+		}
+		priv->wmi->multi_rmw_idx = 0;
+	}
+
+	mutex_unlock(&priv->wmi->multi_rmw_mutex);
+}
+
+static void ath9k_enable_rmw_buffer(void *hw_priv)
+{
+	struct ath_hw *ah = (struct ath_hw *) hw_priv;
+	struct ath_common *common = ath9k_hw_common(ah);
+	struct ath9k_htc_priv *priv = (struct ath9k_htc_priv *) common->priv;
+
+	atomic_inc(&priv->wmi->m_rmw_cnt);
+}
+
+static u32 ath9k_reg_rmw_single(void *hw_priv,
+				 u32 reg_offset, u32 set, u32 clr)
+{
+	struct ath_hw *ah = (struct ath_hw *) hw_priv;
+	struct ath_common *common = ath9k_hw_common(ah);
+	struct ath9k_htc_priv *priv = (struct ath9k_htc_priv *) common->priv;
+	struct register_rmw buf, buf_ret;
+	int ret;
+	u32 val = 0;
+
+	buf.reg = cpu_to_be32(reg_offset);
+	buf.set = cpu_to_be32(set);
+	buf.clr = cpu_to_be32(clr);
+
+	ret = ath9k_wmi_cmd(priv->wmi, WMI_REG_RMW_CMDID,
+			  (u8 *) &buf, sizeof(buf),
+			  (u8 *) &buf_ret, sizeof(buf_ret),
+			  100);
+	if (unlikely(ret)) {
+		ath_dbg(common, WMI, "REGISTER RMW FAILED:(0x%04x, %d)\n",
+			reg_offset, ret);
+	}
+	return val;
+}
+
 static u32 ath9k_reg_rmw(void *hw_priv, u32 reg_offset, u32 set, u32 clr)
 {
-	u32 val;
+	struct ath_hw *ah = (struct ath_hw *) hw_priv;
+	struct ath_common *common = ath9k_hw_common(ah);
+	struct ath9k_htc_priv *priv = (struct ath9k_htc_priv *) common->priv;
 
-	val = ath9k_regread(hw_priv, reg_offset);
-	val &= ~clr;
-	val |= set;
-	ath9k_regwrite(hw_priv, val, reg_offset);
-	return val;
+	if (atomic_read(&priv->wmi->m_rmw_cnt))
+		ath9k_reg_rmw_buffer(hw_priv, reg_offset, set, clr);
+	else
+		ath9k_reg_rmw_single(hw_priv, reg_offset, set, clr);
+
+	return 0;
 }
 
 static void ath_usb_read_cachesize(struct ath_common *common, int *csz)
@@ -472,6 +577,8 @@ static int ath9k_init_priv(struct ath9k_htc_priv *priv,
 	ah->reg_ops.write = ath9k_regwrite;
 	ah->reg_ops.enable_write_buffer = ath9k_enable_regwrite_buffer;
 	ah->reg_ops.write_flush = ath9k_regwrite_flush;
+	ah->reg_ops.enable_rmw_buffer = ath9k_enable_rmw_buffer;
+	ah->reg_ops.rmw_flush = ath9k_reg_rmw_flush;
 	ah->reg_ops.rmw = ath9k_reg_rmw;
 	priv->ah = ah;
 

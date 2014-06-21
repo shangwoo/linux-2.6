@@ -123,7 +123,7 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 	unsigned int i, sz;
 	struct scatterlist *sg;
 #endif
-
+   // printk("mmc_start_request0\n");
 	pr_debug("%s: starting CMD%u arg %08x flags %08x\n",
 		 mmc_hostname(host), mrq->cmd->opcode,
 		 mrq->cmd->arg, mrq->cmd->flags);
@@ -144,7 +144,7 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 	}
 
 	WARN_ON(!host->claimed);
-
+	//printk("mmc_start_request1\n");
 	led_trigger_event(host->led, LED_FULL);
 
 	mrq->cmd->error = 0;
@@ -171,7 +171,9 @@ mmc_start_request(struct mmc_host *host, struct mmc_request *mrq)
 			mrq->stop->mrq = mrq;
 		}
 	}
+//	printk("mmc_start_request2\n");
 	host->ops->request(host, mrq);
+//	printk("mmc_start_request3\n");
 }
 
 static void mmc_wait_done(struct mmc_request *mrq)
@@ -194,9 +196,7 @@ void mmc_wait_for_req(struct mmc_host *host, struct mmc_request *mrq)
 
 	mrq->done_data = &complete;
 	mrq->done = mmc_wait_done;
-
 	mmc_start_request(host, mrq);
-
 	wait_for_completion(&complete);
 }
 
@@ -225,9 +225,9 @@ int mmc_wait_for_cmd(struct mmc_host *host, struct mmc_command *cmd, int retries
 
 	mrq.cmd = cmd;
 	cmd->data = NULL;
-
+	//printk("3");
 	mmc_wait_for_req(host, &mrq);
-
+	//printk("mmc_wait_for_cmd end\n");
 	return cmd->error;
 }
 

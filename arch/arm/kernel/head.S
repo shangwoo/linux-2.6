@@ -230,6 +230,13 @@ __create_page_tables:
 	ldr	r7, [r10, #PROCINFO_MM_MMUFLAGS] @ mm_mmuflags
 
 	/*
+	 * Create Mapping for SRAM
+	 */
+@	mov	r6, #0x400	                @ physical addr 0x40000000
+@	orr	r3, r7, r6, lsl #20		@ flags + kernel base
+@	mov	r6, #0xd00	                @ virtual addr  0xd0000000
+@	str	r3, [r4, r6, lsl #2]		@ mapping
+	/*
 	 * Create identity mapping for first MB of kernel to
 	 * cater for the MMU enable.  This identity mapping
 	 * will be removed by paging_init().  We use our current program

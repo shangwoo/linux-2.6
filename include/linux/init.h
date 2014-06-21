@@ -200,6 +200,11 @@ extern void (*late_time_init)(void);
 #define fs_initcall(fn)			__define_initcall("5",fn,5)
 #define fs_initcall_sync(fn)		__define_initcall("5s",fn,5s)
 #define rootfs_initcall(fn)		__define_initcall("rootfs",fn,rootfs)
+/*******************for logo --zorrozb*************************/
+#define device_initcall_lcd(fn)		__define_initcall("6p2",fn,6p2)
+#define device_initcall_mtd(fn)		__define_initcall("6p2",fn,6p2)
+#define device_initcall_logo(fn)		__define_initcall("6p1",fn,6p1)
+/********************************************/
 #define device_initcall(fn)		__define_initcall("6",fn,6)
 #define device_initcall_sync(fn)	__define_initcall("6s",fn,6s)
 #define late_initcall(fn)		__define_initcall("7",fn,7)
@@ -257,6 +262,9 @@ void __init parse_early_param(void);
  * builtin) or at module insertion time (if a module).  There can only
  * be one per module.
  */
+
+#define module_init_lcd(x)	device_initcall_lcd(x);
+#define module_init_logo(x)	device_initcall_logo(x);
 #define module_init(x)	__initcall(x);
 
 /**
@@ -269,6 +277,8 @@ void __init parse_early_param(void);
  * compiled into the kernel, module_exit() has no effect.
  * There can only be one per module.
  */
+#define module_exit_lcd(x)	__exitcall(x);
+#define module_exit_logo(x)	__exitcall(x);
 #define module_exit(x)	__exitcall(x);
 
 #else /* MODULE */

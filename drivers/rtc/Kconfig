@@ -633,6 +633,20 @@ config RTC_DRV_AT91SAM9_GPBR
 	  will be used.  The default of zero is normally OK to use, but
 	  on some systems other software needs to use that register.
 
+
+config RTC_ASM9260
+	tristate "ASM9260"
+	depends on RTC_CLASS && ( ARCH_ASAP18XX)
+	help
+	  Driver for the Alpscale ASM9260's internal RTC (Realtime Clock).
+
+config AS3310_RTC_DEBUG
+	bool "AS3310 RTC DEBUG"
+	depends on RTC_AS3310
+	help
+	  DEBUG INFO for AS3310 RTC.
+
+
 config RTC_DRV_BFIN
 	tristate "Blackfin On-Chip RTC"
 	depends on BLACKFIN && !BF561

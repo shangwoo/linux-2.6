@@ -173,6 +173,9 @@ struct serial_icounter_struct {
 	int reserved[9];
 };
 
+/* modify by Chen Dongdong */
+/* Based on kernel 3.4.82 include/linux/serial.h, by Theodore Ts'o. */
+#if 0
 /*
  * Serial interface for controlling RS485 settings on chips with suitable
  * support. Set with TIOCSRS485 and get with TIOCGRS485 if supported by your
@@ -189,6 +192,32 @@ struct serial_rs485 {
 	__u32	padding[6];		/* Memory is cheap, new structs
 					   are a royal PITA .. */
 };
+#else
+/*
+ * Serial interface for controlling RS485 settings on chips with suitable
+ * support. Set with TIOCSRS485 and get with TIOCGRS485 if supported by your
+ * platform. The set function returns the new state, with any unsupported bits
+ * reverted appropriately.
+ */
+
+struct serial_rs485 {
+	__u32	flags;			/* RS485 feature flags */
+#define SER_RS485_ENABLED		(1 << 0)	/* If enabled */
+#define SER_RS485_RTS_ON_SEND		(1 << 1)	/* Logical level for
+							   RTS pin when
+							   sending */
+#define SER_RS485_RTS_AFTER_SEND	(1 << 2)	/* Logical level for
+							   RTS pin after sent*/
+#define SER_RS485_RX_DURING_TX		(1 << 4)
+	__u32	delay_rts_before_send;	/* Delay before send (milliseconds) */
+	__u32	delay_rts_after_send;	/* Delay after send (milliseconds) */
+	__u32	padding[5];		/* Memory is cheap, new structs
+					   are a royal PITA .. */
+};
+#endif
+
+#define TIOCGRS485	0x542E
+#define TIOCSRS485	0x542F
 
 #ifdef __KERNEL__
 #include <linux/compiler.h>

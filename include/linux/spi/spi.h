@@ -393,7 +393,8 @@ struct spi_transfer {
 	const void	*tx_buf;
 	void		*rx_buf;
 	unsigned	len;
-
+	unsigned	tx_len;
+	unsigned	rx_len;
 	dma_addr_t	tx_dma;
 	dma_addr_t	rx_dma;
 

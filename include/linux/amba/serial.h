@@ -34,7 +34,7 @@
 #define UART010_LCRH		0x08	/* Line control register, high byte. */
 #define UART010_LCRM		0x0C	/* Line control register, middle byte. */
 #define UART010_LCRL		0x10	/* Line control register, low byte. */
-#define UART010_CR		0x14	/* Control register. */
+#define UART010_CR		0x30	/* Control register. */
 #define UART01x_FR		0x18	/* Flag register (Read only). */
 #define UART010_IIR		0x1C	/* Interrupt indentification register (Read). */
 #define UART010_ICR		0x1C	/* Interrupt clear register (Write). */

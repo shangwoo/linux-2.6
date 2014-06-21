@@ -42,7 +42,10 @@
 #include <linux/moduleparam.h>
 #include <linux/stat.h>
 #include <linux/dma-mapping.h>
-
+#ifdef  DBG
+#undef  DBG
+#define DBG(fmt...) printk(KERN_DEBUG fmt)
+#endif 
 #include "musb_core.h"
 
 

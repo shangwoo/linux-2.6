@@ -1072,6 +1072,32 @@ config DEVPORT
 	default y
 
 source "drivers/s390/char/Kconfig"
+source "drivers/char/can/Kconfig"
 
+config SRAM_MEM_CACHED
+	bool "/dev/smem cache enable"
+	depends on ( ARCH_ASM9260)
+	default y
+	help
+	  SRAM Device Cache enable
+
+config MCPWM_ASM9260
+	tristate "asm9260 mcpwm driver"
+	default y
+	help
+	  ASM9260 mcpwm driver!
+
+config TIMER_ASM9260
+	tristate "asm9260 timer1 driver"
+	default y
+	help
+	  ASM9260 timer1 driver!
+
+config GPIO_ASM9260
+	tristate "asm9260 GPIO driver"
+	default y
+	help
+	   Give userspace access to the GPIO pins on the Alpscale
+	   AS9260 processor.
 endmenu
 

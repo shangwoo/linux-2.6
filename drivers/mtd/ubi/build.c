@@ -33,6 +33,7 @@
  * and add other methods, although it does not seem to be easy to do.
  */
 
+#include <linux/math64.h>
 #include <linux/err.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -509,6 +510,7 @@ static int attach_by_scanning(struct ubi_device *ubi)
 		goto out_wl;
 
 	ubi_scan_destroy_si(si);
+
 	return 0;
 
 out_wl:
@@ -561,7 +563,10 @@ static int io_init(struct ubi_device *ubi)
 	 */
 
 	ubi->peb_size   = ubi->mtd->erasesize;
-	ubi->peb_count  = ubi->mtd->size / ubi->mtd->erasesize;
+	//ubi->peb_count  = ubi->mtd->size / ubi->mtd->erasesize;
+	//undefined reference to `__aeabi_uldivmod'
+	//ubi->peb_count = ubi->mtd->size >> __ffs(ubi->mtd->erasesize);
+	ubi->peb_count = div_u64(ubi->mtd->size, ubi->mtd->erasesize);
 	ubi->flash_size = ubi->mtd->size;
 
 	if (ubi->mtd->block_isbad && ubi->mtd->block_markbad)

@@ -10,6 +10,14 @@ struct dentry;
 
 #define FB_MAX			32	/* sufficient for now */
 
+#define FBIO_RGB		0x3301	   
+#define FBIO_YUV		0x3302	   
+#define FBIO_SYNC	            0x3303	   
+#define FBIO_TIMER_FLUSH_ON     0x3304	   
+#define FBIO_TIMER_FLUSH_OFF    0x3305	
+#define FBIO_OFF		0x3306	   
+#define FBIO_ON		    0x3307 
+#define FBIO_GET_DISP_MODE      0x3308    // FBIO_RGB  , FBIO_YUV   
 /* ioctls
    0x46 is 'F'								*/
 #define FBIOGET_VSCREENINFO	0x4600

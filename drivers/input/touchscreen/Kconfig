@@ -1,5 +1,5 @@
 #
-# Touchscreen driver configuration
+# Mouse driver configuration
 #
 menuconfig INPUT_TOUCHSCREEN
 	bool "Touchscreens"
@@ -12,17 +12,12 @@ menuconfig INPUT_TOUCHSCREEN
 if INPUT_TOUCHSCREEN
 
 config TOUCHSCREEN_ADS7846
-	tristate "ADS7846/TSC2046 and ADS7843 based touchscreens"
+	tristate "ADS 7846 based touchscreens"
 	depends on SPI_MASTER
-	depends on HWMON = n || HWMON
 	help
 	  Say Y here if you have a touchscreen interface using the
-	  ADS7846/TSC2046 or ADS7843 controller, and your board-specific
-	  setup code includes that in its table of SPI devices.
-
-	  If HWMON is selected, and the driver is told the reference voltage
-	  on your board, you will also get hwmon interfaces for the voltage
-	  (and on ads7846/tsc2046, temperature) sensors of this chip.
+	  ADS7846 controller, and your board-specific initialization
+	  code includes that in its table of SPI devices.
 
 	  If unsure, say N (but it's safe to say "Y").
 
@@ -149,6 +144,39 @@ config TOUCHSCREEN_HP7XX
 
 	  To compile this driver as a module, choose M here: the
 	  module will be called jornada720_ts.
+
+config TOUCHSCREEN_AS9260
+ 	tristate "Alphascale AS9260 original touchscreen input driver" 	
+ 	help
+ 	  Say Y here if you want to add the touch screen support to
+ 	  your system.
+  
+ 	  If unsure, say N.
+ 
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called as9260_ts.
+
+config TOUCHSCREEN_XPT2046
+ 	tristate "Alphascale AS9260 XPT2046 touchscreen input driver" 
+	depends on SPI_ASM9260	
+ 	help
+ 	  Say Y here if you want to add the touch screen support to
+ 	  your system.
+  
+ 	  If unsure, say N.
+ 
+ 	  To compile this driver as a module, choose M here: the
+ 	  module will be called xpt2046_ts.
+
+config TOUCHSCREEN_FT5X06
+       bool "Alphascale AS9260 FocalTech's FT5X06 based touchscreen input driver"
+       depends on I2C_ASM9260
+       help
+          Say Y here if you want to add the touch screen support to
+ 	  your system.
+  
+ 	  If unsure, say N.
+
 
 config TOUCHSCREEN_HTCPEN
 	tristate "HTC Shift X9500 touchscreen"

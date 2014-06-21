@@ -879,6 +879,11 @@ config SENSORS_APPLESMC
 	  Say Y here if you have an applicable laptop and want to experience
 	  the awesome power of applesmc.
 
+config SENSORS_ADC_ASM9260
+	tristate "Alpscale ADC support"	
+	help
+	  This driver provides support for alpscale 8-channel ADC monitoring.	 
+
 config HWMON_DEBUG_CHIP
 	bool "Hardware Monitoring Chip debugging messages"
 	default n

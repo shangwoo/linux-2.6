@@ -513,6 +513,7 @@ int spi_register_master(struct spi_master *master)
 			dynamic ? " (dynamic)" : "");
 
 	/* populate children from any spi device tables */
+	
 	scan_boardinfo(master);
 	status = 0;
 done:
@@ -673,7 +674,23 @@ int spi_write_then_read(struct spi_device *spi,
 	spi_message_init(&message);
 	memset(&x, 0, sizeof x);
 	x.len = n_tx + n_rx;
+	x.tx_len = n_tx;
+	x.rx_len = n_rx;
 	spi_message_add_tail(&x, &message);
+
+#ifdef CONFIG_TOUCHSCREEN_XPT2046
+    if(strcmp(spi->modalias, "XPT2046") == 0) {
+        /*switch the clock to 2 Mhz*/
+        if (spi->max_speed_hz == 2000000) {
+           x.speed_hz = 2000000; 
+           x.bits_per_word = spi->bits_per_word;
+        }
+        else{
+            printk("XPT2046 clock not right!\n");
+            return -EINVAL;
+        }
+    }
+#endif
 
 	/* ... unless someone else is using the pre-allocated buffer */
 	if (!mutex_trylock(&lock)) {
@@ -690,7 +707,7 @@ int spi_write_then_read(struct spi_device *spi,
 	/* do the i/o */
 	status = spi_sync(spi, &message);
 	if (status == 0)
-		memcpy(rxbuf, x.rx_buf + n_tx, n_rx);
+		memcpy(rxbuf, x.rx_buf /*+ n_tx*/, n_rx);
 
 	if (x.tx_buf == buf)
 		mutex_unlock(&lock);

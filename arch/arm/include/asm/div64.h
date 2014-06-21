@@ -210,6 +210,8 @@
 	__r;								\
 })
 
+
+
 /* our own fls implementation to make sure constant propagation is fine */
 #define __div64_fls(bits)						\
 ({									\
@@ -222,6 +224,12 @@
 	__nr;								\
 })
 
+#define  do_mod(n,base) \
+({      \
+     unsigned int   __r,remainder =do_div(n,base);      \
+  	__r=n-base*remainder;       \
+    __r;        \
+ }) 
 #endif
 
 #endif

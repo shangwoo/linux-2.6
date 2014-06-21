@@ -1,8 +1,6 @@
 /*
  * vcan.c - Virtual CAN interface
  *
- * Copyright (c) 2002-2007 Volkswagen Group Electronic Research
- * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,13 +35,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
  * DAMAGE.
  *
- * Send feedback to <socketcan-users@lists.berlios.de>
- *
  */
 
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/netdevice.h>
+//#include "netdevice.h"
 #include <linux/if_arp.h>
 #include <linux/if_ether.h>
 #include <linux/can.h>
@@ -80,9 +77,10 @@ static void vcan_rx(struct sk_buff *skb, struct net_device *dev)
 	skb->dev       = dev;
 	skb->ip_summed = CHECKSUM_UNNECESSARY;
 
-	netif_rx(skb);
+	netif_rx_ni(skb);
 }
 
+//static netdev_tx_t vcan_tx(struct sk_buff *skb, struct net_device *dev)
 static int vcan_tx(struct sk_buff *skb, struct net_device *dev)
 {
 	struct net_device_stats *stats = &dev->stats;
@@ -107,6 +105,8 @@ static int vcan_tx(struct sk_buff *skb, struct net_device *dev)
 		}
 		kfree_skb(skb);
 		return NETDEV_TX_OK;
+                
+
 	}
 
 	/* perform standard echo handling for CAN network interfaces */
@@ -128,26 +128,31 @@ static int vcan_tx(struct sk_buff *skb, struct net_device *dev)
 	return NETDEV_TX_OK;
 }
 
+//static const struct net_device_ops vcan_netdev_ops = {
+//	.ndo_start_xmit = vcan_tx,
+//};
+
 static void vcan_setup(struct net_device *dev)
 {
-	dev->type              = ARPHRD_CAN;
-	dev->mtu               = sizeof(struct can_frame);
-	dev->hard_header_len   = 0;
-	dev->addr_len          = 0;
-	dev->tx_queue_len      = 0;
-	dev->flags             = IFF_NOARP;
+	dev->type		= ARPHRD_CAN;
+	dev->mtu		= sizeof(struct can_frame);
+	dev->hard_header_len	= 0;
+	dev->addr_len		= 0;
+	dev->tx_queue_len	= 0;
+	dev->flags		= IFF_NOARP;
 
 	/* set flags according to driver capabilities */
 	if (echo)
 		dev->flags |= IFF_ECHO;
 
-	dev->hard_start_xmit   = vcan_tx;
-	dev->destructor        = free_netdev;
+	//dev->netdev_ops		= &vcan_netdev_ops;
+        dev->hard_start_xmit   = vcan_tx;
+	dev->destructor		= free_netdev;
 }
 
 static struct rtnl_link_ops vcan_link_ops __read_mostly = {
-       .kind           = "vcan",
-       .setup          = vcan_setup,
+	.kind	= "vcan",
+	.setup	= vcan_setup,
 };
 
 static __init int vcan_init_module(void)

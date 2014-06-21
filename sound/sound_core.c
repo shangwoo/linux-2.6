@@ -219,12 +219,17 @@ static int sound_insert_unit(struct sound_unit **list, const struct file_operati
 		sprintf(s->name, "sound/%s", name);
 	else
 		sprintf(s->name, "sound/%s%d", name, r / SOUND_STEP);
+	printk("sound dev name is: /dev/%s\n", s->name+6);
+	printk("dev number is: %d.%d", SOUND_MAJOR, s->unit_minor);
 
-	device_create(sound_class, dev, MKDEV(SOUND_MAJOR, s->unit_minor),
-		      NULL, s->name+6);
+	if (NULL == device_create(sound_class, dev, MKDEV(SOUND_MAJOR, s->unit_minor),
+		      		NULL, s->name+6))
+    {
+    	printk("sound_core.c, device_create failed\n");
+	}
 	return r;
 
- fail:
+fail:
 	kfree(s);
 	return r;
 }
@@ -586,7 +591,7 @@ static int __init init_oss_soundcore(void)
 		printk(KERN_ERR "soundcore: sound device already in use.\n");
 		return -EBUSY;
 	}
-
+	printk("soundcore: init OK\n");
 	return 0;
 }
 

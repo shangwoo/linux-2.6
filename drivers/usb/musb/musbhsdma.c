@@ -62,7 +62,7 @@
 #define MUSB_HSDMA_BURSTMODE_INCR8	2
 #define MUSB_HSDMA_BURSTMODE_INCR16	3
 
-#define MUSB_HSDMA_CHANNELS		8
+#define MUSB_HSDMA_CHANNELS		1
 
 struct musb_dma_controller;
 
@@ -183,10 +183,10 @@ static void configure_channel(struct dma_channel *channel,
 		csr |= 1 << MUSB_HSDMA_MODE1_SHIFT;
 		BUG_ON(len < packet_sz);
 
-		if (packet_sz >= 64) {
+   /* 	if (packet_sz >= 64) {
 			csr |= MUSB_HSDMA_BURSTMODE_INCR16
 					<< MUSB_HSDMA_BURSTMODE_SHIFT;
-		} else if (packet_sz >= 32) {
+		} else */if (packet_sz >= 32) {
 			csr |= MUSB_HSDMA_BURSTMODE_INCR8
 					<< MUSB_HSDMA_BURSTMODE_SHIFT;
 		} else if (packet_sz >= 16) {

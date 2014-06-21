@@ -95,11 +95,14 @@ obj-$(CONFIG_CS5535_GPIO)	+= cs5535_gpio.o
 obj-$(CONFIG_GPIO_VR41XX)	+= vr41xx_giu.o
 obj-$(CONFIG_GPIO_TB0219)	+= tb0219.o
 obj-$(CONFIG_TELCLOCK)		+= tlclk.o
-
 obj-$(CONFIG_MWAVE)		+= mwave/
 obj-$(CONFIG_AGP)		+= agp/
+obj-y		                += can/
 obj-$(CONFIG_PCMCIA)		+= pcmcia/
 obj-$(CONFIG_IPMI_HANDLER)	+= ipmi/
+obj-$(CONFIG_MCPWM_ASM9260)	+= asm9260_mcpwm.o
+obj-$(CONFIG_TIMER_ASM9260) 	+= asm9260_timer.o
+obj-$(CONFIG_GPIO_ASM9260)      += as9260_gpio.o
 
 obj-$(CONFIG_HANGCHECK_TIMER)	+= hangcheck-timer.o
 obj-$(CONFIG_TCG_TPM)		+= tpm/

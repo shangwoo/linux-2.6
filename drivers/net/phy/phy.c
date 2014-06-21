@@ -324,10 +324,11 @@ int phy_mii_ioctl(struct phy_device *phydev,
 		break;
 
 	case SIOCSMIIREG:
-		if (!capable(CAP_NET_ADMIN))
+		if (!capable(CAP_NET_ADMIN)){
 			return -EPERM;
+                }
 
-		if (mii_data->phy_id == phydev->addr) {
+                if (mii_data->phy_id == phydev->addr) {
 			switch(mii_data->reg_num) {
 			case MII_BMCR:
 				if ((val & (BMCR_RESET|BMCR_ANENABLE)) == 0)
@@ -364,7 +365,7 @@ int phy_mii_ioctl(struct phy_device *phydev,
 		}
 		break;
 
-	default:
+        default:
 		return -EOPNOTSUPP;
 	}
 

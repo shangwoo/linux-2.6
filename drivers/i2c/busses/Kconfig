@@ -715,4 +715,30 @@ config SCx200_ACB
 	  This support is also available as a module.  If so, the module
 	  will be called scx200_acb.
 
+config I2C_ASM9260
+        tristate "Alpscale 9260 I2C interface"
+	help	
+	  Say Y here if you want to use the IIC bus controller on
+	  the Alpscale 9260 Processors.
+
+	  WARNING: 
+	  the controller's /dev interface's 
+          ioctl(fd, I2C_RDWR, (unsigned long)((struct i2c_rdwr_ioctl_data *)arg))
+          function only accept TWO or ONE i2c_msg, never more than that.
+            See i2c-dev.c(i2cdev_ioctl_rdrw) and Documentation/i2c/dev-interface
+            for more.
+
+          INFO: 
+          Our controller driver can identify and support EEPROM "RADOM READ"
+          "BYTE/PAGE WRITE" "CURRENT ADDRESS READ" "SEQUENTIAL READ" only within
+          TWO msgs, never more than that.
+          A litte due to the conroller's inability to manually send or not send 
+          the STOP signal and the lack of the acknowledgement.
+          However, TWO msgs is enough, a testimony is that all smbus-xfer can be 
+          converted within TWO i2c_msg's i2c_transfer.
+            see i2c-core.c(i2c_smbus_xfer_emulated) for more.
+
+	  This driver can also be built as a module. If so, the module
+	  will be called i2c-alp9260	
+
 endmenu

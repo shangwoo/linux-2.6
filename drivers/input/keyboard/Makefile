@@ -27,3 +27,5 @@ obj-$(CONFIG_KEYBOARD_HP7XX)		+= jornada720_kbd.o
 obj-$(CONFIG_KEYBOARD_MAPLE)		+= maple_keyb.o
 obj-$(CONFIG_KEYBOARD_BFIN)		+= bf54x-keys.o
 obj-$(CONFIG_KEYBOARD_SH_KEYSC)		+= sh_keysc.o
+obj-$(CONFIG_KEYBOARD_AS3310)  		 += as3310_keypad.o
+obj-$(CONFIG_LRADC_KEYBOARD_AS3310)  		 += as3310_lradc_keypad.o

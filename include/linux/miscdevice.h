@@ -30,6 +30,8 @@
 #define TUN_MINOR	     200
 #define	HPET_MINOR	     228
 #define KVM_MINOR            232
+#define MCPWM_MINOR          233
+#define TIMER1_MINOR         234
 
 struct device;
 

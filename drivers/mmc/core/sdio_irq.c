@@ -71,8 +71,9 @@ static int sdio_irq_thread(void *_host)
 	struct sched_param param = { .sched_priority = 1 };
 	unsigned long period, idle_period;
 	int ret;
-
-	sched_setscheduler(current, SCHED_FIFO, &param);
+	
+	//add SDIO WIFI crash here 20110301 zhangyb
+	//sched_setscheduler(current, SCHED_FIFO, &param);
 
 	/*
 	 * We want to allow for SDIO cards to work even on non SDIO

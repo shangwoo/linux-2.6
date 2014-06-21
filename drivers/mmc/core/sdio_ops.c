@@ -85,8 +85,9 @@ int mmc_io_rw_direct(struct mmc_card *card, int write, unsigned fn,
 	cmd.arg |= addr << 9;
 	cmd.arg |= in;
 	cmd.flags = MMC_RSP_SPI_R5 | MMC_RSP_R5 | MMC_CMD_AC;
-
+	//printk("2");
 	err = mmc_wait_for_cmd(card->host, &cmd, 0);
+	//printk("mmc_io_rw_direct3\n");
 	if (err)
 		return err;
 

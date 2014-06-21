@@ -8,7 +8,7 @@ comment "Enable Host or Gadget support to see Inventra options"
 
 # (M)HDRC = (Multipoint) Highspeed Dual-Role Controller
 config USB_MUSB_HDRC
-	depends on (USB || USB_GADGET) && HAVE_CLK
+	depends on (USB || USB_GADGET)
 	depends on !SUPERH
 	select TWL4030_USB if MACH_OMAP_3430SDP
 	tristate 'Inventra Highspeed Dual Role Controller (TI, ...)'
@@ -33,7 +33,11 @@ config USB_MUSB_SOC
 	default y if ARCH_DAVINCI
 	default y if ARCH_OMAP2430
 	default y if ARCH_OMAP34XX
-
+	default y if ARCH_ASAP18XX
+	
+comment "ASM9260 USB support"
+	depends on USB_MUSB_HDRC && ARCH_ASAP18XX
+	
 comment "DaVinci 644x USB support"
 	depends on USB_MUSB_HDRC && ARCH_DAVINCI
 
@@ -140,9 +144,9 @@ config MUSB_PIO_ONLY
 	  parameter.
 
 config USB_INVENTRA_DMA
-	bool
+	bool "Enable DMA transfers using Mentor's engine."
 	depends on USB_MUSB_HDRC && !MUSB_PIO_ONLY
-	default ARCH_OMAP2430 || ARCH_OMAP34XX
+	default ARCH_OMAP2430 || ARCH_OMAP34XX || ARCH_ASAP18XX
 	help
 	  Enable DMA transfers using Mentor's engine.
 

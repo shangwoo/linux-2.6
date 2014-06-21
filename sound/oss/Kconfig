@@ -567,3 +567,56 @@ config SOUND_SH_DAC_AUDIO_CHANNEL
 	int "DAC channel"
 	default "1"
 	depends on SOUND_SH_DAC_AUDIO
+	
+	
+config SOUND_ASM9260_SND_OSS
+	tristate "Asm9260 Sound Support"
+	depends on (ARCH_ASAP18XX) && SOUND_PRIME
+	help
+	  Say Y here to include support for the asm9260 sound.
+
+config HP_CAPLESS
+	bool "HeadPhone capless mode"
+	depends on SOUND_AS3310_SND_OSS
+	default n
+	help
+	  Say Y here to enable HeadPhone capless mode.
+
+config SPEAKER_HP_L
+	bool "Speaker connected to HP_L mode"
+	depends on SOUND_AS3310_SND_OSS
+	default n
+	help
+	  Say Y here to enable HeadPhone capless mode.
+ 	  
+menuconfig AS3310_AUDIO_DEBUG
+	bool "Audio debug setting(For developer)"
+	default n
+	help
+
+if AS3310_AUDIO_DEBUG
+
+config SOUND_AS3310_SND_DEBUG
+	bool "as33xx sound driver development basic debug"
+	depends on SOUND_AS3310_SND_OSS
+	help
+	  Say Y here to show the basic debug info.
+	  
+config INFO_DEBUG
+	bool "as33xx key info debug"
+	depends on SOUND_AS3310_SND_OSS
+	help
+	  Say Y here to show the key info debug.
+	  
+config IOCTL_DEBUG
+	bool "as33xx ioctl debug"
+	depends on SOUND_AS3310_SND_OSS
+	help
+	  Say Y here to show the ioctl debug info.
+
+config DMA_DEBUG
+	bool "as33xx dma transfer debug"
+	depends on SOUND_AS3310_SND_OSS
+	help
+	  Say Y here to show the ioctl debug info.
+endif

@@ -962,6 +962,17 @@ config ENC28J60_WRITEVERIFY
 	  Enable the verify after the buffer write useful for debugging purpose.
 	  If unsure, say N.
 
+config NET_VENDOR_ASM9260
+	bool "ASM9260 net devices"
+	default y
+	depends on HAS_IOMEM
+	---help---
+	  alphascale asm9260 mac driver
+
+if NET_VENDOR_ASM9260
+source "drivers/net/asmmac/Kconfig"
+endif # NET_VENDOR_ASM9260
+
 config SMC911X
 	tristate "SMSC LAN911[5678] support"
 	select CRC32

@@ -192,3 +192,20 @@ config MMC_TMIO
 	help
 	  This provides support for the SD/MMC cell found in TC6393XB,
 	  T7L66XB and also ipaq ASIC3
+
+	  
+config MMC_AS9260
+ 	tristate "AS9260 MMC/SD Interface support"
+ 	depends on MMC && EXPERIMENTAL
+ 	help
+ 	  Say Y here if you want to be able to access MMC/SD cards with
+ 	  the ALPSCALE SDI support.
+ 
+ config MMC_SUPPORT_4WIRE
+ 	bool "AS9260 MMC/SD 4 wire mode support"
+ 	depends on MMC_AS9260 != n
+	default y
+ 	help 
+ 	  Say Y here if you want to support 4 wire transfer mode for MMC/SD cards
+ 	  with ALPSCALE SDI support. 
+ 

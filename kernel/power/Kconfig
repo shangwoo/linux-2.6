@@ -27,6 +27,13 @@ config PM_DEBUG
 	code. This is helpful when debugging and reporting PM bugs, like
 	suspend support.
 
+config PM_MODULE_ASAP1820
+ 	bool "Device & Module Power Manage for ASAP1820"
+ 	depends on PM
+ 	default y
+ 	---help---
+ 	   If unsure, say N.
+
 config PM_VERBOSE
 	bool "Verbose Power Management debugging"
 	depends on PM_DEBUG

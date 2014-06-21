@@ -455,11 +455,27 @@ static int mtd_ioctl(struct inode *inode, struct file *file,
 
 			init_waitqueue_head(&waitq);
 
+			/* TODO:Modify by Chard */
+			{
+				struct erase_info_user einfo32;
+
+				if (copy_from_user(&einfo32, argp,
+					    sizeof(struct erase_info_user))) {
+					kfree(erase);
+					return -EFAULT;
+				}
+				erase->addr = einfo32.start;
+				erase->len = einfo32.length;
+			}
+#if 0
 			if (copy_from_user(&erase->addr, argp,
 				    sizeof(struct erase_info_user))) {
 				kfree(erase);
 				return -EFAULT;
 			}
+#endif	
+			/* TODO:Modify by Chard */
+
 			erase->mtd = mtd;
 			erase->callback = mtdchar_erase_callback;
 			erase->priv = (unsigned long)&waitq;

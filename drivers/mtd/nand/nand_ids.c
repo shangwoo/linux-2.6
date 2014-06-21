@@ -10,6 +10,25 @@
  */
 #include <linux/module.h>
 #include <linux/mtd/nand.h>
+
+
+/*
+*	Chip ID list
+*
+*	Name. manufacturer ID, device ID , pagesize, chipsize in MegaByte, eraseblock size,
+*	Size of Out of Band, options
+*
+*/
+struct nand_flash_info nand_flash_devices[ ] = {
+	{"K9GAG08U0E", NAND_MFR_SAMSUNG, 0xD5, 0x2000, 0x800, 0x100000, 436, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"H27UAG8T2ATR", NAND_MFR_HYNIX, 0xD5, 0x1000, 0x800, 0x80000, 224, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	//{"H27UAG8T2BTR", NAND_MFR_HYNIX, 0xD5, 0x2000, 0x80, 0x200000, 448, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"TC58DVG02D5TA00", NAND_MFR_TOSHIBA, 0xD1, 0x800, 0x80, 0x20000, 64, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"TC58NVG1S3ETA00", NAND_MFR_TOSHIBA, 0xDA, 0x800, 0x100, 0x20000, 64, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"ASU1GA30HT", NAND_MFR_ETRON, 0xF1, 0x800, 0x100, 0x20000, 64, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{NULL,}
+};
+
 /*
 *	Chip ID list
 *
@@ -22,6 +41,17 @@
 *	512	512 Byte page size
 */
 struct nand_flash_dev nand_flash_ids[] = {
+
+	/*****************************************************************/
+	/********************** Add NAND type here ***********************/
+	{"NAND 1GiB 3,3V 8-bit",	0xD3, 0x800,  0x400, 0x40000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	//{"NAND 2GiB 3,3V 8-bit",	0xD5, 0x2000, 0x400, 0x200000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"NAND 2GiB 3,3V 8-bit",	0xD5, 0x1000, 0x800, 0x80000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	//{"NAND 2GiB 3,3V 8-bit",	0xD5, 0x2000, 0x800, 0x100000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"NAND 4GiB 3,3V 8-bit",	0xD7, 0x2000, 0x800, 0x200000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	{"NAND 256MiB 3,3V 8-bit",	0xDA, 0x800, 0x100, 0x20000, NAND_NO_AUTOINCR | NAND_NO_READRDY | NAND_NO_SUBPAGE_WRITE},
+	/********************** Add NAND type here ***********************/
+	/*****************************************************************/
 
 #ifdef CONFIG_MTD_NAND_MUSEUM_IDS
 	{"NAND 1MiB 5V 8-bit",		0x6e, 256, 1, 0x1000, 0},
@@ -105,7 +135,7 @@ struct nand_flash_dev nand_flash_ids[] = {
 
 	/* 16 Gigabit */
 	{"NAND 2GiB 1,8V 8-bit",	0xA5, 0, 2048, 0, LP_OPTIONS},
-	{"NAND 2GiB 3,3V 8-bit",	0xD5, 0, 2048, 0, LP_OPTIONS},
+	//{"NAND 2GiB 3,3V 8-bit",	0xD5, 0, 2048, 0, LP_OPTIONS},
 	{"NAND 2GiB 1,8V 16-bit",	0xB5, 0, 2048, 0, LP_OPTIONS16},
 	{"NAND 2GiB 3,3V 16-bit",	0xC5, 0, 2048, 0, LP_OPTIONS16},
 
@@ -140,11 +170,13 @@ struct nand_manufacturers nand_manuf_ids[] = {
 	{NAND_MFR_HYNIX, "Hynix"},
 	{NAND_MFR_MICRON, "Micron"},
 	{NAND_MFR_AMD, "AMD"},
+	{NAND_MFR_ETRON, "ETRON"},
 	{0x0, "Unknown"}
 };
 
 EXPORT_SYMBOL(nand_manuf_ids);
 EXPORT_SYMBOL(nand_flash_ids);
+EXPORT_SYMBOL(nand_flash_devices);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Thomas Gleixner <tglx@linutronix.de>");

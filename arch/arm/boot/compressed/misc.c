@@ -306,7 +306,7 @@ decompress_kernel(ulg output_start, ulg free_mem_ptr_p, ulg free_mem_ptr_end_p,
 	free_mem_end_ptr	= free_mem_ptr_end_p;
 	__machine_arch_type	= arch_id;
 
-	arch_decomp_setup();
+  //  arch_decomp_setup();
 
 	makecrc();
 	putstr("Uncompressing Linux...");

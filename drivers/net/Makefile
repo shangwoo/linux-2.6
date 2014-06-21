@@ -48,6 +48,8 @@ obj-$(CONFIG_SUNVNET) += sunvnet.o
 
 obj-$(CONFIG_MACE) += mace.o
 obj-$(CONFIG_BMAC) += bmac.o
+#obj-$(CONFIG_ASM9260_MAC) += asmmac/
+obj-$(CONFIG_NET_VENDOR_ASM9260) += asmmac/
 
 obj-$(CONFIG_VORTEX) += 3c59x.o
 obj-$(CONFIG_TYPHOON) += typhoon.o

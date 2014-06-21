@@ -104,6 +104,37 @@ config M25PXX_USE_FAST_READ
 	help
 	  This option enables FAST_READ access supported by ST M25Pxx.
 
+config MTD_ASM9260_SPI_FLASH
+	tristate "Support SPI Flash chips on ASM9260"
+	depends on SPI_MASTER && EXPERIMENTAL
+	help
+	  This enables access to most modern SPI flash chips, used for
+	  program and data storage.   Series supported include Atmel AT26DF,
+	  Spansion S25SL, SST 25VF, ST M25P, and Winbond W25X.  Other chips
+	  are supported as well.  See the driver source for the current list,
+	  or to add other chips.
+
+	  Note that the original DataFlash chips (AT45 series, not AT26DF),
+	  need an entirely different driver.
+
+	  Set up your spi devices with the right board-specific platform data,
+	  if you want to specify device partitioning or to use a device which
+	  doesn't support the JEDEC ID instruction.
+
+config MTD_ASM9260_SPI_FLASH_QUAD_FUNC
+	bool "Alpscale 9260 QUAD SPI flash MTD 4-line-func"
+        depends on MTD_ASM9260_SPI_FLASH && QSPI_ASM9260
+	help
+	  Enable the quad functions for QUAD-able SPI flashes from most vendors,
+          we only support 32h and 6bh, for more see devices/mtd_asm9260_spiflash.c.
+
+config ASM9260_SPI_FLASH_USE_FAST_READ
+	bool "Use FAST_READ OPCode allowing SPI CLK <= 50MHz"
+	depends on MTD_ASM9260_SPI_FLASH
+	default n
+	help
+	  This option enables FAST_READ access supported by ST spi flash.
+
 config MTD_SLRAM
 	tristate "Uncached system RAM"
 	help

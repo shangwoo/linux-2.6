@@ -18,6 +18,10 @@ ifeq ($(CONFIG_ARCH_OMAP2430),y)
 	musb_hdrc-objs	+= omap2430.o
 endif
 
+ifeq ($(CONFIG_ARCH_ASAP18XX),y)
+	musb_hdrc-objs	+=asm9260.o
+endif
+
 ifeq ($(CONFIG_ARCH_OMAP3430),y)
 	musb_hdrc-objs	+= omap2430.o
 endif
@@ -65,5 +69,5 @@ endif
 # Debugging
 
 ifeq ($(CONFIG_USB_MUSB_DEBUG),y)
-	EXTRA_CFLAGS += -DDEBUG
+	EXTRA_CFLAGS += -DMUSBDEBUG
 endif

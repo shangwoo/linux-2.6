@@ -180,7 +180,7 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 	/* initialize software qh state */
 	qh->offset = 0;
 	qh->segsize = 0;
-
+//    printk("hw_ep->epnum =%d\n",hw_ep->epnum);
 	/* gather right source of data */
 	switch (qh->type) {
 	case USB_ENDPOINT_XFER_CONTROL:
@@ -202,7 +202,7 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 		len = urb->transfer_buffer_length;
 	}
 
-	DBG(4, "qh %p urb %p dev%d ep%d%s%s, hw_ep %d, %p/%d\n",
+/*	printk("qh %p urb %p dev%d ep%d%s%s, hw_ep %d, %p/%d\n",
 			qh, urb, address, qh->epnum,
 			is_in ? "in" : "out",
 			({char *s; switch (qh->type) {
@@ -212,7 +212,7 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 			default:			s = "-intr"; break;
 			}; s; }),
 			epnum, buf, len);
-
+*/
 	/* Configure endpoint */
 	if (is_in || hw_ep->is_shared_fifo)
 		hw_ep->in_qh = qh;
@@ -1168,7 +1168,7 @@ void musb_host_tx(struct musb *musb, u8 epnum)
 	u32			status = 0;
 	void __iomem		*mbase = musb->mregs;
 	struct dma_channel	*dma;
-
+//    printk("host tx %d",epnum);
 	urb = next_urb(qh);
 
 	musb_ep_select(mbase, epnum);
@@ -1383,7 +1383,7 @@ void musb_host_rx(struct musb *musb, u8 epnum)
 	bool			done = false;
 	u32			status;
 	struct dma_channel	*dma;
-
+ //   printk("host rx %d",epnum);
 	musb_ep_select(mbase, epnum);
 
 	urb = next_urb(qh);

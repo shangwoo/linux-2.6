@@ -33,8 +33,9 @@
 	@
 	@ routine called with r0 = irq number, r1 = struct pt_regs *
 	@
-	adrne	lr, 1b
+	adrne	lr, 2f
 	bne	asm_do_IRQ
+2:      nop
 
 #ifdef CONFIG_SMP
 	/*

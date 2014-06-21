@@ -14,7 +14,7 @@ if INPUT_KEYBOARD
 
 config KEYBOARD_ATKBD
 	tristate "AT keyboard" if EMBEDDED || !X86_PC
-	default y
+	default n
 	select SERIO
 	select SERIO_LIBPS2
 	select SERIO_I8042 if X86_PC
@@ -320,7 +320,82 @@ config KEYBOARD_SH_KEYSC
 	help
 	  Say Y here if you want to use a keypad attached to the KEYSC block
 	  on SuperH processors such as sh7722 and sh7343.
-
 	  To compile this driver as a module, choose M here: the
 	  module will be called sh_keysc.
+
+ config LRADC_KEYBOARD_AS3310                   
+        tristate "as3310 Lradc keypad support"         
+        default n
+        depends on ((ARCH_ASAP18XX) && (!TOUCHSCREEN_AS3310))
+        help
+          Support Lradc Keypad now on asap1810evb_080425 and asap1820evb_080612 as3008, as2808.
+ 
+ 
+ 
+ choice
+        depends on (LRADC_KEYBOARD_AS3310)
+        prompt "Lradc KeyBoard Select"
+        default EVB_0612
+ 
+ config EVB_0612
+ 	bool "EVB_0612 Board"
+         depends on BOARD_ASAP1820_DEV  || BOARD_ASAP1822_COMMON
+ 	help
+ 	  Say Y here if you want to use the EVB_0612 Board.
+
+ config EVB_0601
+ 	bool "EVB_0601 Board"
+         depends on BOARD_ASAP1820_DEV  || BOARD_ASAP1822_COMMON
+ 	help
+ 	  Say Y here if you want to use the EVB_0601 Board.
+ 
+ config AS3008
+ 	bool "AS3008 Board"
+         depends on BOARD_ASAP1820_YOTO || BOARD_ASAP1822_COMMON
+ 	help
+ 	  Say Y here if you want to use the AS3008 Board.
+ 	  
+ config AS2808
+ 	bool "AS2808 Board"
+         depends on BOARD_ASAP1820_LANGYOU || BOARD_ASAP1822_COMMON
+ 	help
+ 	  Say Y here if you want to use the AS2808 Board.
+ 
+ endchoice
+ 
+ 
+ #config LRADC_KEYBOARD_AS3310
+ #	tristate "as3310 Lradc keypad support"
+ #	depends on ((ARCH_AS3310 || ARCH_ASAP1820) && (!TOUCHSCREEN_AS3310))
+ #        help
+ #	  Support Lradc Keypad now on asap1810evb_080425 and
+ #	  asap1820evb_080612.
+ 
+ config KEYBOARD_AS3310
+ 	tristate "as3310 keypad support"
+ 	depends on (ARCH_ASAP18XX)
+ 
+ choice
+        depends on (KEYBOARD_AS3310)
+        prompt "KeyBoard Type"
+        default KEYBOARD_AS3310_10
+ 
+ config KEYBOARD_AS3310_10
+ 	bool "as3310 10key keypad support"
+ 	help
+ 	  Say Y here if you want to use the AS3310 10key keypad.
+ 
+ config KEYBOARD_AS3310_64
+ 	bool "as3310 64key keypad support"
+ 	help
+ 	  Say Y here if you want to use the AS3310 64key keypad.
+ 
+ endchoice
+ 
+ config ASAP18XX_KEYPAD_DBG
+ 	bool "AS3310x keypad debug"
+ 	depends on ( ARCH_ASAP18XX)
+ 	help
+ 	  Say Y here if you want to show debug message.
+           
 endif

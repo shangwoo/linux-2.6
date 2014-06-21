@@ -1633,6 +1633,8 @@ MODULE_DESCRIPTION("Framebuffer base");
 subsys_initcall(fbmem_init);
 #endif
 
+
+
 int fb_new_modelist(struct fb_info *info)
 {
 	struct fb_event event;

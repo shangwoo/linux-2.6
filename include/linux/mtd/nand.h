@@ -43,8 +43,8 @@ extern void nand_wait_ready(struct mtd_info *mtd);
  * is supported now. If you add a chip with bigger oobsize/page
  * adjust this accordingly.
  */
-#define NAND_MAX_OOBSIZE	64
-#define NAND_MAX_PAGESIZE	2048
+#define NAND_MAX_OOBSIZE	448
+#define NAND_MAX_PAGESIZE	8192
 
 /*
  * Constants for hardware specific CLE/ALE/NCE function
@@ -399,7 +399,7 @@ struct nand_chip {
 	int		bbt_erase_shift;
 	int		chip_shift;
 	int		numchips;
-	unsigned long	chipsize;
+	u_int64_t  chipsize;
 	int		pagemask;
 	int		pagebuf;
 	int		subpagesize;
@@ -439,6 +439,32 @@ struct nand_chip {
 #define NAND_MFR_HYNIX		0xad
 #define NAND_MFR_MICRON		0x2c
 #define NAND_MFR_AMD		0x01
+#define NAND_MFR_ETRON		0x92
+
+/**
+ * struct nand_flash_info - NAND Flash Device ID Structure
+ * @name:	Identify the device type
+ * @mfr_id:		manufacturer ID code of device
+ * @dev_id:		device ID code
+ * @pagesize:	Pagesize in bytes. Either 256 or 512 or 0
+ *		If the pagesize is 0, then the real pagesize
+ *		and the eraseize are determined from the
+ *		extended id bytes in the chip
+ * @chipsize:	Total chipsize in Mega Bytes
+ * @erasesize:	Size of an erase block in the flash device.
+ * @oobsize:	Size of Out of Band in the flash device.
+ * @options:	Bitfield to store chip relevant options
+ */
+struct nand_flash_info {
+	char *name;
+	int mfr_id;
+	int dev_id;
+	unsigned long pagesize;
+	unsigned long chipsize;
+	unsigned long erasesize;
+	unsigned long oobsize;
+	unsigned long options;
+};
 
 /**
  * struct nand_flash_dev - NAND Flash Device ID Structure
@@ -473,6 +499,7 @@ struct nand_manufacturers {
 
 extern struct nand_flash_dev nand_flash_ids[];
 extern struct nand_manufacturers nand_manuf_ids[];
+extern struct nand_flash_info nand_flash_devices[];
 
 /**
  * struct nand_bbt_descr - bad block table descriptor
@@ -500,8 +527,8 @@ extern struct nand_manufacturers nand_manuf_ids[];
 struct nand_bbt_descr {
 	int	options;
 	int	pages[NAND_MAX_CHIPS];
-	int	offs;
-	int	veroffs;
+	u_int64_t	offs;
+	u_int64_t	veroffs;
 	uint8_t	version[NAND_MAX_CHIPS];
 	int	len;
 	int	maxblocks;

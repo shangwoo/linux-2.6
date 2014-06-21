@@ -62,8 +62,18 @@ static void mmc_decode_cid(struct mmc_card *card)
 {
 	u32 *resp = card->raw_cid;
 
-	memset(&card->cid, 0, sizeof(struct mmc_cid));
+    // exchange the cid bytes in sd_resp register for AS3310 SD controllor 
+#if defined(CONFIG_MMC_AS9260)
+    u32 tmp;
+    tmp = card->raw_cid[0];
+    card->raw_cid[0] = card->raw_cid[3];
+    card->raw_cid[3] = tmp;
+    tmp = card->raw_cid[1];
+    card->raw_cid[1] = card->raw_cid[2];
+    card->raw_cid[2] = tmp;
+#endif
 
+	memset(&card->cid, 0, sizeof(struct mmc_cid));
 	/*
 	 * SD doesn't currently have a version field so we will
 	 * have to assume we can parse this.
@@ -92,6 +102,17 @@ static int mmc_decode_csd(struct mmc_card *card)
 	struct mmc_csd *csd = &card->csd;
 	unsigned int e, m, csd_struct;
 	u32 *resp = card->raw_csd;
+
+    // exchange the csd bytes in sd_resp register for AS3310 SD controllor 
+#if defined(CONFIG_MMC_AS9260)
+    u32 tmp;
+    tmp = card->raw_csd[0];
+    card->raw_csd[0] = card->raw_csd[3];
+    card->raw_csd[3] = tmp;
+    tmp = card->raw_csd[1];
+    card->raw_csd[1] = card->raw_csd[2];
+    card->raw_csd[2] = tmp;
+#endif
 
 	csd_struct = UNSTUFF_BITS(resp, 126, 2);
 
@@ -488,6 +509,7 @@ static int mmc_sd_init_card(struct mmc_host *host, u32 ocr,
 			goto free_card;
 
 		mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
+
 	}
 
 	/*

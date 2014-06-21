@@ -150,7 +150,7 @@
 #define I2C_HW_SMBUS_OV518	0x04000f /* OV518(+) USB 1.1 webcam ICs */
 #define I2C_HW_SMBUS_CAFE	0x040012 /* Marvell 88ALP01 "CAFE" cam  */
 #define I2C_HW_SMBUS_ALI1563	0x040013
-
+#define I2C_HW_SMBUS_ALP	0x040014 /* ASM9260 "ALP" cam  */
 /* --- MCP107 adapter */
 #define I2C_HW_MPC107		0x0d0000
 

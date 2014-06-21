@@ -78,10 +78,10 @@ static int usb_parse_endpoint(struct device *ddev, int cfgno, int inum,
 	/* Only store as many endpoints as we have room for */
 	if (ifp->desc.bNumEndpoints >= num_ep)
 		goto skip_to_next_endpoint_or_interface_descriptor;
-
+ //   printk("nums %d\n",ifp->desc.bNumEndpoints);
 	endpoint = &ifp->endpoint[ifp->desc.bNumEndpoints];
 	++ifp->desc.bNumEndpoints;
-
+    
 	memcpy(&endpoint->desc, d, n);
 	INIT_LIST_HEAD(&endpoint->urb_list);
 

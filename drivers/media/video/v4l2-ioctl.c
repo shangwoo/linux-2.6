@@ -25,7 +25,7 @@
 #include <media/v4l2-common.h>
 #include <media/v4l2-ioctl.h>
 #include <linux/video_decoder.h>
-
+#include "asm9260camif.h"
 #define dbgarg(cmd, fmt, arg...) \
 		do {							\
 		    if (vfd->debug & V4L2_DEBUG_IOCTL_ARG) {		\
@@ -1749,6 +1749,19 @@ static int __video_do_ioctl(struct file *file,
 		ret = ops->vidioc_s_hw_freq_seek(file, fh, p);
 		break;
 	}
+	case ASM9260_S_PRIVATE:
+	{
+
+		if (!ops->vidioc_default)
+			break;
+		ret = ops->vidioc_default(file, fh, 0, arg);
+		break;
+	}
+	case ASM9260_G_PRIVATE:
+	{
+		int *value = arg;
+		break;
+	}
 	default:
 	{
 		if (!ops->vidioc_default)
@@ -1765,6 +1778,8 @@ static int __video_do_ioctl(struct file *file,
 		}
 	}
 
+	
+	
 	return ret;
 }
 

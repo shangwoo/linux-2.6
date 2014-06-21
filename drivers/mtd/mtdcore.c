@@ -344,7 +344,7 @@ static inline int mtd_proc_info (char *buf, int i)
 	if (!this)
 		return 0;
 
-	return sprintf(buf, "mtd%d: %8.8x %8.8x \"%s\"\n", i, this->size,
+	return sprintf(buf, "mtd%d: %8.8llx %8.8x \"%s\"\n", i, this->size,
 		       this->erasesize, this->name);
 }
 

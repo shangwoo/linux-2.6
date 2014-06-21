@@ -922,7 +922,7 @@ config FB_EPSON1355
 
 config FB_S1D13XXX
 	tristate "Epson S1D13XXX framebuffer support"
-	depends on FB
+	depends on FB && ARCH_CEIVA
 	select FB_CFB_FILLRECT
 	select FB_CFB_COPYAREA
 	select FB_CFB_IMAGEBLIT
@@ -1917,6 +1917,179 @@ config FB_TMIO_ACCELL
 	bool "tmiofb acceleration"
 	depends on FB_TMIO
 	default y
+
+	  
+config FB_ASM9260
+       tristate "ASM9260 LCD framebuffer support"
+       depends on FB
+       select FB_CFB_FILLRECT
+       select FB_CFB_COPYAREA
+       select FB_CFB_IMAGEBLIT
+	---help---
+         Frame buffer driver for the built-in LCD controller in the AlpScale AM9260.
+
+         This driver is also available as a module ( = code which can be
+         inserted and removed from the running kernel whenever you want). The
+         module will be called asm9260fb. If you want to compile it as a module,
+         say M here and read <file:Documentation/modules.txt>.
+
+         If unsure, say N.
+
+
+
+config FB_ASM9260_DEBUG
+       bool "ASM9260 lcd debug messages"
+       depends on FB_ASM9260 
+       help
+         Turn on debugging messages. Note that you can set/unset at run time
+         through sysfs
+	default n
+
+	
+config FBIF_AS1820_LCD_DEBUG
+       bool "ASAP1820 interface lcd debug messages"
+       depends on FBIF_ASAP1820
+       help
+         Turn on debugging messages. Note that you can set/unset at run time
+         through sysfs
+	default n
+
+# config FB_VIRTUAL_VGA
+#        bool "ASM9260 Virtual VGA LCD"
+#        depends on FB_ASM9260 || FBIF_AS3310  || FBIF_ASAP1820
+#        help
+#          OS treated lcd as a VGA screen, but hardware is actually smaller
+
+
+choice
+       depends on FB_ASM9260
+       prompt "LCD Panel"
+       default FB_EVK_480_272
+
+config FB_ILI9320RGB
+       bool "ILI9320 RGB Interface LCD 2.8\" QVGA TFT"
+       help
+         This is an implementation of the ILI9320 LCD ,
+         a 3.5" RGB Interface 262K color QVGA.
+         The native resolution is 320*240.	 
+	 
+config FB_SAMSUNG_LVT350Q_F04
+       bool "SAMSUNG LVT350Q_F04 LCD 3.5\" QVGA TFT"
+       help
+         This is an implementation of the SAMSUNG LVT350Q_F04, a 3.5"
+         color QVGA.
+         The native resolution is 240x320.
+
+config FB_EVK_480_272
+       bool "EVK Wide Screen 480x272 TFT LCD"
+       help
+         This is an implementation of the EVK 480x272 TFT LCD.
+
+config FB_FTG500C06Z_800_480
+       bool "FTG500C06Z_800_480 TFT LCD"
+       help
+         This is an implementation of the FTG500C06Z 800x480 TFT LCD.
+endchoice
+
+choice
+       depends on FB_ASM9260
+       prompt "LCD BPP"
+       default FB_LCD_BPP_16
+
+config FB_LCD_BPP_16
+       bool "FB LCD 16 BPP"
+       help
+         The BPP of LCD is 16.	 
+	 
+config FB_LCD_BPP_32
+       bool "FB LCD 32 BPP"
+       help
+         The BPP of LCD is 32.
+endchoice
+
+config ILI9320RGB_ROTATE_TO_240_320
+       bool "ILI9320RGB Rotate to 240*320"
+       depends on FB_ILI9320RGB
+       help
+         choose this option to rotate ILI9320RGB to 240*320
+
+choice
+       depends on FB_AS3310
+       prompt "ASAP18xx LCD"
+       default FB_AS3310_IRQ
+
+
+config FB_AS3310_CYCLED
+       bool "Cycle Mode DMA"
+       help
+         as3310_LCD_DMA will work in cycle mode, so no irq is generated,
+         default n
+
+config FB_AS3310_IRQ
+       bool "IRQ Mode DMA"
+       help
+         LCD Screen is refreshed by LCD IRQ, this is risky when cpu load is high
+
+endchoice
+
+	 
+config FLUSH_USING_TIMER
+       bool "ASAP18xx LCDIF Refresh Screen using Timer"       
+       default y
+       depends on FBIF_AS3310 || FBIF_ASAP1820
+       ---help---
+            if apps have ioctl of FBIO_SYNC, don't choose this.
+
+config LCDIF_FREQ
+	int "LCD Interface refresh time out jiffes N (FRate = 100/N Hz)"
+	depends on FLUSH_USING_TIMER
+	default 3
+	help
+	  	7: 14Hz
+	  	6: 17Hz        
+		5: 20Hz  
+		4: 25Hz	  
+		3: 33Hz         
+	  
+choice
+       depends on FBIF_AS3310 || FBIF_ASAP1820
+       prompt "LCDIF Panel"
+       default FBIF_ILI9320
+
+config FBIF_SSD1289
+       depends on FBIF_AS3310
+       bool "FBIF_SSD1289 LCD 3.2\" QVGA TFT"
+       help
+         This is an implementation of the  FBIF_SSD1289, a 3.2"
+         color QVGA.
+         The native resolution is 240x320.
+	 
+config FBIF_ILI9320
+       bool "ILI9320 LCDIF 2.8\" QVGA TFT"
+       depends on BOARD_ASAP1820_LANGYOU || BOARD_ASAP1820_DEV || BOARD_ASAP1822_COMMON
+       help
+         This is an implementation of the ILI9320 TFT LCD .
+	 
+config FBIF_HX8347
+       bool "HX8347 LCDIF 2.8\" QVGA TFT"
+       depends on BOARD_ASAP1820_LANGYOU || BOARD_ASAP1820_DEV || BOARD_ASAP1822_COMMON
+       help
+         This is an implementation of the HX8347 TFT LCD.
+
+config FBIF_FD5420
+       bool "FD5420 LCDIF 3.0\" WQVGA TFT"
+       depends on BOARD_ASAP1820_YOTO || BOARD_ASAP1820_DEV || BOARD_ASAP1822_COMMON
+       help
+         This is an implementation of the FD5420 TFT LCD.
+
+endchoice
+
+config FD5420_ROTATE
+	bool "FD5420 Rotation"
+	default y
+	depends on FBIF_FD5420
+	help
+	 Rotate FD5420 Screen
 
 config FB_S3C2410
 	tristate "S3C2410 LCD framebuffer support"

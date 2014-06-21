@@ -290,13 +290,6 @@ config VIDEO_KS0127
 	  To compile this driver as a module, choose M here: the
 	  module will be called ks0127.
 
-config VIDEO_OV7670
-	tristate "OmniVision OV7670 sensor support"
-	depends on I2C && VIDEO_V4L2
-	---help---
-	  This is a Video4Linux2 sensor-level driver for the OmniVision
-	  OV7670 VGA camera.  It currently only works with the M88ALP01
-	  controller.
 
 config VIDEO_TCM825X
 	tristate "TCM825x camera sensor support"
@@ -546,6 +539,13 @@ config VIDEO_CPIA
 
 	  This driver is also available as a module (cpia).
 
+config VIDEO_OV7670
+	tristate "OmniVision OV7670 sensor support"
+	depends on I2C && VIDEO_V4L2
+	---help---
+	  This is a Video4Linux2 sensor-level driver for the OmniVision
+	  OV7670 QVGA camera. 
+
 config VIDEO_CPIA_PP
 	tristate "CPiA Parallel Port Lowlevel Support"
 	depends on PARPORT_1284 && VIDEO_CPIA && PARPORT
@@ -693,8 +693,8 @@ config VIDEO_M32R_AR_M64278
 
 config VIDEO_CAFE_CCIC
 	tristate "Marvell 88ALP01 (Cafe) CMOS Camera Controller support"
-	depends on PCI && I2C && VIDEO_V4L2
-	select VIDEO_OV7670
+	depends on I2C && VIDEO_V4L2
+
 	---help---
 	  This is a video4linux2 driver for the Marvell 88ALP01 integrated
 	  CMOS camera controller.  This is the controller found on first-
@@ -708,6 +708,39 @@ config SOC_CAMERA
 	  SoC Camera is a common API to several cameras, not connecting
 	  over a bus like PCI or USB. For example some i2c camera connected
 	  directly to the data bus of an SoC.
+
+config SOC_CAMERA_ASM9260
+	tristate "ASM9260 CMOS Camera Controller support"
+	depends on VIDEO_V4L2 && I2C 
+	select VIDEO_OV7670
+
+	---help---
+	  This is a video4linux2 driver for the ASM9260 integrated
+	  CMOS camera controller.  
+choice
+       depends on SOC_CAMERA_ASM9260
+       prompt "Camera Panel"
+       default CAM_QVGA
+
+config CAM_QVGA
+       bool "OV7670_QVGA_MODE"
+       help
+         The native resolution of ov7670 is 320*240.
+
+config CAM_VGA
+       bool "OV7670_VGA_MODE"
+       help
+         The native resolution of ov7670 is 640*480.
+
+endchoice
+
+config SOC_CAMERA_ASM9260_DEBUG
+       bool "ASM9260 camera debug messages"
+       depends on SOC_CAMERA_ASM9260 
+       help
+         Turn on debugging messages. Note that you can set/unset at run time
+         through sysfs
+	default n
 
 config SOC_CAMERA_MT9M001
 	tristate "mt9m001 support"

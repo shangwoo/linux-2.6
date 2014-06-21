@@ -424,6 +424,40 @@ config USB_GOKU
 # LAST -- dummy/emulated controller
 #
 
+
+
+config USB_GADGET_AS3310
+	boolean "AS3310 USB Device Port"
+	depends on ARCH_ASAP18XX
+	help
+	   Many Alpscale AS3310X processors (such as the AS3310D) have a
+	   full speed USB Device Port with support for 15 configurable
+	   endpoints (plus endpoint zero).
+
+	   Say "y" to link the driver statically, or "m" to build a
+	   dynamically linked module called "as3310_udc" and force all
+	   gadget drivers to also be dynamically linked.
+
+config USB_AS3310
+	tristate "AS3310 USB Device"
+	depends on USB_GADGET_AS3310
+	default USB_GADGET	
+	select USB_GADGET_SELECTED
+
+
+config USB_HIGH_SPEED
+	bool "USB_HIGH_SPEED"
+	depends on USB_AS3310
+	help
+	Say Y here to support USB_HIGH_SPEED,otherwise will just support
+	FULL SPEED.
+	
+config USB_AS3310_DEBUG
+	bool "AS3310_USB_DEBUG"
+	depends on USB_AS3310
+	help
+	  Say Y here to show the debug info.
+
 config USB_GADGET_DUMMY_HCD
 	boolean "Dummy HCD (DEVELOPMENT)"
 	depends on USB=y || (USB=m && USB_GADGET=m)
@@ -456,15 +490,17 @@ config USB_DUMMY_HCD
 # NOTE:  Please keep dummy_hcd LAST so that "real hardware" appears
 # first and will be selected by default.
 
+
+
 endchoice
 
 config USB_GADGET_DUALSPEED
-	bool
+	bool "USB_GADGET_DUALSPEED"
 	depends on USB_GADGET
 	default n
 	help
 	  Means that gadget drivers should include extra descriptors
-	  and code to handle dual-speed controllers.
+	  and code to handle dual-speed controllers.nn
 
 #
 # USB Gadget Drivers

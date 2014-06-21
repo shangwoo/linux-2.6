@@ -393,7 +393,6 @@ static int if_sdio_prog_helper(struct if_sdio_card *card)
 	size_t size;
 
 	lbs_deb_enter(LBS_DEB_SDIO);
-
 	ret = request_firmware(&fw, card->helper, &card->func->dev);
 	if (ret) {
 		lbs_pr_err("can't load helper firmware\n");
@@ -420,10 +419,14 @@ static int if_sdio_prog_helper(struct if_sdio_card *card)
 		while (1) {
 			status = sdio_readb(card->func, IF_SDIO_STATUS, &ret);
 			if (ret)
+			{
 				goto release;
+			}
 			if ((status & IF_SDIO_IO_RDY) &&
 					(status & IF_SDIO_DL_RDY))
+			{
 				break;
+			}
 			if (time_after(jiffies, timeout)) {
 				ret = -ETIMEDOUT;
 				goto release;
@@ -435,9 +438,10 @@ static int if_sdio_prog_helper(struct if_sdio_card *card)
 
 		*((__le32*)chunk_buffer) = cpu_to_le32(chunk_size);
 		memcpy(chunk_buffer + 4, firmware, chunk_size);
-/*
-		lbs_deb_sdio("sending %d bytes chunk\n", chunk_size);
-*/
+		
+
+	//	lbs_deb_sdio("sending %d bytes chunk\n", chunk_size);
+
 		ret = sdio_writesb(card->func, card->ioport,
 				chunk_buffer, 64);
 		if (ret)
@@ -446,7 +450,6 @@ static int if_sdio_prog_helper(struct if_sdio_card *card)
 		firmware += chunk_size;
 		size -= chunk_size;
 	}
-
 	/* an empty block marks the end of the transfer */
 	memset(chunk_buffer, 0, 4);
 	ret = sdio_writesb(card->func, card->ioport, chunk_buffer, 64);
@@ -454,7 +457,6 @@ static int if_sdio_prog_helper(struct if_sdio_card *card)
 		goto release;
 
 	lbs_deb_sdio("waiting for helper to boot...\n");
-
 	/* wait for the helper to boot by looking at the size register */
 	timeout = jiffies + HZ;
 	while (1) {
@@ -507,7 +509,6 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 	u32 chunk_size;
 	const u8 *firmware;
 	size_t size, req_size;
-
 	lbs_deb_enter(LBS_DEB_SDIO);
 
 	ret = request_firmware(&fw, card->firmware, &card->func->dev);
@@ -530,7 +531,6 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 
 	firmware = fw->data;
 	size = fw->size;
-
 	while (size) {
 		timeout = jiffies + HZ;
 		while (1) {
@@ -571,7 +571,6 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 
 		if (req_size > size)
 			req_size = size;
-
 		while (req_size) {
 			chunk_size = min(req_size, (size_t)512);
 
@@ -595,6 +594,7 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 
 	lbs_deb_sdio("waiting for firmware to boot...\n");
 
+status = sdio_readb(card->func, IF_SDIO_STATUS, &ret);
 	/* wait for the firmware to boot */
 	timeout = jiffies + HZ;
 	while (1) {
@@ -606,17 +606,14 @@ static int if_sdio_prog_real(struct if_sdio_card *card)
 
 		if (scratch == IF_SDIO_FIRMWARE_OK)
 			break;
-
 		if (time_after(jiffies, timeout)) {
 			ret = -ETIMEDOUT;
 			goto release;
 		}
-
 		msleep(10);
 	}
 
 	ret = 0;
-
 release:
 	sdio_set_block_size(card->func, 0);
 	sdio_release_host(card->func);
@@ -629,7 +626,6 @@ out:
 		lbs_pr_err("failed to load firmware\n");
 
 	lbs_deb_leave_args(LBS_DEB_SDIO, "ret %d", ret);
-
 	return ret;
 }
 
@@ -659,7 +655,6 @@ static int if_sdio_prog_firmware(struct if_sdio_card *card)
 	ret = if_sdio_prog_real(card);
 	if (ret)
 		goto out;
-
 success:
 	ret = 0;
 
@@ -761,9 +756,8 @@ static void if_sdio_interrupt(struct sdio_func *func)
 	int ret;
 	struct if_sdio_card *card;
 	u8 cause;
-
 	lbs_deb_enter(LBS_DEB_SDIO);
-
+	
 	card = sdio_get_drvdata(func);
 
 	cause = sdio_readb(card->func, IF_SDIO_H_INT_STATUS, &ret);
@@ -806,7 +800,7 @@ static int if_sdio_probe(struct sdio_func *func,
 	struct if_sdio_packet *packet;
 
 	lbs_deb_enter(LBS_DEB_SDIO);
-
+	
 	for (i = 0;i < func->card->num_info;i++) {
 		if (sscanf(func->card->info[i],
 				"802.11 SDIO ID: %x", &model) == 1)
@@ -847,7 +841,6 @@ static int if_sdio_probe(struct sdio_func *func,
 
 	card->helper = if_sdio_models[i].helper;
 	card->firmware = if_sdio_models[i].firmware;
-
 	if (lbs_helper_name) {
 		lbs_deb_sdio("overriding helper firmware: %s\n",
 			lbs_helper_name);
@@ -861,10 +854,11 @@ static int if_sdio_probe(struct sdio_func *func,
 
 	sdio_claim_host(func);
 
+
 	ret = sdio_enable_func(func);
 	if (ret)
 		goto release;
-
+	
 	ret = sdio_claim_irq(func, if_sdio_interrupt);
 	if (ret)
 		goto disable;
@@ -889,7 +883,7 @@ static int if_sdio_probe(struct sdio_func *func,
 			"device = 0x%X, model = 0x%X, ioport = 0x%X\n",
 			func->class, func->vendor, func->device,
 			model, (unsigned)card->ioport);
-
+	
 	ret = if_sdio_prog_firmware(card);
 	if (ret)
 		goto reclaim;
@@ -899,7 +893,6 @@ static int if_sdio_probe(struct sdio_func *func,
 		ret = -ENOMEM;
 		goto reclaim;
 	}
-
 	card->priv = priv;
 
 	priv->card = card;
@@ -915,7 +908,6 @@ static int if_sdio_probe(struct sdio_func *func,
 	sdio_release_host(func);
 	if (ret)
 		goto reclaim;
-
 	ret = lbs_start_card(priv);
 	if (ret)
 		goto err_activate_card;

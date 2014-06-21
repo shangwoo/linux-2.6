@@ -32,9 +32,9 @@
    specific to any particular block. */
 struct erase_info {
 	struct mtd_info *mtd;
-	u_int32_t addr;
-	u_int32_t len;
-	u_int32_t fail_addr;
+	u_int64_t addr;
+	u_int64_t len;
+	u_int64_t fail_addr;
 	u_long time;
 	u_long retries;
 	u_int dev;
@@ -46,7 +46,7 @@ struct erase_info {
 };
 
 struct mtd_erase_region_info {
-	u_int32_t offset;			/* At which this region starts, from the beginning of the MTD */
+	u_int64_t offset;			/* At which this region starts, from the beginning of the MTD */
 	u_int32_t erasesize;		/* For this region */
 	u_int32_t numblocks;		/* Number of blocks of erasesize in this region */
 	unsigned long *lockmap;		/* If keeping bitmap of locks */
@@ -93,15 +93,15 @@ struct mtd_oob_ops {
 	size_t		retlen;
 	size_t		ooblen;
 	size_t		oobretlen;
-	uint32_t	ooboffs;
+	u_int64_t	ooboffs;
 	uint8_t		*datbuf;
 	uint8_t		*oobbuf;
-};
+}__attribute__((packed));
 
 struct mtd_info {
 	u_char type;
 	u_int32_t flags;
-	u_int32_t size;	 // Total size of the MTD
+	u_int64_t size;	 // Total size of the MTD
 
 	/* "Major" erase size for the device. Naïve users may take this
 	 * to be the only erase size available, or may use the more detailed

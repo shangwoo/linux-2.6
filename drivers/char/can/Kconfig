@@ -1,0 +1,15 @@
+#
+# can device configuration
+#
+
+menu "CAN character devices"
+
+
+
+config CHAR_CAN
+       tristate 'CHAR_CAN'
+       help
+         This enables the CAN.
+
+
+endmenu

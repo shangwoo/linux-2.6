@@ -2420,6 +2420,7 @@ struct tty_driver *uart_console_device(struct console *co, int *index)
 	*index = co->index;
 	return p->tty_driver;
 }
+EXPORT_SYMBOL(uart_console_device);
 
 /**
  *	uart_add_one_port - attach a driver-defined port structure

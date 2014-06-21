@@ -981,3 +981,4 @@ static int dma_ioctl(int dev, unsigned int cmd, void __user *arg)
 	}
 	return put_user(ret, (int __user *)arg);
 }
+

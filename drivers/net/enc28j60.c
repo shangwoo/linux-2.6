@@ -29,8 +29,11 @@
 #include <linux/skbuff.h>
 #include <linux/delay.h>
 #include <linux/spi/spi.h>
+#include <mach/pincontrol.h>
 
 #include "enc28j60_hw.h"
+
+
 
 #define DRV_NAME	"enc28j60"
 #define DRV_VERSION	"1.01"
@@ -38,7 +41,8 @@
 #define SPI_OPLEN	1
 
 #define ENC28J60_MSG_DEFAULT	\
-	(NETIF_MSG_PROBE | NETIF_MSG_IFUP | NETIF_MSG_IFDOWN | NETIF_MSG_LINK)
+	0x0//(NETIF_MSG_DRV|NETIF_MSG_PROBE | NETIF_MSG_IFUP | NETIF_MSG_IFDOWN | NETIF_MSG_LINK)
+	
 
 /* Buffer size required for the largest SPI transfer (i.e., reading a
  * frame). */
@@ -94,6 +98,8 @@ spi_read_buf(struct enc28j60_net *priv, int len, u8 *data)
 		.tx_buf = tx_buf,
 		.rx_buf = rx_buf,
 		.len = SPI_OPLEN + len,
+		.tx_len = SPI_OPLEN,
+		.rx_len = len,
 	};
 	struct spi_message msg;
 	int ret;
@@ -105,7 +111,7 @@ spi_read_buf(struct enc28j60_net *priv, int len, u8 *data)
 	spi_message_add_tail(&t, &msg);
 	ret = spi_sync(priv->spi, &msg);
 	if (ret == 0) {
-		memcpy(data, &rx_buf[SPI_OPLEN], len);
+		memcpy(data, &rx_buf[/*SPI_OPLEN*/0], len);
 		ret = msg.status;
 	}
 	if (ret && netif_msg_drv(priv))
@@ -159,7 +165,6 @@ static u8 spi_read_op(struct enc28j60_net *priv, u8 op,
 			__func__, ret);
 	else
 		val = rx_buf[slen - 1];
-
 	return val;
 }
 
@@ -356,8 +361,12 @@ static void enc28j60_mem_read(struct enc28j60_net *priv,
 		u16 reg;
 		reg = nolock_regw_read(priv, ERDPTL);
 		if (reg != addr)
+		{	
 			printk(KERN_DEBUG DRV_NAME ": %s() error writing ERDPT "
 				"(0x%04x - 0x%04x)\n", __func__, reg, addr);
+	
+		}
+		
 	}
 #endif
 	spi_read_buf(priv, len, data);
@@ -592,6 +601,9 @@ static void nolock_rxfifo_init(struct enc28j60_net *priv, u16 start, u16 end)
 	/* set receive buffer start + end */
 	priv->next_pk_ptr = start;
 	nolock_regw_write(priv, ERXSTL, start);
+	//20110613 add
+	nolock_regw_write(priv, ERDPTL, start);
+
 	erxrdpt = erxrdpt_workaround(priv->next_pk_ptr, start, end);
 	nolock_regw_write(priv, ERXRDPTL, erxrdpt);
 	nolock_regw_write(priv, ERXNDL, end);
@@ -646,7 +658,7 @@ static int enc28j60_hw_init(struct enc28j60_net *priv)
 
 	mutex_lock(&priv->lock);
 	/* first reset the chip */
-	enc28j60_soft_reset(priv);
+	//enc28j60_soft_reset(priv);
 	/* Clear ECON1 */
 	spi_write_op(priv, ENC28J60_WRITE_CTRL_REG, ECON1, 0x00);
 	priv->bank = 0;
@@ -666,19 +678,23 @@ static int enc28j60_hw_init(struct enc28j60_net *priv)
 	 * If it's 0x00 or 0xFF probably the enc28j60 is not mounted or
 	 * damaged
 	 */
-	reg = locked_regb_read(priv, EREVID);
-	if (netif_msg_drv(priv))
-		printk(KERN_INFO DRV_NAME ": chip RevID: 0x%02x\n", reg);
-	if (reg == 0x00 || reg == 0xff) {
+
+		reg = locked_regb_read(priv, EREVID);
 		if (netif_msg_drv(priv))
-			printk(KERN_DEBUG DRV_NAME ": %s() Invalid RevId %d\n",
-				__func__, reg);
-		return 0;
-	}
+			printk(KERN_INFO DRV_NAME ": chip RevID: 0x%02x\n", reg);
+		if (reg == 0x00 || reg == 0xff) {
+			if (netif_msg_drv(priv))
+				printk(KERN_DEBUG DRV_NAME ": %s() Invalid RevId %d\n",
+					__func__, reg);
+			return 0;
+		}
+	
 
 	/* default filter mode: (unicast OR broadcast) AND crc valid */
 	locked_regb_write(priv, ERXFCON,
 			    ERXFCON_UCEN | ERXFCON_CRCEN | ERXFCON_BCEN);
+
+	//printk("reg = nolock_regw_read(priv, ERDPTL); =0x%x\n",nolock_regw_read(priv, ERDPTL));
 
 	/* enable MAC receive */
 	locked_regb_write(priv, MACON1,
@@ -926,7 +942,7 @@ static void enc28j60_hw_rx(struct net_device *ndev)
 	rxstat = rsv[5];
 	rxstat <<= 8;
 	rxstat |= rsv[4];
-
+	
 	if (netif_msg_rx_status(priv))
 		enc28j60_dump_rsv(priv, __func__, next_packet, len, rxstat);
 
@@ -1211,6 +1227,7 @@ static void enc28j60_irq_work_handler(struct work_struct *work)
 	locked_reg_bfset(priv, EIE, EIE_INTIE);
 	if (netif_msg_intr(priv))
 		printk(KERN_DEBUG DRV_NAME ": %s() exit\n", __func__);
+	io_irq_unmask(GPIO_ENC28J60_INT_PORT,GPIO_ENC28J60_INT_PIN);
 }
 
 /*
@@ -1299,7 +1316,9 @@ static void enc28j60_tx_work_handler(struct work_struct *work)
 static irqreturn_t enc28j60_irq(int irq, void *dev_id)
 {
 	struct enc28j60_net *priv = dev_id;
-
+	io_irq_clr(GPIO_ENC28J60_INT_PORT,GPIO_ENC28J60_INT_PIN);
+	io_irq_mask(GPIO_ENC28J60_INT_PORT,GPIO_ENC28J60_INT_PIN);
+	
 	/*
 	 * Can't do anything in interrupt context because we need to
 	 * block (spi_sync() is blocking) so fire of the interrupt
@@ -1523,7 +1542,6 @@ static int __devinit enc28j60_probe(struct spi_device *spi)
 	struct net_device *dev;
 	struct enc28j60_net *priv;
 	int ret = 0;
-
 	if (netif_msg_drv(&debug))
 		dev_info(&spi->dev, DRV_NAME " Ethernet driver %s loaded\n",
 			DRV_VERSION);
@@ -1537,7 +1555,6 @@ static int __devinit enc28j60_probe(struct spi_device *spi)
 		goto error_alloc;
 	}
 	priv = netdev_priv(dev);
-
 	priv->netdev = dev;	/* priv to netdev reference */
 	priv->spi = spi;	/* priv to spi reference */
 	priv->msg_enable = netif_msg_init(debug.msg_enable,
@@ -1549,7 +1566,6 @@ static int __devinit enc28j60_probe(struct spi_device *spi)
 	INIT_WORK(&priv->restart_work, enc28j60_restart_work_handler);
 	dev_set_drvdata(&spi->dev, priv);	/* spi to priv reference */
 	SET_NETDEV_DEV(dev, &spi->dev);
-
 	if (!enc28j60_chipset_init(dev)) {
 		if (netif_msg_probe(priv))
 			dev_info(&spi->dev, DRV_NAME " chip not found\n");
@@ -1558,7 +1574,6 @@ static int __devinit enc28j60_probe(struct spi_device *spi)
 	}
 	random_ether_addr(dev->dev_addr);
 	enc28j60_set_hw_macaddr(dev);
-
 	/* Board setup must set the relevant edge trigger type;
 	 * level triggers won't currently work.
 	 */
@@ -1582,7 +1597,6 @@ static int __devinit enc28j60_probe(struct spi_device *spi)
 	SET_ETHTOOL_OPS(dev, &enc28j60_ethtool_ops);
 
 	enc28j60_lowpower(priv, true);
-
 	ret = register_netdev(dev);
 	if (ret) {
 		if (netif_msg_probe(priv))
@@ -1641,7 +1655,7 @@ static void __exit enc28j60_exit(void)
 
 module_exit(enc28j60_exit);
 
-MODULE_DESCRIPTION(DRV_NAME " ethernet driver");
+MODULE_DESCRIPTION("ethernet driver");
 MODULE_AUTHOR("Claudio Lanconelli <lanconelli.claudio@eptar.com>");
 MODULE_LICENSE("GPL");
 module_param_named(debug, debug.msg_enable, int, 0);

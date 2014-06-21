@@ -147,6 +147,14 @@ config S3C2410_WATCHDOG
 	  The driver can be built as a module by choosing M, and will
 	  be called s3c2410_wdt
 
+config ASM9260_WATCHDOG
+	tristate "ASM9260 Watchdog"
+	depends on ARCH_ASAP18XX
+	help
+	  Watchdog timer block in the Alphascale ASAP1826T chips. This will
+	  reboot the system when the timer expires with the watchdog
+	  enabled.
+
 config SA1100_WATCHDOG
 	tristate "SA1100/PXA2xx watchdog"
 	depends on ARCH_SA1100 || ARCH_PXA
@@ -232,6 +240,7 @@ config ORION5X_WATCHDOG
 	  in the Orion5x ARM SoCs.
 	  To compile this driver as a module, choose M here: the
 	  module will be called orion5x_wdt.
+
 
 # ARM26 Architecture
 

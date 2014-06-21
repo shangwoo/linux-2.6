@@ -3891,6 +3891,7 @@ static int __init fsg_bind(struct usb_gadget *gadget)
 		curlun->dev.release = lun_release;
 		curlun->dev.parent = &gadget->dev;
 		curlun->dev.driver = &fsg_driver.driver;
+        curlun->dev.groups = NULL;
 		dev_set_drvdata(&curlun->dev, fsg);
 		dev_set_name(&curlun->dev,"%s-lun%d",
 			     dev_name(&gadget->dev), i);

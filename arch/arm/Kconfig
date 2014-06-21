@@ -549,6 +549,92 @@ config ARCH_MSM
 	  interface to the ARM9 modem processor which runs the baseband stack
 	  and controls some vital subsystems (clock and power control, etc).
 
+config ARCH_ASAP18XX
+ 	bool "Alpscale ASAP18XX Based Platform"
+ 	help
+ 	  Support for Alpscale ASAP18XX based platform.
+  
+ endchoice
+  
+ 
+ choice
+ 	prompt "CPU Type"
+ 	depends on ARCH_ASAP18XX
+ 	default ARCH_ASAP1820
+ 	
+ config ARCH_AS3310
+ 	bool "Alpscale ASAP1810"
+ 	help
+ 	  Support for Alpscale ASAP1810 based platform.
+ 
+ config ARCH_ASAP1820
+ 	bool "Alpscale ASAP1820"
+ 	help
+ 	  Support for Alpscale ASAP1820 based platform.
+ 
+ config ARCH_ASAP1822
+ 	bool "Alpscale ASAP1822/ASAP1826"
+ 	help
+ 	  Support for Alpscale ASAP1822/1826 based platform.
+ 	  
+ endchoice
+ 
+ choice
+ 	prompt "ASAP1810 Board Type"
+ 	depends on ARCH_AS3310
+ 	default BOARD_AS3310_MP4_DEMO
+ 	
+ config BOARD_AS3310_DEV
+ 	bool "Alpscale ASAP1810 Develop Board"
+ 	help
+ 	  Support for Alpscale AS3310 Develop Board platform.
+ 	  
+ config BOARD_AS3310_MP4_DEMO
+ 	bool "Alpscale ASAP1810 MP4 Demo Board"
+ 	help
+ 	  Support for Alpscale AS3310 MP4 Demo platform.
+ 	  
+ endchoice
+ 
+ 
+ choice
+ 	prompt "ASAP1820 Board Type"
+ 	depends on ARCH_ASAP1820
+ 	default BOARD_ASAP1820_DEV
+ 	
+ config BOARD_ASAP1820_LANGYOU
+ 	bool "Alpscale ASAP1820 LangYou Board (2.8 QVGA)"
+ 	help
+ 	  Support for Alpscale ASAP1820 LangYou Board (2.8 QVGA).
+ 	  
+ config BOARD_ASAP1820_YOTO
+ 	bool "Alpscale ASAP1820 YOTO Board (3.0 WQVGA)"
+ 	help
+ 	  Support for Alpscale ASAP1820 YOTO Board (3.0 WQVGA).
+ 	  
+ config BOARD_ASAP1820_DEV
+ 	bool "Alpscale ASAP1820 Develop Board"
+ 	help
+ 	  Support for Alpscale ASAP1820 Develop Board platform.
+           	  
+ config BOARD_FPGA1820_QQ
+ 	bool "Alpscale FPGA1820_QQ Board"
+ 	help
+ 	  Support for Alpscale FPGA1820_QQ platform.
+ 	  
+ endchoice
+ 
+ choice
+ 	prompt "ASAP1822 Board Type"
+ 	depends on ARCH_ASAP1822
+ 	default BOARD_ASAP1822_COMMON
+ 	
+ config BOARD_ASAP1822_COMMON
+ 	bool "Alpscale ASAP1822 Common Board)"
+ 	help
+ 	  Support for Alpscale ASAP1822 Common Board.
+ 	  
+	  
 endchoice
 
 source "arch/arm/mach-clps711x/Kconfig"
@@ -614,6 +700,8 @@ source "arch/arm/mach-aaec2000/Kconfig"
 source "arch/arm/mach-realview/Kconfig"
 
 source "arch/arm/mach-at91/Kconfig"
+
+#source "arch/arm/mach-as9260/Kconfig"
 
 source "arch/arm/plat-mxc/Kconfig"
 

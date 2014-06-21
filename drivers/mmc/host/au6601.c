@@ -278,7 +278,6 @@ static void au6601_set_power(struct au6601_host *host,
 	tmp2 = ioread8(host->iobase + REG_7A);
 	if (set) {
 		iowrite8(tmp1 | value, host->iobase + REG_70);
-		msleep(20);
 		iowrite8(tmp2 | value, host->iobase + REG_7A);
 	} else {
 		iowrite8(tmp2 & ~value, host->iobase + REG_7A);

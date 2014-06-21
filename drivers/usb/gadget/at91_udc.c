@@ -1259,6 +1259,7 @@ static void handle_ep0(struct at91_udc *udc)
 		VDBG("ep0 stalled\n");
 		csr = __raw_readl(creg);
 	}
+
 	if (csr & AT91_UDP_RXSETUP) {
 		nuke(ep0, 0);
 		udc->req_pending = 0;

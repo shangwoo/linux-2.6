@@ -161,6 +161,30 @@ ENTRY(v4wt_dma_inv_range)
 ENTRY(v4wt_dma_clean_range)
 	mov	pc, lr
 
+
+/******************************************************
+void  cleanDCacheRegion_v5te(void *pva, unsigned int size);
+******************************************************/
+.equ 	CLINE,	5 	@cache line size in bytes as 2**CLINE
+.globl	cleanDCacheRegion_v5te
+	current_va	.req		r0   			@ current virtual address
+	region_bytes	.req		r1   			@ size of region in bytes
+	cline_count 	.req		r1   			@ number of cache lines to clean
+        
+cleanDCacheRegion_v5te:
+
+	bic     current_va, current_va, #(1<<CLINE)-1       @ make current_va align with cache line size
+	add     region_bytes, region_bytes, #(1<<CLINE)-1          @ aligin 32 
+	mov     cline_count, region_bytes, lsr #CLINE          @ get cache line counter need be clean 
+	
+clean_next_cache_line:
+	mcr     p15, 0, current_va, c7, c10, 1     		@ clean Dcline by virtual address
+	
+	add     current_va, current_va, #1<<CLINE           	@ +1 next cline adr
+	subs    cline_count, cline_count, #1       @ decrease one cline counter
+	bne     clean_next_cache_line                        	@ if cline_count still more than 0, then continue
+	mov     pc, lr
+
 /*
  *	dma_flush_range(start, end)
  *

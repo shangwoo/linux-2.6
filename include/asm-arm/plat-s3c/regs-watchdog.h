@@ -38,4 +38,15 @@
 
 #endif /* __ASM_ARCH_REGS_WATCHDOG_H */
 
-
+#define HW_PRESETCTRL0        0x80040000
+#define HW_PRESETCTRL1        0x80040010
+#define HW_AHBCLKCTRL0        0x80040020
+#define HW_AHBCLKCTRL1        0x80040030
+#define HW_WDTCLKSEL          0x80040160
+#define HW_WDTCLKUEN          0x80040164
+#define HW_WDTCLKDIV          0x800401EC
+#define HW_WATCHDOG_WDMOD           0x80048000
+#define HW_WATCHDOG_WDTC            0x80048004
+#define HW_WATCHDOG_WDFEED          0x80048008
+#define HW_WATCHDOG_WDTV            0x8004800C
+#define HW_LCDCLKDIV 		    0x800401fc

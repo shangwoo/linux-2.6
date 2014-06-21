@@ -388,7 +388,9 @@ static int nand_check_wp(struct mtd_info *mtd)
 {
 	struct nand_chip *chip = mtd->priv;
 	/* Check the WP bit */
+
 	chip->cmdfunc(mtd, NAND_CMD_STATUS, -1, -1);
+	return 0;
 	return (chip->read_byte(mtd) & NAND_STATUS_WP) ? 0 : 1;
 }
 
@@ -1639,7 +1641,11 @@ static int nand_write_page(struct mtd_info *mtd, struct nand_chip *chip,
 	chip->cmdfunc(mtd, NAND_CMD_READ0, 0, page);
 
 	if (chip->verify_buf(mtd, buf, mtd->writesize))
+	{
+		printk("page : 0x%x\n",page);
 		return -EIO;
+	}
+
 #endif
 	return 0;
 }
@@ -2307,11 +2313,11 @@ static void nand_set_defaults(struct nand_chip *chip, int busw)
 /*
  * Get the flash and manufacturer id and lookup if the type is supported
  */
-static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
+static struct nand_flash_info *nand_get_flash_type(struct mtd_info *mtd,
 						  struct nand_chip *chip,
 						  int busw, int *maf_id)
 {
-	struct nand_flash_dev *type = NULL;
+	struct nand_flash_info *type = NULL;
 	int i, dev_id, maf_idx;
 	int tmp_id, tmp_manf;
 
@@ -2352,12 +2358,23 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 	}
 
 	/* Lookup the flash id */
+	for (i = 0; nand_flash_devices[i].name != NULL; i++) {
+		if ((*maf_id == nand_flash_devices[i].mfr_id) && (dev_id == nand_flash_devices[i].dev_id))
+		{
+			type =  &nand_flash_devices[i];
+			break;
+		}
+	}
+	
+#if 0
+	/* Lookup the flash id */
 	for (i = 0; nand_flash_ids[i].name != NULL; i++) {
 		if (dev_id == nand_flash_ids[i].id) {
 			type =  &nand_flash_ids[i];
 			break;
 		}
 	}
+#endif
 
 	if (!type)
 		return ERR_PTR(-ENODEV);
@@ -2392,7 +2409,8 @@ static struct nand_flash_dev *nand_get_flash_type(struct mtd_info *mtd,
 		 */
 		mtd->erasesize = type->erasesize;
 		mtd->writesize = type->pagesize;
-		mtd->oobsize = mtd->writesize / 32;
+		//mtd->oobsize = mtd->writesize / 32;
+		mtd->oobsize = type->oobsize;
 		busw = type->options & NAND_BUSWIDTH_16;
 	}
 
@@ -2475,7 +2493,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips)
 {
 	int i, busw, nand_maf_id;
 	struct nand_chip *chip = mtd->priv;
-	struct nand_flash_dev *type;
+	struct nand_flash_info *type;
 
 	/* Get buswidth to select the correct functions */
 	busw = chip->options & NAND_BUSWIDTH_16;
@@ -2500,7 +2518,7 @@ int nand_scan_ident(struct mtd_info *mtd, int maxchips)
 		chip->cmdfunc(mtd, NAND_CMD_READID, 0x00, -1);
 		/* Read manufacturer and device IDs */
 		if (nand_maf_id != chip->read_byte(mtd) ||
-		    type->id != chip->read_byte(mtd))
+		    type->dev_id != chip->read_byte(mtd))
 			break;
 	}
 	if (i > 1)

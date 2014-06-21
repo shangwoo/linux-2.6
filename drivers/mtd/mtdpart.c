@@ -207,6 +207,7 @@ static int part_erase(struct mtd_info *mtd, struct erase_info *instr)
 {
 	struct mtd_part *part = PART(mtd);
 	int ret;
+
 	if (!(mtd->flags & MTD_WRITEABLE))
 		return -EROFS;
 	if (instr->addr >= mtd->size)
@@ -406,8 +407,8 @@ static struct mtd_part *add_one_partition(struct mtd_info *master,
 	if (slave->mtd.size == MTDPART_SIZ_FULL)
 		slave->mtd.size = master->size - slave->offset;
 
-	printk(KERN_NOTICE "0x%08x-0x%08x : \"%s\"\n", slave->offset,
-		slave->offset + slave->mtd.size, slave->mtd.name);
+	printk(KERN_NOTICE "0x%08x-0x%08llx : \"%s\"\n", slave->offset,
+		(slave->offset + slave->mtd.size), slave->mtd.name);
 
 	/* let's do some sanity checks */
 	if (slave->offset >= master->size) {
@@ -420,7 +421,7 @@ static struct mtd_part *add_one_partition(struct mtd_info *master,
 	}
 	if (slave->offset + slave->mtd.size > master->size) {
 		slave->mtd.size = master->size - slave->offset;
-		printk(KERN_WARNING"mtd: partition \"%s\" extends beyond the end of device \"%s\" -- size truncated to %#x\n",
+		printk(KERN_WARNING"mtd: partition \"%s\" extends beyond the end of device \"%s\" -- size truncated to %#llx\n",
 			part->name, master->name, slave->mtd.size);
 	}
 	if (master->numeraseregions > 1) {
@@ -458,7 +459,7 @@ static struct mtd_part *add_one_partition(struct mtd_info *master,
 			part->name);
 	}
 	if ((slave->mtd.flags & MTD_WRITEABLE) &&
-	    (slave->mtd.size % slave->mtd.erasesize)) {
+	    ((u_int32_t)(slave->mtd.size) % slave->mtd.erasesize)) {
 		slave->mtd.flags &= ~MTD_WRITEABLE;
 		printk(KERN_WARNING"mtd: partition \"%s\" doesn't end on an erase block -- force read-only\n",
 			part->name);

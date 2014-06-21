@@ -28,6 +28,7 @@
 #include <linux/pfn.h>
 #include <linux/smp_lock.h>
 
+//#include <asm/hardware.h>
 #include <asm/uaccess.h>
 #include <asm/io.h>
 
@@ -794,6 +795,55 @@ static int open_port(struct inode * inode, struct file * filp)
 	return capable(CAP_SYS_RAWIO) ? 0 : -EPERM;
 }
 
+
+static int 
+mmap_smem(struct file *file, struct vm_area_struct * vma)
+{
+	unsigned long off;
+	unsigned long start;
+	u32 len;
+
+    //printk("mmap_smem()\n");
+
+	if (vma->vm_pgoff > (~0UL >> PAGE_SHIFT))
+		return -EINVAL;
+	off = vma->vm_pgoff << PAGE_SHIFT;
+
+	/* !sparc32... */
+	lock_kernel();
+
+	start = AS9260_SRAM_PHY_BASE;
+	len = PAGE_ALIGN((start & ~PAGE_MASK) + AS9260_SRAM_SIZE);
+    if (off >= len) {
+        printk("off (0x%08x) >= len (0x%08x)\n",off,len);
+   }
+	unlock_kernel();
+	start &= PAGE_MASK;
+	if ((vma->vm_end - vma->vm_start + off) > len){
+        printk("vma->vm_end - vma->vm_start (0x%08x) + off (0x%08x)  > len (0x%08x)\n",
+               vma->vm_end - vma->vm_start,off,len);
+		return -EINVAL;
+    }
+	off += start;
+	vma->vm_pgoff = off >> PAGE_SHIFT;
+	/* This is an IO map - tell maydump to skip this VMA */
+	vma->vm_flags |= VM_READ | VM_WRITE 
+ //       | VM_DONTCOPY | VM_DONTEXPAND | VM_RESERVED
+        ;
+
+    #ifndef CONFIG_SRAM_MEM_CACHED
+	vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
+    #endif
+
+	if (io_remap_pfn_range(vma, vma->vm_start, off >> PAGE_SHIFT,
+			     vma->vm_end - vma->vm_start, vma->vm_page_prot)){
+        printk("io_remap_pfn_range() Failed\n");
+		return -EAGAIN;
+    }
+	return 0;
+}
+
+
 #define zero_lseek	null_lseek
 #define full_lseek      null_lseek
 #define write_zero	write_null
@@ -801,6 +851,15 @@ static int open_port(struct inode * inode, struct file * filp)
 #define open_mem	open_port
 #define open_kmem	open_mem
 #define open_oldmem	open_mem
+
+static const struct file_operations smem_fops = {
+	.llseek		= null_lseek,
+	.read		= read_null,
+	.write		= write_null,
+	.mmap		= mmap_smem,
+	.open		= open_mem,
+	.get_unmapped_area = NULL,
+};
 
 static const struct file_operations mem_fops = {
 	.llseek		= memory_lseek,
@@ -938,6 +997,9 @@ static int memory_open(struct inode * inode, struct file * filp)
 			filp->f_op = &oldmem_fops;
 			break;
 #endif
+        case 20:
+            filp->f_op = &smem_fops;
+            break;
 		default:
 			unlock_kernel();
 			return -ENXIO;
@@ -974,6 +1036,7 @@ static const struct {
 #ifdef CONFIG_CRASH_DUMP
 	{12,"oldmem",    S_IRUSR | S_IWUSR | S_IRGRP, &oldmem_fops},
 #endif
+	{20,"smem",    S_IRUGO | S_IWUSR| S_IRGRP ,  &smem_fops},
 };
 
 static struct class *mem_class;

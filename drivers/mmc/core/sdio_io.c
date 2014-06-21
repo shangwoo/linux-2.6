@@ -298,7 +298,7 @@ static int sdio_io_rw_ext_helper(struct sdio_func *func, int write,
 	unsigned remainder = size;
 	unsigned max_blocks;
 	int ret;
-
+	//printk("sdio_io_rw_ext_helper total size=%d\n",remainder);
 	/* Do the bulk of the transfer using block mode (if supported). */
 	if (func->card->cccr.multi_block && (size > sdio_max_byte_size(func))) {
 		/* Blocks per command is limited by host count, host transfer
@@ -328,7 +328,7 @@ static int sdio_io_rw_ext_helper(struct sdio_func *func, int write,
 				addr += size;
 		}
 	}
-
+	//printk("sdio_io_rw_ext_helper remaind=%d\n",remainder);
 	/* Write the remainder using byte mode. */
 	while (remainder > 0) {
 		size = min(remainder, sdio_max_byte_size(func));
@@ -365,7 +365,7 @@ u8 sdio_readb(struct sdio_func *func, unsigned int addr, int *err_ret)
 
 	if (err_ret)
 		*err_ret = 0;
-
+	//printk("sdio_readb");
 	ret = mmc_io_rw_direct(func->card, 0, func->num, addr, 0, &val);
 	if (ret) {
 		if (err_ret)

@@ -1538,6 +1538,3 @@ MODULE_AUTHOR("Chen Dongdong");
 MODULE_DESCRIPTION("ASM9260 serial port driver");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS("platform:asm9260_uart");
-
-
-

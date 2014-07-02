@@ -291,9 +291,6 @@ static void au6601_trigger_data_transfer(struct au6601_host *host,
 	struct mmc_data *data = host->data;
 	u8 ctrl = 0;
 
-	BUG_ON(data == NULL);
-	WARN_ON_ONCE(host->dma_on == 1);
-
 	if (data->flags & MMC_DATA_WRITE)
 		ctrl |= 0x80;
 
@@ -433,8 +430,6 @@ static void au6601_write_block(struct au6601_host *host)
 
 static void au6601_transfer_data(struct au6601_host *host)
 {
-	BUG_ON(!host->data);
-
 	if (host->blocks == 0)
 		return;
 
@@ -459,8 +454,6 @@ static void au6601_transfer_data(struct au6601_host *host)
 static void au6601_finish_command(struct au6601_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
-
-	BUG_ON(host->cmd == NULL);
 
 	if (host->cmd->flags & MMC_RSP_PRESENT) {
 		cmd->resp[0] = ioread32be(host->iobase + AU6601_REG_CMD_RSP0);
@@ -499,8 +492,6 @@ static void au6601_finish_command(struct au6601_host *host)
 static void au6601_finish_data(struct au6601_host *host)
 {
 	struct mmc_data *data;
-
-	BUG_ON(!host->data);
 
 	data = host->data;
 	host->data = NULL;
@@ -558,8 +549,6 @@ static void au6601_prepare_data(struct au6601_host *host,
 {
 	unsigned int dma = 0;
 	struct mmc_data *data = cmd->data;
-
-	WARN_ON(host->data);
 
 	if (!data)
 		return;
@@ -647,8 +636,6 @@ static void au6601_send_cmd(struct au6601_host *host,
 
 static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 {
-	BUG_ON(intmask == 0);
-
 	if (!host->cmd) {
 		dev_err(host->dev,
 			"Got command interrupt 0x%08x even though no command operation was in progress.\n",
@@ -690,8 +677,6 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 
 static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 {
-	BUG_ON(intmask == 0);
-
 	if (!host->data) {
 		/* FIXME: Ist is same for AU6601
 		 * The "data complete" interrupt is also used to
@@ -1103,9 +1088,6 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 	struct mmc_host *mmc;
 	struct au6601_host *host;
 	int ret, bar;
-
-	BUG_ON(pdev == NULL);
-	BUG_ON(ent == NULL);
 
 	dev_info(&pdev->dev, "AU6601 controller found [%04x:%04x] (rev %x)\n",
 		 (int)pdev->vendor, (int)pdev->device, (int)pdev->revision);

@@ -19,6 +19,7 @@
 #include <linux/pci.h>
 #include <linux/module.h>
 #include <linux/io.h>
+#include <linux/pm.h>
 #include <linux/irq.h>
 #include <linux/interrupt.h>
 
@@ -1087,7 +1088,7 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 {
 	struct mmc_host *mmc;
 	struct au6601_host *host;
-	int ret, bar;
+	int ret, bar = 0;
 
 	dev_info(&pdev->dev, "AU6601 controller found [%04x:%04x] (rev %x)\n",
 		 (int)pdev->vendor, (int)pdev->device, (int)pdev->revision);
@@ -1196,55 +1197,37 @@ static void __exit au6601_pci_remove(struct pci_dev *pdev)
 	mmc_free_host(host->mmc);
 }
 
-#ifdef CONFIG_PM
-
-static int au6601_suspend(struct pci_dev *pdev, pm_message_t state)
+#ifdef CONFIG_PM_SLEEP
+static int au6601_suspend(struct device *dev)
 {
-	struct au6601_host *host;
-	host = pci_get_drvdata(pdev);
+	struct pci_dev *pdev = to_pci_dev(dev);
+	struct au6601_host *host = pci_get_drvdata(pdev);
 
 	au6601_hw_uninit(host);
-
-	pci_save_state(pdev);
-	pci_enable_wake(pdev, pci_choose_state(pdev, state), 0);
-	pci_disable_device(pdev);
-	pci_set_power_state(pdev, pci_choose_state(pdev, state));
-
 	return 0;
 }
 
-static int au6601_resume(struct pci_dev *pdev)
+static int au6601_resume(struct device *dev)
 {
-	struct au6601_host *host;
-	int ret;
 
-	host = pci_get_drvdata(pdev);
-
-	pci_set_power_state(pdev, PCI_D0);
-	pci_restore_state(pdev);
-	ret = pci_enable_device(pdev);
-	if (ret)
-		return ret;
+	struct pci_dev *pdev = to_pci_dev(dev);
+	struct au6601_host *host = pci_get_drvdata(pdev);
 
 	au6601_hw_init(host);
 	return 0;
 }
+#endif /* CONFIG_PM_SLEEP */
 
-
-#else /* CONFIG_PM */
-
-#define au6601_suspend NULL
-#define au6601_resume NULL
-
-#endif /* CONFIG_PM */
+static SIMPLE_DEV_PM_OPS(au6601_pm_ops, au6601_suspend, au6601_resume);
 
 static struct pci_driver au6601_driver = {
-	.name =	 DRVNAME,
+	.name	=	 DRVNAME,
 	.id_table =     pci_ids,
-	.probe =	au6601_pci_probe,
+	.probe	=	au6601_pci_probe,
 	.remove =       au6601_pci_remove,
-	.suspend = au6601_suspend,
-	.resume = au6601_resume,
+	.driver	=	{
+		.pm	= &au6601_pm_ops
+	},
 };
 
 module_pci_driver(au6601_driver);

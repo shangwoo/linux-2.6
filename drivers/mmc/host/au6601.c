@@ -37,10 +37,12 @@
 #define AU6601_MAX_SEGMENTS		512
 #define AU6601_MAX_BLOCK_LENGTH		512
 #define AU6601_MAX_DMA_BLOCKS		8
+#define AU6601_DMA_LOCAL_SEGMENTS	3
 #define AU6601_MAX_BLOCK_COUNT		65536
 
 /* SDMA phy address. Higer then 0x0800.0000? */
 #define AU6601_REG_SDMA_ADDR	0x00
+ #define AU6601_SDMA_MASK	0xfffff000
 /* ADMA block count? AU6621 only. */
 #define REG_05	0x05
 /* PIO */
@@ -1083,6 +1085,28 @@ static void au6601_hw_init(struct au6601_host *host)
 	host->dma_on = 0;
 }
 
+static int __init au6601_dma_alloc(struct au6601_host *host)
+{
+	int ret;
+
+	ret = pci_set_dma_mask(host->pdev, AU6601_SDMA_MASK);
+	if (ret) {
+		dev_err(host->dev, "Failed to set DMA mask\n");
+		return ret;
+	}
+
+	host->virt_base = dmam_alloc_coherent(host->dev,
+		AU6601_MAX_BLOCK_LENGTH * AU6601_MAX_DMA_BLOCKS * AU6601_DMA_LOCAL_SEGMENTS,
+		&host->phys_base, GFP_KERNEL);
+
+	if (!host->virt_base) {
+		dev_err(host->dev, "Failed to alloc DMA\n");
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
 static int __init au6601_pci_probe(struct pci_dev *pdev,
 			   const struct pci_device_id *ent)
 {
@@ -1134,19 +1158,9 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 		return -ENOMEM;
 	}
 
-	host->virt_base = dmam_alloc_coherent(&pdev->dev,
-		AU6601_MAX_BLOCK_LENGTH * AU6601_MAX_DMA_BLOCKS,
-		&host->phys_base, GFP_KERNEL);
-	if (!host->virt_base) {
-		dev_err(&pdev->dev, "Failed to alloc DMA\n");
-		return -ENOMEM;
-	}
-
-	ret = pci_set_dma_mask(pdev, DMA_BIT_MASK(32));
-	if (ret) {
-		dev_err(&pdev->dev, "Failed to set DMA mask\n");
+	ret = au6601_dma_alloc(host);
+	if (ret)
 		return ret;
-	}
 
 	pci_set_master(pdev);
 	pci_set_drvdata(pdev, host);

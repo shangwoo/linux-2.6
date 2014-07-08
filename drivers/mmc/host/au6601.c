@@ -822,6 +822,20 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+static void au6601_pre_req(struct mmc_host *mmc,
+			   struct mmc_request *mrq,
+			   bool is_first_req)
+{
+	printk("pre %p\n", mrq);
+}
+
+static void au6601_post_req(struct mmc_host *mmc,
+			    struct mmc_request *mrq,
+			    int err)
+{
+	printk("post %p\n", mrq);
+}
+
 static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 {
 	unsigned int div = 0, mult = 0, ctrl = 0x1;
@@ -936,10 +950,12 @@ static int au6601_ops_card_busy(struct mmc_host *mmc)
 }
 
 static const struct mmc_host_ops au6601_sdc_ops = {
-	.request = au6601_sdc_request,
-	.set_ios = au6601_sdc_set_ios,
+	.pre_req	= au6601_pre_req,
+	.request	= au6601_sdc_request,
+	.post_req	= au6601_post_req,
+	.set_ios	= au6601_sdc_set_ios,
 
-	.card_busy = au6601_ops_card_busy,
+	.card_busy	= au6601_ops_card_busy,
 };
 
 /*****************************************************************************\

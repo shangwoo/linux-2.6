@@ -7,6 +7,7 @@
 #include <linux/init.h>
 #include <linux/device.h>
 #include <linux/dma-mapping.h>
+#include <linux/io.h>
 
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -15,7 +16,6 @@
 
 #include <mach/system.h>
 #include <asm/hardware/iomd.h>
-#include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/mach-types.h>
 #include <mach/uart_reg.h>
@@ -24,8 +24,9 @@
 #include <mach/hardware.h>
 #include <mach/pincontrol.h>
 
-static struct platform_device *__initdata asm9260_uarts[ASM9260_MAX_UART];	/* the UARTs to use */
-struct platform_device *asm9260_default_console_device;	/* the serial console device */
+static struct platform_device *__initdata asm9260_uarts[ASM9260_MAX_UART];
+/* the serial console device */
+struct platform_device *asm9260_default_console_device;
 
 /*************************************************************/
 
@@ -66,7 +67,7 @@ static struct platform_device asm9260_uart0_device = {
 
 static inline void configure_uart0_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(6, 0, 2);
 	set_pin_mux(6, 1, 2);
 
@@ -119,7 +120,7 @@ static struct platform_device asm9260_uart1_device = {
 
 static inline void configure_uart1_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(0, 1, 2);
 	set_pin_mux(0, 2, 2);
 
@@ -166,7 +167,7 @@ static struct platform_device asm9260_uart2_device = {
 
 static inline void configure_uart2_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(0, 6, 2);
 	set_pin_mux(0, 7, 2);
 
@@ -214,7 +215,7 @@ static struct platform_device asm9260_uart3_device = {
 
 static inline void configure_uart3_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(2, 3, 2);
 	set_pin_mux(2, 4, 2);
 
@@ -262,7 +263,7 @@ static struct platform_device asm9260_uart4_device = {
 static inline void configure_uart4_pins(unsigned pins)
 {
 #if 1
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(3, 0, 2);
 	set_pin_mux(3, 1, 2);
 
@@ -273,7 +274,7 @@ static inline void configure_uart4_pins(unsigned pins)
 	if (pins & ASM9260_UART_CTS_PIN)
 		set_pin_mux(3, 3, 2);
 #else
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(16, 0, 2);
 	set_pin_mux(16, 1, 2);
 
@@ -318,7 +319,7 @@ static struct platform_device asm9260_uart5_device = {
 
 static inline void configure_uart5_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(16, 2, 2);
 	set_pin_mux(16, 3, 2);
 }
@@ -340,10 +341,6 @@ static struct asm9260_uart_data uart6_data = {
 	.use_dma_tx	= 0,
 	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART6_CTRL0),
-//	.rs485 = {
-//		.flags = SER_RS485_ENABLED | SER_RS485_RTS_ON_SEND, //flags &= ~(SER_RS485_RTS_AFTER_SEND)
-//		.delay_rts_after_send = 0x80,
-//	},
 };
 
 static u64 uart6_dmamask = DMA_BIT_MASK(32);
@@ -362,7 +359,7 @@ static struct platform_device asm9260_uart6_device = {
 
 static inline void configure_uart6_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(16, 4, 2);
 	set_pin_mux(16, 5, 2);
 
@@ -406,7 +403,7 @@ static struct platform_device asm9260_uart7_device = {
 
 static inline void configure_uart7_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(17, 0, 2);
 	set_pin_mux(17, 1, 2);
 }
@@ -442,7 +439,7 @@ static struct platform_device asm9260_uart8_device = {
 
 static inline void configure_uart8_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(17, 4, 2);
 	set_pin_mux(17, 5, 2);
 }
@@ -479,7 +476,7 @@ static struct platform_device asm9260_uart9_device = {
 
 static inline void configure_uart9_pins(unsigned pins)
 {
-	/*TXD & RXD*/
+	/* TXD & RXD */
 	set_pin_mux(17, 6, 2);
 	set_pin_mux(17, 7, 2);
 }
@@ -495,98 +492,83 @@ void __init asm9260_register_uart(unsigned id, unsigned portnr, unsigned pins)
 
 	/* uartclk must be equal to hclk because of RS485 delay register */
 	uartclk_div = hclk_div * cpuclk_div;
-	//printk("uartclk_div: 0x%x.\n", uartclk_div);
 
 	/* UART clock select pll */
-	if((as3310_readl(HW_PDRUNCFG) & 0x4) != 0)	//pllclk power down
-	{
+	if (as3310_readl(HW_PDRUNCFG) & 0x4) {
+		/* pllclk power down */
 		as3310_writel(0, HW_UARTCLKSEL);
 		cpuclk_div = 1;
-	}
-	else
-	{
+	} else
 		as3310_writel(1, HW_UARTCLKSEL);
-	}
+
 	as3310_writel(0, HW_UARTCLKUEN);
 	as3310_writel(1, HW_UARTCLKUEN);
 
-	switch (id)
-	{
-		case 0:
-			as3310_writel(1 << 11, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART0CLKDIV);
-			pdev = &asm9260_uart0_device;
-			configure_uart0_pins(pins);
-			break;
-		
-		case 1:
-			as3310_writel(1 << 12, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART1CLKDIV);
-			pdev = &asm9260_uart1_device;
-			configure_uart1_pins(pins);
-			break;
-		
-		case 2:
-			as3310_writel(1 << 13, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART2CLKDIV);
-			pdev = &asm9260_uart2_device;
-			configure_uart2_pins(pins);
-			break;
-		
-		case 3:
-			as3310_writel(1 << 14, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART3CLKDIV);
-			pdev = &asm9260_uart3_device;
-			configure_uart3_pins(pins);
-			break;
-		
-		case 4:
-			as3310_writel(1 << 15, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART4CLKDIV);
-			pdev = &asm9260_uart4_device;
-			configure_uart4_pins(pins);
-			break;
-		
-		case 5:
-			as3310_writel(1 << 16, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART5CLKDIV);
-			pdev = &asm9260_uart5_device;
-			configure_uart5_pins(pins);
-			break;
-		
-		case 6:
-			as3310_writel(1 << 17, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART6CLKDIV);
-			pdev = &asm9260_uart6_device;
-			configure_uart6_pins(pins);
-			break;
-		
-		case 7:
-			as3310_writel(1 << 18, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART7CLKDIV);
-			pdev = &asm9260_uart7_device;
-			configure_uart7_pins(pins);
-			break;
-		
-		case 8:
-			as3310_writel(1 << 19, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART8CLKDIV);
-			pdev = &asm9260_uart8_device;
-			configure_uart8_pins(pins);
-			break;
-		
-		case 9:
-			as3310_writel(1 << 20, HW_AHBCLKCTRL0 + 4);
-			as3310_writel(uartclk_div, HW_UART9CLKDIV);
-			pdev = &asm9260_uart9_device;
-			configure_uart9_pins(pins);
-			break;
-			
-		default:
-			return;
-		
+	switch (id) {
+	case 0:
+		as3310_writel(1 << 11, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART0CLKDIV);
+		pdev = &asm9260_uart0_device;
+		configure_uart0_pins(pins);
+		break;
+	case 1:
+		as3310_writel(1 << 12, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART1CLKDIV);
+		pdev = &asm9260_uart1_device;
+		configure_uart1_pins(pins);
+		break;
+	case 2:
+		as3310_writel(1 << 13, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART2CLKDIV);
+		pdev = &asm9260_uart2_device;
+		configure_uart2_pins(pins);
+		break;
+	case 3:
+		as3310_writel(1 << 14, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART3CLKDIV);
+		pdev = &asm9260_uart3_device;
+		configure_uart3_pins(pins);
+		break;
+	case 4:
+		as3310_writel(1 << 15, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART4CLKDIV);
+		pdev = &asm9260_uart4_device;
+		configure_uart4_pins(pins);
+		break;
+	case 5:
+		as3310_writel(1 << 16, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART5CLKDIV);
+		pdev = &asm9260_uart5_device;
+		configure_uart5_pins(pins);
+		break;
+	case 6:
+		as3310_writel(1 << 17, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART6CLKDIV);
+		pdev = &asm9260_uart6_device;
+		configure_uart6_pins(pins);
+		break;
+	case 7:
+		as3310_writel(1 << 18, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART7CLKDIV);
+		pdev = &asm9260_uart7_device;
+		configure_uart7_pins(pins);
+		break;
+	case 8:
+		as3310_writel(1 << 19, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART8CLKDIV);
+		pdev = &asm9260_uart8_device;
+		configure_uart8_pins(pins);
+		break;
+	case 9:
+		as3310_writel(1 << 20, HW_AHBCLKCTRL0 + 4);
+		as3310_writel(uartclk_div, HW_UART9CLKDIV);
+		pdev = &asm9260_uart9_device;
+		configure_uart9_pins(pins);
+		break;
+	default:
+		return;
 	}
-	
+
 	pdev->id = portnr;
 
 	if (portnr < ASM9260_MAX_UART)
@@ -611,6 +593,3 @@ void __init asm9260_add_device_serial(void)
 	if (!asm9260_default_console_device)
 		printk(KERN_INFO "ASM9260: No default serial console defined.\n");
 }
-
-/*************************************************************/
-

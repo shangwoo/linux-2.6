@@ -558,24 +558,6 @@ struct spi_board_info spi_controller_dummy_board_info = {
 
 const struct spi_board_info *spi_controller_dummy_board_info_pointer =
 					&spi_controller_dummy_board_info;
-
-/* Used with drivers/spi/spi_flash_alp9260.c,
- * this is used for SPI FLASH sys-bin implementation. */
-struct flash_platform_data spi_flash_data = {
-	.type = "pm25lv080",
-};
-
-struct spi_board_info alp_spi_flash_board_info = {
-	.modalias = "alpscale_spi_flash",
-	.platform_data = &spi_flash_data,
-	.max_speed_hz = 33000000,
-	.bus_num = 1,
-	.chip_select = 0,
-	.mode = 0,
-};
-
-const struct spi_board_info *alp_spi_flash_board_info_pointer =
-					&alp_spi_flash_board_info;
 #endif
 
 /* QSPI RESOURCES */
@@ -614,7 +596,6 @@ static struct platform_device as9260_qspi_device = {
 	.num_resources   = ARRAY_SIZE(as9260_qspi_resources),
 };
 
-
 /* Used with drivers/spi/spidev.c,
  * this is used for SPI controller raw ioctl function,
  * ie the /dev node implementation. */
@@ -628,77 +609,9 @@ struct spi_board_info qspi_controller_dummy_board_info = {
 
 const struct spi_board_info *qspi_controller_dummy_board_info_pointer =
 					&qspi_controller_dummy_board_info;
-
-
-/* Used with drivers/spi/spi_flash_alp9260.c,
- * this is used for SPI FLASH sys-bin implementation. */
-struct flash_platform_data qspi_flash_data = {
-	.type = "w25Q64BV",
-};
-
-struct spi_board_info alp_qspi_flash_board_info = {
-	.modalias = "alpscale_spi_flash",
-	.platform_data = &qspi_flash_data,
-	.max_speed_hz = 33000000,
-	.bus_num = 2,
-	.chip_select = 0,
-	.mode = 0,
-};
-
-const struct spi_board_info *alp_qspi_flash_board_info_pointer =
-					&alp_qspi_flash_board_info;
-
-#ifdef CONFIG_MTD_ASM9260_SPI_FLASH
-struct mtd_partition asm9260_mtd_qspi_part[] = {
-	[0] = {
-		.name   = "bootloader",
-		.size   = 320 * 1024,
-		.offset	= 0,
-	},
-	[1] = {
-		.name   = "kernel",
-		.size   = (704 + 2048) * 1024,
-		.offset	= MTDPART_OFS_APPEND,
-	},
-	[2] = {
-		.name   = "rootfs",
-		.size   = 8 * 1024 * 1024,
-		.offset	= MTDPART_OFS_APPEND,
-	},
-	[3] = {
-		.name   = "ubifs",
-		.size   = MTDPART_SIZ_FULL,
-		.offset	= MTDPART_OFS_APPEND,
-	}
-};
-
-/* Used with drivers/spi/spi_flash_alp9260.c,
- * this is used for SPI FLASH sys-bin implementation. */
-struct flash_platform_data mtd_qspi_flash_data = {
-	.type = "w25q128",
-	.parts = asm9260_mtd_qspi_part,
-	.nr_parts = 4,
-};
-
-struct spi_board_info alp_mtd_qspi_flash_board_info = {
-	.modalias = "mtd_spi_flash",
-	.platform_data = &mtd_qspi_flash_data,
-	.max_speed_hz = 33000000,
-	.bus_num = 2,
-	.chip_select = 0,
-	.mode = 0,
-};
-
-const struct spi_board_info *alp_mtd_qspi_flash_board_info_pointer =
-					&alp_mtd_qspi_flash_board_info;
-
 #endif
 
-#endif
-
-
-
-/*USB RESOURCES*/
+/* USB RESOURCES */
 /* --------------------------------------------------------------------
  *  USB Device (Gadget)
  * -------------------------------------------------------------------- */

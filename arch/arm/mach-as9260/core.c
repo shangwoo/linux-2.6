@@ -1000,22 +1000,8 @@ static void __init as9260_init(void)
 
 
 #ifdef CONFIG_QSPI_ASM9260
-#if 1
 	/* used for spi controller raw /dev node operation*/
 	spi_register_board_info(qspi_controller_dummy_board_info_pointer, 1);
-#else
-#ifdef CONFIG_MTD_ASM9260_SPI_FLASH
-	/* Kernel could be booted from SPI FLASH
-	 * if configure CONFIG_MTD_ASM9260_SPI_FLASH
-	 */
-	spi_register_board_info(alp_mtd_qspi_flash_board_info_pointer, 1);
-#else
-	/*used for spi flash sys-bin implementation.*/
-	spi_register_board_info(alp_qspi_flash_board_info_pointer, 1);
-#endif
-
-#endif
-
 	platform_device_register(&as9260_qspi_device);
 #endif
 

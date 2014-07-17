@@ -6,7 +6,6 @@
 #include <linux/sched.h>
 #include <linux/init.h>
 #include <linux/device.h>
-#include <linux/dma-mapping.h>
 #include <linux/io.h>
 
 #include <asm/mach/arch.h>
@@ -46,19 +45,13 @@ static struct resource uart0_resources[] = {
 };
 
 static struct asm9260_uart_data uart0_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART0_CTRL0),
 };
-
-static u64 uart0_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart0_device = {
 	.name		= "asm9260_uart",
 	.id			= 0,
 	.dev		= {
-				.dma_mask		= &uart0_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart0_data,
 	},
 	.resource	= uart0_resources,
@@ -99,19 +92,14 @@ static struct resource uart1_resources[] = {
 };
 
 static struct asm9260_uart_data uart1_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART1_CTRL0),
 };
 
-static u64 uart1_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart1_device = {
 	.name		= "asm9260_uart",
 	.id			= 1,
 	.dev		= {
-				.dma_mask		= &uart1_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart1_data,
 	},
 	.resource	= uart1_resources,
@@ -146,19 +134,13 @@ static struct resource uart2_resources[] = {
 };
 
 static struct asm9260_uart_data uart2_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART2_CTRL0),
 };
-
-static u64 uart2_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart2_device = {
 	.name		= "asm9260_uart",
 	.id			= 2,
 	.dev		= {
-				.dma_mask		= &uart2_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart2_data,
 	},
 	.resource	= uart2_resources,
@@ -194,19 +176,13 @@ static struct resource uart3_resources[] = {
 };
 
 static struct asm9260_uart_data uart3_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART3_CTRL0),
 };
-
-static u64 uart3_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart3_device = {
 	.name		= "asm9260_uart",
 	.id			= 3,
 	.dev		= {
-				.dma_mask		= &uart3_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart3_data,
 	},
 	.resource	= uart3_resources,
@@ -241,19 +217,13 @@ static struct resource uart4_resources[] = {
 };
 
 static struct asm9260_uart_data uart4_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART4_CTRL0),
 };
-
-static u64 uart4_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart4_device = {
 	.name		= "asm9260_uart",
 	.id			= 4,
 	.dev		= {
-				.dma_mask		= &uart4_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart4_data,
 	},
 	.resource	= uart4_resources,
@@ -298,19 +268,13 @@ static struct resource uart5_resources[] = {
 };
 
 static struct asm9260_uart_data uart5_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART5_CTRL0),
 };
-
-static u64 uart5_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart5_device = {
 	.name		= "asm9260_uart",
 	.id			= 5,
 	.dev		= {
-				.dma_mask		= &uart5_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart5_data,
 	},
 	.resource	= uart5_resources,
@@ -338,19 +302,13 @@ static struct resource uart6_resources[] = {
 };
 
 static struct asm9260_uart_data uart6_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART6_CTRL0),
 };
-
-static u64 uart6_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart6_device = {
 	.name		= "asm9260_uart",
 	.id			= 6,
 	.dev		= {
-				.dma_mask		= &uart6_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart6_data,
 	},
 	.resource	= uart6_resources,
@@ -382,19 +340,13 @@ static struct resource uart7_resources[] = {
 };
 
 static struct asm9260_uart_data uart7_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART7_CTRL0),
 };
-
-static u64 uart7_dmamask = DMA_BIT_MASK(32);
 
 static struct platform_device asm9260_uart7_device = {
 	.name		= "asm9260_uart",
 	.id			= 7,
 	.dev		= {
-				.dma_mask		= &uart7_dmamask,
-				.coherent_dma_mask	= DMA_BIT_MASK(32),
 				.platform_data		= &uart7_data,
 	},
 	.resource	= uart7_resources,
@@ -422,8 +374,6 @@ static struct resource uart8_resources[] = {
 };
 
 static struct asm9260_uart_data uart8_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART8_CTRL0),
 };
 
@@ -458,8 +408,6 @@ static struct resource uart9_resources[] = {
 };
 
 static struct asm9260_uart_data uart9_data = {
-	.use_dma_tx	= 0,
-	.use_dma_rx	= 0,
 	.regs = (void __iomem *)IO_ADDRESS(HW_UART9_CTRL0),
 };
 

@@ -35,7 +35,7 @@
 #include <mach/irqs.h>
 #include <mach/system.h>
 #include <asm/hardware/iomd.h>
-#include <asm/io.h>
+#include <linux/io.h>
 #include <asm/irq.h>
 #include <asm/mach-types.h>
 #include <mach/uart_reg.h>
@@ -108,23 +108,23 @@ static struct resource as9260_mac_resources[] = {
 	[1] = {
 		.start  = INT_MAC,
 		.end    = INT_MAC,
-		.flags  = ( IORESOURCE_IRQ
+		.flags  = (IORESOURCE_IRQ
 				| IORESOURCE_IRQ_HIGHLEVEL
-				| IORESOURCE_IRQ_SHAREABLE ),
+				| IORESOURCE_IRQ_SHAREABLE),
 	}
 };
 
-static struct platform_device as9260_mac_device={
-        .name = "mac9260",
-        .id = -1,
-        .dev = {
-                .dma_mask               = &eth_dmamask,
-                .coherent_dma_mask      = DMA_BIT_MASK(32),
-                .power.can_wakeup = 1,
-                .platform_data = &eth_private_data,
-        },
-        .resource   = as9260_mac_resources,
-        .num_resources   = ARRAY_SIZE(as9260_mac_resources),
+static struct platform_device as9260_mac_device = {
+	.name = "mac9260",
+	.id = -1,
+	.dev = {
+		.dma_mask		= &eth_dmamask,
+		.coherent_dma_mask	= DMA_BIT_MASK(32),
+		.power.can_wakeup	= 1,
+		.platform_data		= &eth_private_data,
+	},
+	.resource = as9260_mac_resources,
+	.num_resources = ARRAY_SIZE(as9260_mac_resources),
 };
 #endif
 
@@ -143,11 +143,11 @@ static struct resource as9260_mcpwm_resources[] = {
 	}
 };
 
-static struct platform_device as9260_mcpwm_device={
+static struct platform_device as9260_mcpwm_device = {
 	.name	= "asm9260-mcpwm",
 	.id	= -1,
 	.resource = as9260_mcpwm_resources,
-	.num_resources = ARRAY_SIZE(as9260_mcpwm_resources),	
+	.num_resources = ARRAY_SIZE(as9260_mcpwm_resources),
 };
 #endif
 
@@ -166,7 +166,7 @@ static struct resource as9260_timer1_resources[] = {
 	}
 };
 
-static struct platform_device as9260_timer_device={
+static struct platform_device as9260_timer_device = {
 	.name   = "asm9260-timer",
 	.id     = -1,
 	.resource = as9260_timer1_resources,
@@ -179,7 +179,7 @@ static struct platform_device as9260_timer_device={
 static struct resource asm9260_wdt_resource[] = {
 	[0] = {
 		.start = HW_WATCHDOG_WDMOD,
-		.end   = HW_WATCHDOG_WDMOD+0xc-1,
+		.end   = HW_WATCHDOG_WDMOD + 0xc - 1,
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -269,7 +269,7 @@ struct platform_device asm9260_device_nand = {
 
 /*Touch Screen RESOUCES*/
 #ifdef CONFIG_TOUCHSCREEN_AS9260
-static struct lradc_config ts_lradc_conf = { 
+static struct lradc_config ts_lradc_conf = {
 	TS_LRADC_CH,
 	0
 };
@@ -353,10 +353,9 @@ void __init asm9260_add_camif(void)
 #endif
 
 
-/*MMC RESOURCES*/
+/* MMC RESOURCES */
 #if defined(CONFIG_MMC_AS9260)
-static struct as9260_mmc_data __initdata as9260c_mmc_data=
-{
+static struct as9260_mmc_data __initdata as9260c_mmc_data = {
 	.det_pin = 1,
 	.slot_b  = 0,
 	.wire4   = 1,
@@ -379,13 +378,13 @@ static struct resource mmc_resources[] = {
     }
 };
 
-static struct platform_device as9260_mmc_device={
+static struct platform_device as9260_mmc_device = {
 	.name   = "as9260_sdi",
 	.id     = -1,
 	.dev    = {
 		.dma_mask   = &mmc_dmamask,
 		.coherent_dma_mask  = 0xffffffff,
-		.platform_data      =&mmc_data,
+		.platform_data      = &mmc_data,
 	},
 	.resource   = mmc_resources,
 	.num_resources   = ARRAY_SIZE(mmc_resources),
@@ -393,7 +392,7 @@ static struct platform_device as9260_mmc_device={
 
 void __init as9260_add_device_mmc(struct as9260_mmc_data *data)
 {
-	mmc_data=*data;
+	mmc_data = *data;
 	platform_device_register(&as9260_mmc_device);
 }
 #else
@@ -402,9 +401,10 @@ void __init as9260_add_device_mmc(struct as9260_mmc_data *data) {}
 
 
 /* i2c RESOURCES */
-/**********************************************************************************
- * I2C0 and I2C1 share the I2C adapter(bus) driver method, but not the chip method *
- **********************************************************************************/
+/***********************************************************
+ * I2C0 and I2C1 share the I2C adapter(bus) driver method,
+ * but not the chip method *
+ ***********************************************************/
 #ifdef CONFIG_I2C_ASM9260
 static struct resource as9260_i2c0_resources[] = {
 	[0] = {
@@ -419,43 +419,44 @@ static struct resource as9260_i2c0_resources[] = {
 	}
 };
 
-struct as9260_i2c_hw_data as9260_i2c0_support ={
-    .class = I2C_CLASS_SPD,
-    .speedmode = I2C_Speed_Standard, //standard
+struct as9260_i2c_hw_data as9260_i2c0_support = {
+	.class = I2C_CLASS_SPD,
+	.speedmode = I2C_Speed_Standard,
 };
 
-static struct platform_device as9260_i2c0_device={
-    .name = "as9260_i2c",
-    .id = 0,
-    .dev ={
-        .platform_data = &as9260_i2c0_support,
-    },
-    .resource   = as9260_i2c0_resources,
-    .num_resources   = ARRAY_SIZE(as9260_i2c0_resources),
+static struct platform_device as9260_i2c0_device = {
+	.name = "as9260_i2c",
+	.id = 0,
+	.dev = {
+		.platform_data = &as9260_i2c0_support,
+	},
+	.resource = as9260_i2c0_resources,
+	.num_resources = ARRAY_SIZE(as9260_i2c0_resources),
 };
 
 static struct resource as9260_i2c1_resources[] = {
 	[0] = {
-		.start  =I2C1_BASE_ADDRESS,
-		.end    =HW_I2C1_COMP_TYPE+0x04,
-		.flags  =IORESOURCE_MEM,
+		.start  = I2C1_BASE_ADDRESS,
+		.end    = HW_I2C1_COMP_TYPE + 0x04,
+		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
 		.start  = 27,
 		.end    = 27,
-		.flags  =IORESOURCE_IRQ,
+		.flags  = IORESOURCE_IRQ,
 	}
 };
 
-struct as9260_i2c_hw_data as9260_i2c1_support ={
-	.class = I2C_CLASS_SPD|I2C_CLASS_CAM_DIGITAL|I2C_CLASS_SOUND, //i2c1-eeprom/i2c1-ov7670(hardware line setting)
-	.speedmode = I2C_Speed_Standard, //standard
+struct as9260_i2c_hw_data as9260_i2c1_support = {
+	/* i2c1-eeprom/i2c1-ov7670(hardware line setting) */
+	.class = I2C_CLASS_SPD | I2C_CLASS_CAM_DIGITAL | I2C_CLASS_SOUND,
+	.speedmode = I2C_Speed_Standard,
 };
 
-static struct platform_device as9260_i2c1_device={
+static struct platform_device as9260_i2c1_device = {
 	.name = "as9260_i2c",
 	.id = 1,
-	.dev ={
+	.dev = {
 		.platform_data = &as9260_i2c1_support,
 	},
 	.resource   = as9260_i2c1_resources,
@@ -505,7 +506,7 @@ const struct i2c_board_info *i2c_ft5x06_board_info_pointer =
 #endif
 
 /* STD SPI RESOURCES */
-/************************************************** 
+/**************************************************
   STD SPI0/SPI1
  **************************************************/
 #ifdef CONFIG_SPI_ASM9260
@@ -523,7 +524,7 @@ static struct resource as9260_spi0_resources[] = {
 	}
 };
 
-struct alp_spi_info as9260_spi0_support ={
+struct alp_spi_info as9260_spi0_support = {
 	.num_cs = 1,
 	.bus_num = 0,
 		.dma_module = 0,
@@ -533,7 +534,7 @@ struct alp_spi_info as9260_spi0_support ={
 	.quadSupport = NO_QUAD,
 };
 
-static struct platform_device as9260_spi0_device={
+static struct platform_device as9260_spi0_device = {
 	.name = "as9260_std_spi",
 	.id = 0,
 	.dev = {
@@ -568,10 +569,10 @@ struct alp_spi_info as9260_spi1_support = {
 	.quadSupport = NO_QUAD,
 };
 
-static struct platform_device as9260_spi1_device={
+static struct platform_device as9260_spi1_device = {
 	.name = "as9260_std_spi",
 	.id = 1,
-	.dev ={
+	.dev = {
 		.platform_data = &as9260_spi1_support,
 		.coherent_dma_mask = DMA_BIT_MASK(32),
 	},
@@ -617,18 +618,18 @@ const struct spi_board_info *alp_spi_flash_board_info_pointer =
 #ifdef CONFIG_QSPI_ASM9260
 static struct resource as9260_qspi_resources[] = {
 	[0] = {
-		.start  =ALPAS9260_QUAD_SPI_BASE,
-		.end    =HW_QUAD_SPI_XFER+0x10,
-		.flags  =IORESOURCE_MEM,
+		.start  = ALPAS9260_QUAD_SPI_BASE,
+		.end    = HW_QUAD_SPI_XFER+0x10,
+		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
-		.start  =62,
-		.end    =62,
-		.flags  =IORESOURCE_IRQ,
+		.start  = 62,
+		.end    = 62,
+		.flags  = IORESOURCE_IRQ,
 	}
 };
 
-struct alp_spi_info as9260_qspi_support ={
+struct alp_spi_info as9260_qspi_support = {
 	.num_cs = 1,
 	.bus_num = 2,
 		.dma_module = 1,
@@ -638,10 +639,10 @@ struct alp_spi_info as9260_qspi_support ={
 	.quadSupport = DO_QUAD,
 };
 
-static struct platform_device as9260_qspi_device={
+static struct platform_device as9260_qspi_device = {
 	.name = "as9260_quad_spi",
 	.id = 0,
-	.dev ={
+	.dev = {
 		.platform_data = &as9260_qspi_support,
 		.coherent_dma_mask = DMA_BIT_MASK(32),
 	},
@@ -650,11 +651,13 @@ static struct platform_device as9260_qspi_device={
 };
 
 
-/*Used with drivers/spi/spidev.c, this is used for SPI controller raw ioctl function, ie the /dev node implementation.*/
-struct spi_board_info qspi_controller_dummy_board_info ={
+/* Used with drivers/spi/spidev.c,
+ * this is used for SPI controller raw ioctl function,
+ * ie the /dev node implementation. */
+struct spi_board_info qspi_controller_dummy_board_info = {
 	.modalias = "spidev",
 	.max_speed_hz = 33000000,
-	.bus_num = 2, //QUAD SPI BUS!
+	.bus_num = 2, /* QUAD SPI BUS! */
 	.chip_select = 0,
 	.mode = 0,
 };
@@ -663,7 +666,8 @@ const struct spi_board_info *qspi_controller_dummy_board_info_pointer =
 					&qspi_controller_dummy_board_info;
 
 
-/*Used with drivers/spi/spi_flash_alp9260.c, this is used for SPI FLASH sys-bin implementation.*/
+/* Used with drivers/spi/spi_flash_alp9260.c,
+ * this is used for SPI FLASH sys-bin implementation. */
 struct flash_platform_data qspi_flash_data = {
 	.type = "w25Q64BV",
 };
@@ -766,7 +770,7 @@ void __init as9260_add_device_udc()
 	platform_device_register(&as9260_udc_device);
 }
 #else
-void __init as9260_add_device_udc(void ) {}
+void __init as9260_add_device_udc(void) {}
 #endif
 
 
@@ -853,7 +857,7 @@ void __init as9260_add_device_musb(void) {}
 static struct resource asm9260_iis_resource[] = {
 	[0] = {
 		.start = I2S0_BASE_ADDRESS,
-		.end   = (HW_I2S0_COMP_TYPE -1),
+		.end   = (HW_I2S0_COMP_TYPE - 1),
 		.flags = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -1010,7 +1014,8 @@ static void __init as9260_init(void)
 
 #ifdef CONFIG_I2C_ASM9260
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
-	i2c_register_board_info(1, i2c_ft5x06_board_info_pointer, 1); //FocalTech's touchScreen
+	/* FocalTech's touchScreen */
+	i2c_register_board_info(1, i2c_ft5x06_board_info_pointer, 1);
 #endif
 	/*Register I2C1 adpter*/
 	platform_device_register(&as9260_i2c1_device);
@@ -1041,8 +1046,8 @@ static void __init as9260_init(void)
 	 */
 	spi_register_board_info(alp_mtd_qspi_flash_board_info_pointer, 1);
 #else
-        /*used for spi flash sys-bin implementation.*/
-        spi_register_board_info(alp_qspi_flash_board_info_pointer, 1);
+	/*used for spi flash sys-bin implementation.*/
+	spi_register_board_info(alp_qspi_flash_board_info_pointer, 1);
 #endif
 
 #endif
@@ -1062,7 +1067,7 @@ static void __init as9260_init(void)
 	platform_device_register(&asm9260_adc_device);
 #endif
 
-#ifdef CONFIG_SOC_CAMERA_ASM9260	 
+#ifdef CONFIG_SOC_CAMERA_ASM9260
 	asm9260_add_camif();
 #endif
 

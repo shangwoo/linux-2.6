@@ -44,12 +44,13 @@
  */
 void set_GPIO_pull_up(int port,int pin)
 {
-	u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
+	u32 val, addr;
 
-	regVal = (regVal & 0xffffe7) | 0x10;
+	addr = HW_IOCON_PIO0_0 + port * 0x20 + pin * 4;
+	val = as3310_readl(addr);
+	val = (val & 0xffffe7) | 0x10;
 
-	as3310_writel(regVal,
-			HW_IOCON_PIO0_0 + port * 0x20 + pin * 4);
+	as3310_writel(val, addr);
 }
 EXPORT_SYMBOL(set_GPIO_pull_up);
 
@@ -58,12 +59,13 @@ EXPORT_SYMBOL(set_GPIO_pull_up);
  */
 void set_GPIO_pull_down(int port,int pin)
 {
-	u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
+	u32 val, addr;
 
-	regVal = (regVal & 0xffffe7) | 0x08;
+	addr = HW_IOCON_PIO0_0 + port * 0x20 + pin * 4;
+	val = as3310_readl(addr);
+	val = (val & 0xffffe7) | 0x08;
 
-	as3310_writel(regVal,
-			HW_IOCON_PIO0_0 + port * 0x20 + pin * 4);
+	as3310_writel(val, addr);
 }
 EXPORT_SYMBOL(set_GPIO_pull_down);
 
@@ -79,7 +81,7 @@ void set_pin_mux(int port,int pin,int mux_type)
 	val &= 0xFFFFFFF8; // clear mux feild
 	val |= mux_type; // set mux feild with new value
 
-	as3310_writel(val ,addr);   // Set Pin mux
+	as3310_writel(val, addr);   // Set Pin mux
 }
 EXPORT_SYMBOL(set_pin_mux);
 

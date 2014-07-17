@@ -510,40 +510,6 @@ const struct i2c_board_info *i2c_ft5x06_board_info_pointer =
   STD SPI0/SPI1
  **************************************************/
 #ifdef CONFIG_SPI_ASM9260
-/* spi 0 */
-static struct resource as9260_spi0_resources[] = {
-	[0] = {
-		.start  = ALPAS9260_SPI0_BASE,
-		.end    = HW_SPI0_XFER + 0x10,
-		.flags  = IORESOURCE_MEM,
-	},
-	[1] = {
-		.start  = 60,
-		.end    = 60,
-		.flags  = IORESOURCE_IRQ,
-	}
-};
-
-struct alp_spi_info as9260_spi0_support = {
-	.num_cs = 1,
-	.bus_num = 0,
-		.dma_module = 0,
-		.dma_channel = 5,
-		.tx_handshake_interface = 10,
-		.rx_handshake_interface = 11,
-	.quadSupport = NO_QUAD,
-};
-
-static struct platform_device as9260_spi0_device = {
-	.name = "as9260_std_spi",
-	.id = 0,
-	.dev = {
-		.platform_data = &as9260_spi0_support,
-		.coherent_dma_mask = DMA_BIT_MASK(32),
-	},
-	.resource = as9260_spi0_resources,
-	.num_resources = ARRAY_SIZE(as9260_spi0_resources),
-};
 
 /* spi 1 */
 static struct resource as9260_spi1_resources[] = {
@@ -579,8 +545,6 @@ static struct platform_device as9260_spi1_device = {
 	.resource   = as9260_spi1_resources,
 	.num_resources   = ARRAY_SIZE(as9260_spi1_resources),
 };
-
-
 
 /* Used with drivers/spi/spidev.c, this is used for SPI controller
  * raw ioctl function, ie the /dev node implementation. */
@@ -1017,7 +981,7 @@ static void __init as9260_init(void)
 	/* FocalTech's touchScreen */
 	i2c_register_board_info(1, i2c_ft5x06_board_info_pointer, 1);
 #endif
-	/*Register I2C1 adpter*/
+	/* Register I2C1 adpter */
 	platform_device_register(&as9260_i2c1_device);
 	/* Register I2C0 adpter */
 	platform_device_register(&as9260_i2c0_device);

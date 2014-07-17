@@ -368,7 +368,7 @@ static struct as9260_mmc_data mmc_data;
 static struct resource mmc_resources[] = {
 	[0] = {
 		.start  = ALPAS9260_SSP_BASE,
-		.end    = ALPAS9260_SSP_BASE+HW_SSP_XFER + 0x10,
+		.end    = ALPAS9260_SSP_BASE + HW_SSP_XFER + 0x10,
 		.flags  = IORESOURCE_MEM,
 	},
 	[1] = {
@@ -462,17 +462,6 @@ static struct platform_device as9260_i2c1_device = {
 	.resource   = as9260_i2c1_resources,
 	.num_resources   = ARRAY_SIZE(as9260_i2c1_resources),
 };
-
-/* Used with drivers/i2c/chips/eeprom.c,
- * 0NE-byte address-cycles, 256 bytes limited, resd only. */
-struct i2c_board_info i2c_eeprom_board_info = {
-	.type = "eeprom",
-	.flags = 0,
-	.addr = 0X50,
-	.irq = 27,
-};
-const struct i2c_board_info *i2c_eeprom_board_info_pointer =
-					&i2c_eeprom_board_info;
 
 /* Used with drivers/i2c/chips/at24.c,
  * ONE/TWO address-cycles, multi-capacity, read/write support. */

@@ -462,26 +462,6 @@ static struct platform_device as9260_i2c1_device = {
 	.resource   = as9260_i2c1_resources,
 	.num_resources   = ARRAY_SIZE(as9260_i2c1_resources),
 };
-
-/* Used with drivers/i2c/chips/at24.c,
- * ONE/TWO address-cycles, multi-capacity, read/write support. */
-/*****************************************/
-/* ATMEL_24C256 */
-struct at24_platform_data eeprom_256_info = {
-	.byte_len = 32*1024,
-	.page_size = 64,
-	.flags = AT24_FLAG_ADDR16|AT24_FLAG_IRUGO,
-};
-/*****************************************/
-struct i2c_board_info i2c_at24_board_info = {
-	.type = "24c256",
-	.flags = 0,
-	.addr = 0x50,
-	.platform_data = &eeprom_256_info,
-	.irq = 27,
-};
-const struct i2c_board_info *i2c_at24_eeprom_board_info_pointer =
-					&i2c_at24_board_info;
 #endif
 
 #if defined(CONFIG_I2C_ASM9260) && defined(CONFIG_TOUCHSCREEN_FT5X06)

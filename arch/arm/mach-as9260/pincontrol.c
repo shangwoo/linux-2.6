@@ -42,60 +42,64 @@
 /*
  * GPIO pull_up register function, but this should be NULL, because it's not implemented indeed, informed by LOGIC team.
  */
-void set_GPIO_pull_up(int port,int pin){
+void set_GPIO_pull_up(int port,int pin)
+{
+	u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
 
-    u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
+	regVal = (regVal & 0xffffe7) | 0x10;
 
-    regVal = (regVal&0xffffe7)|0x10;
-
-    as3310_writel(regVal, HW_IOCON_PIO0_0+port*0x20+pin*4);  
+	as3310_writel(regVal,
+			HW_IOCON_PIO0_0 + port * 0x20 + pin * 4);
 }
 EXPORT_SYMBOL(set_GPIO_pull_up);
-
 
 /*
  * GPIO pull_down register function.
  */
-void set_GPIO_pull_down(int port,int pin){
+void set_GPIO_pull_down(int port,int pin)
+{
+	u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
 
-    u32 regVal = as3310_readl(HW_IOCON_PIO0_0+port*0x20+pin*4);
+	regVal = (regVal & 0xffffe7) | 0x08;
 
-    regVal = (regVal&0xffffe7)|0x08;
-
-    as3310_writel(regVal, HW_IOCON_PIO0_0+port*0x20+pin*4); 
+	as3310_writel(regVal,
+			HW_IOCON_PIO0_0 + port * 0x20 + pin * 4);
 }
 EXPORT_SYMBOL(set_GPIO_pull_down);
-
-
 
 /* 
  * Pin mux chosen function.
  */
-void set_pin_mux(int port,int pin,int mux_type){
-    uint32_t val,addr;
+void set_pin_mux(int port,int pin,int mux_type)
+{
+	uint32_t val,addr;
 
-    addr = HW_IOCON_PIO_BASE + (port*32) + (pin*4);
-    val = as3310_readl( addr );   // read org val
-    val &= 0xFFFFFFF8; // clear mux feild
-    val |= mux_type; // set mux feild with new value
+	addr = HW_IOCON_PIO_BASE + (port * 32) + (pin * 4);
+	val = as3310_readl(addr);   // read org val
+	val &= 0xFFFFFFF8; // clear mux feild
+	val |= mux_type; // set mux feild with new value
 
-    as3310_writel( val ,addr );   // Set Pin mux
+	as3310_writel(val ,addr);   // Set Pin mux
 }
 EXPORT_SYMBOL(set_pin_mux);
-
 
 /*
  * Get the Pin mux value.
  */
-int get_pin_mux_val(int port,int pin){
-uint32_t val,addr;
+int get_pin_mux_val(int port,int pin)
+{
+	uint32_t val,addr;
 
-     val = 0xFFFFFFF8; // clear mux feild
-     addr = HW_IOCON_PIO_BASE + (port*32) + (pin*4);
-     return ((as3310_readl( addr ) & val));   // read Pin mux
+	val = 0xFFFFFFF8; // clear mux feild
+	addr = HW_IOCON_PIO_BASE + (port * 32) + (pin * 4);
+	return ((as3310_readl(addr) & val));   //read Pin mux
 }
 EXPORT_SYMBOL(get_pin_mux_val);
 
+static int gpio_bit_offs(int port, int pin)
+{
+	return (1 << ((port % 4) * 8 + pin));
+}
 
 /*
  * PIN input or output func chosen.
@@ -103,65 +107,65 @@ EXPORT_SYMBOL(get_pin_mux_val);
 void set_pin_dir(int port, int pin, int bOut)
 {
 	if (bOut)
-	{
-		as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_DATA_BASE+0x8000 + (port/4)*0x10000  + 4); 
-	}
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_DATA_BASE+0x8000 + (port/4)*0x10000 + 4); 
 	else
-	{
-		as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_DATA_BASE+0x8000 + (port/4)*0x10000  + 8); 
-	}
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_DATA_BASE+0x8000 + (port/4)*0x10000  + 8); 
 }
 EXPORT_SYMBOL(set_pin_dir);
-
 
 /*
  * Pin output as high level
  */
 void set_GPIO(int port, int pin)
 {
-	as3310_writel_gpio(1<<((port%4)*8+pin),HW_GPIO_DATA_BASE + (port/4)*0x10000+4);//set GPIO
-  	set_pin_dir(port,pin,1);    //output en
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_DATA_BASE + (port/4) * 0x10000 + 4);//set GPIO
+	set_pin_dir(port,pin,1);    //output en
 }
 EXPORT_SYMBOL(set_GPIO);
-
 
 /*
  * Pin output as low level.
  */
 void clear_GPIO(int port, int pin)
 {
-	as3310_writel_gpio(1<<((port%4)*8+pin),HW_GPIO_DATA_BASE + (port/4)*0x10000+8);//clear GPIO
-  	set_pin_dir(port,pin,1);//output en
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_DATA_BASE + (port/4)*0x10000+8);//clear GPIO
+	set_pin_dir(port, pin, 1);//output en
 }
 EXPORT_SYMBOL(clear_GPIO);
 
 /*
  * Pin output function
  */
-void write_GPIO(int port,int pin,int value){
-    if (value == 0) clear_GPIO(port,pin);
-    else set_GPIO(port,pin);
+void write_GPIO(int port,int pin,int value)
+{
+	if (value)
+		set_GPIO(port,pin);
+	else
+		clear_GPIO(port,pin);
 }
 EXPORT_SYMBOL(write_GPIO);
-
 
 /*
  * Get the Pin value.
  */
-int read_GPIO(int port,int pin){
-uint32_t read_val,val,addr;
+int read_GPIO(int port,int pin)
+{
+	uint32_t read_val, val, addr;
 
-    val = (1<<((port%4)*8+pin));
-    addr = (HW_GPIO_DATA_BASE + (port/4)*0x10000);  // direction input
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_DIR0 + (port/4)*0x10000  + 8);  // input Enable
-    
-    read_val = as3310_readl_gpio(addr);   // read port
-    if ((read_val&val) == 0) return 0;
-    else return 1;
+	val = gpio_bit_offs(port, pin);
+	addr = (HW_GPIO_DATA_BASE + (port/4)*0x10000);  // direction input
+	as3310_writel_gpio(val,
+			HW_GPIO_DIR0 + (port/4)*0x10000 + 8);  // input Enable
+
+	read_val = as3310_readl_gpio(addr);   // read port
+
+	return (read_val & val) ? 1 : 0;
 }
 EXPORT_SYMBOL(read_GPIO);
-
-
 
 /*************************************************
  ================  IRQ Funtions  ================
@@ -170,22 +174,27 @@ EXPORT_SYMBOL(read_GPIO);
 /*
  * GPIO IRQ edge trigger setting function.
  */
-void io_irq_enable_edge(int port,int pin,int type){
-    
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_DIR0 + (port/4)*0x10000  + 8);  // input Enable
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IC0+(port/4)*0x10000+4);// Clear pin's interrupt
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IS0+(port/4)*0x10000+8);// choose edge trig
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IBE0+(port/4)*0x10000+8); //not DoubleEdge
+void io_irq_enable_edge(int port,int pin,int type)
+{
 
-    if (type == GPIO_IRQ_EDGE_FALLING) {
-        as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IEV0+(port/4)*0x10000+8);   // choose falling edge 
-    }
-    else 
-    {
-        as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IEV0+(port/4)*0x10000+4);   // choose rising edge
-    }
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_DIR0 + (port/4) * 0x10000 + 8);  // input Enable
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IC0 + (port/4) * 0x10000 + 4); // Clear pin's interrupt
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IS0 + (port/4) * 0x10000 + 8); // choose edge trig
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IBE0 + (port/4) * 0x10000 + 8); //not DoubleEdge
 
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IE0+(port/4)*0x10000+4);// Enable pin as interrupt source
+	if (type == GPIO_IRQ_EDGE_FALLING)
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_IEV0 + (port/4) * 0x10000 + 8); // choose falling edge 
+	else
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_IEV0 + (port/4) * 0x10000 + 4); // choose rising edge
+
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IE0+(port/4)*0x10000+4);// Enable pin as interrupt source
 }
 EXPORT_SYMBOL(io_irq_enable_edge);
 
@@ -194,20 +203,24 @@ EXPORT_SYMBOL(io_irq_enable_edge);
  */
 void io_irq_enable_level(int port,int pin,int type){
 
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_DIR0 + (port/4)*0x10000  + 8);  // input Enable
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IC0+(port/4)*0x10000+4);// Clear pin's interrupt
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IS0+(port/4)*0x10000+4);// choose level trig
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IBE0+(port/4)*0x10000+8); //not DoubleEdge
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_DIR0 + (port/4)* 0x10000 + 8);  // input Enable
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IC0 + (port/4) * 0x10000 + 4);// Clear pin's interrupt
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IS0 + (port/4) * 0x10000 + 4);// choose level trig
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IBE0 + (port/4) * 0x10000 + 8); //not DoubleEdge
 
-    if (type == GPIO_IRQ_LEVEL_LOW) {
-        as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IEV0+(port/4)*0x10000+8);    // choose low level 
-    }
-    else 
-    {
-        as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IEV0+(port/4)*0x10000+4);   // choose high level 
-    }
+	if (type == GPIO_IRQ_LEVEL_LOW)
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_IEV0 + (port/4) * 0x10000 + 8);    // choose low level 
+	else
+		as3310_writel_gpio(gpio_bit_offs(port, pin),
+				HW_GPIO_IEV0 + (port/4) * 0x10000 + 4);   // choose high level 
 
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IE0+(port/4)*0x10000+4);// Enable pin as interrupt source
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IE0 + (port/4) * 0x10000 + 4);// Enable pin as interrupt source
 }
 EXPORT_SYMBOL(io_irq_enable_level);
 
@@ -216,7 +229,7 @@ EXPORT_SYMBOL(io_irq_enable_level);
  */
 void io_irq_disable(int port,int pin){
 
-    io_irq_mask(port, pin);   // Disable IRQ, ie Mask IRQ.
+	io_irq_mask(port, pin);   // Disable IRQ, ie Mask IRQ.
 }
 EXPORT_SYMBOL(io_irq_disable);
 
@@ -225,67 +238,59 @@ EXPORT_SYMBOL(io_irq_disable);
  */
 void io_irq_mask(int port,int pin){
 
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IE0+(port/4)*0x10000+8);   // Mask IRQ
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IE0 + (port/4) * 0x10000 + 8);   // Mask IRQ
 }
 EXPORT_SYMBOL(io_irq_mask);
-
 
 /*
  * Activate a pin's interrupt line.
  */
 void io_irq_unmask(int port,int pin){
 
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IE0+(port/4)*0x10000+4);  // Unmask IRQ
+	as3310_writel_gpio(gpio_bit_offs(port, pin),
+			HW_GPIO_IE0 + (port/4) * 0x10000 + 4);  // Unmask IRQ
 }
 EXPORT_SYMBOL(io_irq_unmask);
-
 
 /*
  * Clear a pin's interrupt status bit.
  */
-void io_irq_clr(int port,int pin){
-    BUG_ON( as3310_readl_gpio(HW_GPIO_IS0+(port/4)*0x10000+4)&(1<<((port%4)*8+pin)) );
-    as3310_writel_gpio((1<<((port%4)*8+pin)),HW_GPIO_IC0+(port/4)*0x10000+4);   // Clear IRQ
+void io_irq_clr(int port,int pin)
+{
+	int pin_offs = gpio_bit_offs(port, pin);
+	BUG_ON(as3310_readl_gpio(HW_GPIO_IS0 + (port/4) * 0x10000 + 4)
+			& pin_offs);
+	as3310_writel_gpio(pin_offs,
+			HW_GPIO_IC0 + (port/4) * 0x10000 + 4); // Clear IRQ
 }
 EXPORT_SYMBOL(io_irq_clr);
-
 
 /*
  * Check a pin's interrupt status bit.
  */
-int get_io_irq_status(int port,int pin){
-int val,addr;
-    addr = (HW_GPIO_MIS0+(port/4)*0x10000+4);  // count bank reg addr
-    val = as3310_readl_gpio(addr);   // Read status
-    return ((val&(1<<((port%4)*8+pin))) != 0);
+int get_io_irq_status(int port,int pin)
+{
+	int val, addr;
+
+	/* count bank reg addr */
+	addr = (HW_GPIO_MIS0 + (port/4) * 0x10000 + 4);
+	/* Read status */
+	val = as3310_readl_gpio(addr);
+
+	return ((val & gpio_bit_offs(port, pin)) != 0);
 }
 EXPORT_SYMBOL(get_io_irq_status);
 
+void asm9260_gpio_init(void)
+{
+	printk("%s\n", __func__);
 
+	as3310_writel(0x1 << 4, HW_AHBCLKCTRL0 + 8); /* gpio clk gate */
+	as3310_writel(0x1 << 4, HW_AHBCLKCTRL0 + 4); /* gpio clk gate */
 
-/**************************************************************
- ================  Pin Management Funtions  ================
-***************************************************************/
+	as3310_writel(0x1 << 4, HW_PRESETCTRL0 + 8); /* gpio reset */
+	as3310_writel(0x1 << 4, HW_PRESETCTRL0 + 4); /* gpio reset */
 
-
-/* this as9260_gpio_init() will be called at as9260_init() in core.c */
-void asm9260_gpio_init(){
-
-    printk("AS9260 PinControl Inited.\n");
-
-    as3310_writel(0x1<<4,HW_AHBCLKCTRL0+8);//gpio clk gate  
-	as3310_writel(0x1<<4,HW_AHBCLKCTRL0+4);//gpio clk gate  
-	
-	as3310_writel(0x1<<4,HW_PRESETCTRL0+8);//gpio reset    
-	as3310_writel(0x1<<4,HW_PRESETCTRL0+4);//gpio reset    
-	
-    as3310_writel(0x1<<23,HW_AHBCLKCTRL0+4);//IOCONFIG
+	as3310_writel(0x1 << 23, HW_AHBCLKCTRL0 + 4); /* IOCONFIG */
 }
-
-
-
-
-
-
-
-

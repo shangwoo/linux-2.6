@@ -16,6 +16,7 @@
 #include <mach/hardware.h>
 #include <mach/asm9260_uart.h>
 #include <linux/serial_core.h>
+#include <linux/tty_flip.h>
 
 #define SERIAL_ASM9260_MAJOR	204
 #define MINOR_START		64
@@ -415,7 +416,7 @@ static void asm9260_rx_chars(struct uart_port *port)
  */
 static void asm9260_tx_chars(struct uart_port *port)
 {
-	struct circ_buf *xmit = &port->info->xmit;
+	struct circ_buf *xmit = &port->state->xmit;
 
 	dbg("asm9260_tx_chars");
 
@@ -573,7 +574,7 @@ static void asm9260_rx_from_ring(struct uart_port *port)
 	 * uart_start(), which takes the lock.
 	 */
 	spin_unlock(&port->lock);
-	tty_flip_buffer_push(port->info->port.tty);
+	tty_flip_buffer_push(&port->state->port);
 	spin_lock(&port->lock);
 }
 
@@ -600,7 +601,7 @@ static void asm9260_tasklet_func(unsigned long data)
  */
 static int asm9260_startup(struct uart_port *port)
 {
-	struct tty_struct *tty = port->info->port.tty;
+	struct tty_struct *tty = port->state->port.tty;
 	int retval;
 
 	dbg("asm9260_startup");
@@ -1294,7 +1295,7 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 
 	asm9260_init_port(port, pdev);
 
-	data = kmalloc(sizeof(struct asm9260_uart_char)
+	data = devm_kmalloc(&pdev->dev, sizeof(struct asm9260_uart_char)
 			* ASM9260_SERIAL_RINGSIZE, GFP_KERNEL);
 	if (!data) {
 		ret = -ENOMEM;
@@ -1312,7 +1313,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_port:
-	kfree(port->rx_ring.buf);
 	port->rx_ring.buf = NULL;
 err_alloc_ring:
 	if (!asm9260_is_console_port(&port->uart)) {
@@ -1335,7 +1335,6 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 	ret = uart_remove_one_port(&asm9260_uart, port);
 
 	tasklet_kill(&asm9260_port->tasklet);
-	kfree(asm9260_port->rx_ring.buf);
 
 	/* "port" is allocated statically, so we shouldn't free it */
 
@@ -1346,7 +1345,7 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 
 static struct platform_driver asm9260_serial_driver = {
 	.probe		= asm9260_serial_probe,
-	.remove		= __devexit_p(asm9260_serial_remove),
+	.remove		= asm9260_serial_remove,
 	.suspend	= asm9260_serial_suspend,
 	.resume		= asm9260_serial_resume,
 	.driver		= {

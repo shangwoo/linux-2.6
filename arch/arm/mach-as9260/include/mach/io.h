@@ -6,15 +6,16 @@
 #ifndef __ASM_ARM_ARCH_IO_H
 #define __ASM_ARM_ARCH_IO_H
 
-#define IO_SPACE_LIMIT 0xffffffff
+
+//#define IO_SPACE_LIMIT 0xffffffff
 
 /*
  * We don't actually have real ISA nor PCI buses, but there is so many
  * drivers out there that might just work if we fake them...
  */
-#define __io(a)			((void __iomem *)(PCIO_BASE + (a)))
-#define __mem_pci(a)		(a)
-#define __mem_isa(a)		(a)
+//#define __io(a)			((void __iomem *)(PCIO_BASE + (a)))
+//#define __mem_pci(a)		(a)
+//#define __mem_isa(a)		(a)
 
 /*
  * ----------------------------------------------------------------------------
@@ -24,8 +25,6 @@
 
 #define PCIO_BASE	0
 
-#if defined(CONFIG_ARCH_ASAP18XX)
-
 #define IO_PHYS		0x80000000	/* Virtual IO = 0xf0000000 */
 #define IO_SIZE		0x00800000
 #define IO_VIRADDR  0xf0000000
@@ -34,8 +33,6 @@
 #define IO_ADDRESS(pa)    (IO_OFFSET+(pa))
 #define io_p2v(pa)  ((pa)+IO_OFFSET)
 #define io_v2p(va)  ((va)-IO_OFFSET)
-
-#endif 
 
 #ifndef __ASSEMBLER__
 

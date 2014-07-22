@@ -222,7 +222,7 @@ struct asm9260_dma_chain * request_asm9260_dma_chain(struct device * dev,int pkg
         return NULL;
     }
 
-	if (!(dma_chain = kmalloc(sizeof(struct asm9260_dma_chain), GFP_KERNEL))) {
+	if (!(dma_chain = devm_kmalloc(dev, sizeof(struct asm9260_dma_chain), GFP_KERNEL))) {
 		printk("DMA: Fail,No system memory\n");
         return NULL;
 	}
@@ -258,7 +258,7 @@ void free_asm9260_dma_chain(struct device * dev,struct asm9260_dma_chain * dma_c
 
     dma_free_writecombine(dev,sizeof(struct asm9260_dma_pkg_s)*dma_chain->pkg_num,
                   dma_chain->chain_head ,dma_chain->chain_phy_addr);
-    kfree(dma_chain);
+    devm_kfree(dev, dma_chain);
 }
 
 
@@ -336,7 +336,7 @@ DmaChain* DmaRequestChain(struct device * dev, DMAmodule module, DMAchannel chan
 
    *channel_ready = 1;  
     
-   dma_chain = (DmaChain*)kmalloc(sizeof(DmaChain), GFP_KERNEL);   
+   dma_chain = (DmaChain*)devm_kmalloc(dev, sizeof(DmaChain), GFP_KERNEL);   
    if (!dma_chain)
    {
 	   return NULL;
@@ -347,7 +347,7 @@ DmaChain* DmaRequestChain(struct device * dev, DMAmodule module, DMAchannel chan
    dma_chain->chain_head = (DmaPkg*)dma_alloc_writecombine(dev,sizeof(DmaPkg)*pkg_num, &dma_chain->chain_phy_addr, GFP_KERNEL);  
    if ( (dma_chain->chain_head==NULL)||(dma_chain->chain_phy_addr== ~0) )
    {
-	   kfree(dma_chain);
+	   devm_kfree(dev, dma_chain);
 	   return NULL;
    }
    memset((void *)dma_chain->chain_head,0,(size_t)(sizeof(DmaPkg) * pkg_num));   
@@ -379,7 +379,7 @@ void DmaFreeChain(struct device * dev, DmaChain* dma_chain)
 {
     clear_bit( dma_chain->dmachannel, DmaChannelBitMap[dma_chain->dmamodule]);
 	dma_free_writecombine(dev, sizeof(DmaChain)*dma_chain->pkg_num, dma_chain->chain_head, dma_chain->chain_phy_addr);
-    kfree(dma_chain);
+    devm_kfree(dev, dma_chain);
 }
 
 

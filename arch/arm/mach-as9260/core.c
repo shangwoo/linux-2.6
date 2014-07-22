@@ -19,8 +19,8 @@
 #include <linux/input.h>
 #include <linux/spi/spi.h>
 #include <linux/i2c.h>
-#include <linux/i2c/at24.h>
-#include <linux/dma-mapping.h>
+//#include <linux/i2c/at24.h>
+//#include <linux/dma-mapping.h>
 #include <linux/spi/flash.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
@@ -30,7 +30,7 @@
 #include <mach/lradc.h>
 #include <mach/pwm.h>
 #include <mach/pincontrol.h>
-#include <mach/dma.h>
+//#include <mach/dma.h>
 #include <mach/mac.h>
 #include <mach/irqs.h>
 #include <mach/system.h>
@@ -49,7 +49,7 @@
 #include <mach/asm9260_canserial.h>
 #include <linux/usb/musb.h>
 #include <linux/usb/otg.h>
-#include <linux/asmnet.h>
+//#include <linux/asmnet.h>
 #include "irq.h"
 #include "timer.h"
 #include <mach/asm9260_nand.h>
@@ -921,11 +921,11 @@ static void __init as9260_init(void)
 }
 
 MACHINE_START(AS9260, "AS9260")
-	.boot_params	= 0x20000100,
-	.phys_io	= 0x80000000,   /* the perih address */
-	.io_pg_offst	= ((0xfef00000) >> 18) & 0xfffc,
+//	.boot_params	= 0x20000100,
+//	.phys_io	= 0x80000000,   /* the perih address */
+//	.io_pg_offst	= ((0xfef00000) >> 18) & 0xfffc,
 	.map_io		= as9260_map_io,    /*MAP_IO*/
 	.init_irq	= as9260_init_irq,
 	.init_machine	= as9260_init,
-	.timer		= &as9260_timer,
+//	.timer		= &as9260_timer,
 MACHINE_END

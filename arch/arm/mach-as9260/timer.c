@@ -11,10 +11,10 @@
 #include <linux/sched.h>
 #include <linux/spinlock.h>
 
-#include <asm/system.h>
+//#include <asm/system.h>
 //#include <asm/hardware.h>
 #include <asm/io.h>
-#include <asm/leds.h>
+//#include <asm/leds.h>
 #include <asm/irq.h>
 #include <asm/mach/irq.h>
 #include <asm/mach/time.h>

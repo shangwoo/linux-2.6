@@ -373,14 +373,14 @@ config ARCH_AT91
 	  This enables support for systems based on Atmel
 	  AT91RM9200 and AT91SAM9* processors.
 
-config ARCH_ASAP1820
-	bool "Alpscale ASAP1820"
+config MACH_AS9260
+	bool "Alpscale AS9260"
 	select ARCH_REQUIRE_GPIOLIB
 	select CLKDEV_LOOKUP
 	select IRQ_DOMAIN
 	select CPU_ARM920T
 	help
-	  Support for Alpscale ASAP1820 based platform.
+	  Support for Alpscale AS9260 based platform.
 
 config ARCH_CLPS711X
 	bool "Cirrus Logic CLPS711x/EP721x/EP731x-based"

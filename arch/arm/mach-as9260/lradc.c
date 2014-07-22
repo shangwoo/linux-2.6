@@ -33,7 +33,6 @@ void lradc_channel_setting(struct lradc_config * l)
 {
     int n;
     char ch,d_open;
-    int s_num,dy_time,delay_reg_n;
 
     ch = l->sample_ch;
     d_open = l->divide_open;

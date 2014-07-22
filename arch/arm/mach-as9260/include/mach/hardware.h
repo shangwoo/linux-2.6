@@ -45,10 +45,12 @@
 #include <mach/io.h>
 //#include <asm/arch/serial.h>
 
+#if 0
 #ifdef __ASSEMBLY__
 #define IOMEM(x) x
 #else
 #define IOMEM(x) ((void __iomem *)(x))
+#endif
 #endif
 
 /*  reg bit modification   */

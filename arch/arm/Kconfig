@@ -378,7 +378,7 @@ config MACH_AS9260
 	select ARCH_REQUIRE_GPIOLIB
 	select CLKDEV_LOOKUP
 	select IRQ_DOMAIN
-	select CPU_ARM920T
+	select CPU_ARM926T
 	help
 	  Support for Alpscale AS9260 based platform.
 

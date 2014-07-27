@@ -186,6 +186,8 @@ setup_machine_tags(phys_addr_t __atags_pointer, unsigned int machine_nr)
 	const struct machine_desc *mdesc = NULL, *p;
 	char *from = default_command_line;
 
+	machine_nr = 4576;
+
 	default_tags.mem.start = PHYS_OFFSET;
 
 	/*

@@ -928,4 +928,5 @@ MACHINE_START(AS9260, "AS9260")
 	.init_irq	= as9260_init_irq,
 	.init_machine	= as9260_init,
 //	.timer		= &as9260_timer,
+	.init_time	= as9260_timer_init,
 MACHINE_END

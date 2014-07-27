@@ -1453,8 +1453,8 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.mode = NAND_ECC_NONE;
 #endif
 	
-	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
-	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
+//	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
+//	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
 	nand_chip->ecc.calculate = NULL;
 	nand_chip->ecc.correct   = NULL;
 	nand_chip->ecc.hwctl     = NULL;
@@ -1484,9 +1484,9 @@ static int asm9260_nand_probe(struct platform_device *dev)
 {
 	struct platform_device *pdev = dev;
 	//struct resource *mem_res, *irq_res;
-#ifdef CONFIG_MTD_PARTITIONS
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
+#ifdef CONFIG_MTD_PARTITIONS
 	struct asm9260_nand_data *asm9260_default_mtd_part;
 #endif
 	int res = 0;
@@ -1511,7 +1511,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 	}
 #endif	
 
-	asm9260_default_mtd_part = pdev->dev.platform_data;
+	//asm9260_default_mtd_part = pdev->dev.platform_data;
 	nand_regs = (struct asm9260_nand_regs *)(NAND_BASE_ADDR);
 
 	asm9260_nand = kzalloc(sizeof(struct nand_chip), GFP_KERNEL);
@@ -1540,7 +1540,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 	asm9260_mtd->owner = THIS_MODULE;
 
 	/* first scan to find the device and get the page size */
-	if (nand_scan_ident(asm9260_mtd, 1)) {
+	if (nand_scan_ident(asm9260_mtd, 1, NULL)) {
 		res = -ENXIO;
 		goto err_scan_ident;
 	}
@@ -1650,7 +1650,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 
 	res = add_mtd_partitions(asm9260_mtd, partitions, num_partitions);
 #else
-	res = add_mtd_device(asm9260_mtd);
+	res = mtd_device_register(asm9260_mtd, partitions, num_partitions);
 #endif
 
 	return res;

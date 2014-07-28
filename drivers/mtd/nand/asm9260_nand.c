@@ -1078,7 +1078,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 									  | (ECC_DIS << NAND_CTRL_ECC_EN) 				| (INT_DIS << NAND_CTRL_INT_EN)
 									  | (SPARE_DIS << NAND_CTRL_SPARE_EN) 			| (ADDR_CYCLE_1); 
 			nand_regs->nand_fifo_init = 1;	//reset FIFO
-			nand_regs->nand_data_size = 4;	//ID 4 Bytes
+			nand_regs->nand_data_size = 8;	//ID 4 Bytes
 			nand_regs->nand_addr0_l   = column;
 			nand_regs->nand_command   = (READ_ID << NAND_CMD_CMD0)
 									  | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)

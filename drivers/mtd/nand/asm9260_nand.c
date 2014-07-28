@@ -1366,7 +1366,9 @@ static int asm9260_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int
 }
 #endif
 
-static void asm9260_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, const uint8_t *buf)
+static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
+		struct nand_chip *chip, const uint8_t *buf,
+		int oob_required)
 {
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 	memcpy(asm9260_nand_dma_write_buf_virt, buf, mtd->writesize);  // copy data to buf
@@ -1379,10 +1381,12 @@ static void asm9260_nand_write_page_hwecc(struct mtd_info *mtd, struct nand_chip
 	temp_ptr = chip->oob_poi;
 	chip->write_buf(mtd, temp_ptr, asm9260_nand_spare_data_size);
 #endif
-	return ;
+	return 0;
 }
 
-static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd, struct nand_chip *chip, uint8_t *buf)
+static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
+		struct nand_chip *chip, uint8_t *buf,
+		int oob_required, int page)
 {
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 	memcpy(buf, asm9260_nand_dma_read_buf_virt, mtd->writesize);  // copy data to buf
@@ -1453,8 +1457,8 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.mode = NAND_ECC_NONE;
 #endif
 	
-//	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
-//	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
+	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
+	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
 	nand_chip->ecc.calculate = NULL;
 	nand_chip->ecc.correct   = NULL;
 	nand_chip->ecc.hwctl     = NULL;
@@ -1554,18 +1558,22 @@ static int asm9260_nand_probe(struct platform_device *dev)
 			case 2048:
 				asm9260_nand->ecc.bytes  = asm9260_ecc_cap_select(2048, asm9260_mtd->oobsize);
 				asm9260_nand->ecc.layout = &asm9260_nand_oob_64;	
+				asm9260_nand->ecc.strength = 4;
 				break;
 				
 			case 4096:
 				asm9260_nand->ecc.bytes  = asm9260_ecc_cap_select(4096, asm9260_mtd->oobsize);
 				
-				if (asm9260_mtd->oobsize == 128)
+				if (asm9260_mtd->oobsize == 128) { 
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_128;
-				else if (asm9260_mtd->oobsize == 218)
+					asm9260_nand->ecc.strength = 6;
+				} else if (asm9260_mtd->oobsize == 218) {
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_218;
-				else if (asm9260_mtd->oobsize == 224)
+					asm9260_nand->ecc.strength = 14;
+				} else if (asm9260_mtd->oobsize == 224) {
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_224;
-				else
+					asm9260_nand->ecc.strength = 14;
+				} else
 					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",asm9260_mtd->oobsize);
 
 				break;
@@ -1573,13 +1581,16 @@ static int asm9260_nand_probe(struct platform_device *dev)
 			case 8192:
 				asm9260_nand->ecc.bytes = asm9260_ecc_cap_select(8192, asm9260_mtd->oobsize);
 
-				if (asm9260_mtd->oobsize == 256) 
+				if (asm9260_mtd->oobsize == 256) {
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_256;
-				else if (asm9260_mtd->oobsize == 436) 
+					asm9260_nand->ecc.strength = 8;
+				} else if (asm9260_mtd->oobsize == 436) {
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_436;
-				else if (asm9260_mtd->oobsize == 448)
+					asm9260_nand->ecc.strength = 14;
+				} else if (asm9260_mtd->oobsize == 448) {
 					asm9260_nand->ecc.layout = &asm9260_nand_oob_448;
-				else
+					asm9260_nand->ecc.strength = 16;
+				} else
 					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",asm9260_mtd->oobsize);
 				
 				break;
@@ -1637,8 +1648,9 @@ static int asm9260_nand_probe(struct platform_device *dev)
 	DBG("chip->chip_shift 0x%x\n", asm9260_nand->chip_shift);
 	DBG("chip->options 0x%x\n", asm9260_nand->options);
 
-#ifdef CONFIG_MTD_PARTITIONS
+	printk("%s:%i", __func__, __LINE__);
 	asm9260_mtd->name = "NAND";
+#ifdef CONFIG_MTD_PARTITIONS
 #ifdef CONFIG_MTD_CMDLINE_PARTS
 	num_partitions = parse_mtd_partitions(asm9260_mtd, part_probes, &partitions, 0);
 #endif

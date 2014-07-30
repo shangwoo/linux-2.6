@@ -24,6 +24,7 @@
 #include <linux/io.h>
 
 
+#if 0
 struct clk {
 	struct list_head node;
 	const char *name;
@@ -34,7 +35,6 @@ struct clk {
 static LIST_HEAD(clocks);
 static DEFINE_MUTEX(clocks_mutex);
 
-#if 0
 struct clk *clk_get(struct device *dev, const char *id)
 {
 	struct clk *p, *clk = ERR_PTR(-ENOENT);
@@ -47,7 +47,6 @@ void clk_put(struct clk *clk)
 {
 }
 EXPORT_SYMBOL(clk_put);
-#endif
 
 int clk_enable(struct clk *clk)
 {
@@ -66,5 +65,6 @@ unsigned long clk_get_rate(struct clk *clk)
 }
 EXPORT_SYMBOL(clk_get_rate);
 
+#endif
 
 

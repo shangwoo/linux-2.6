@@ -12,6 +12,17 @@
 #include "skeleton.dtsi"
 
 / {
+	clocks {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		osc24m: oscillator {
+			compatible = "fixed-clock";
+			#clock-cells = <1>;
+			clock-frequency = <24000000>;
+		};
+	};
+
 	cpus {
 		#address-cells = <0>;
 		#size-cells = <0>;

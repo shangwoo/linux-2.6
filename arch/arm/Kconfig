@@ -376,7 +376,7 @@ config ARCH_AT91
 config MACH_AS9260
 	bool "Alpscale AS9260"
 	select ARCH_REQUIRE_GPIOLIB
-	select CLKDEV_LOOKUP
+	select COMMON_CLK
 	select IRQ_DOMAIN
 	select CPU_ARM926T
 	help

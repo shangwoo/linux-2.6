@@ -119,6 +119,7 @@ void of_fixed_clk_setup(struct device_node *node)
 	u32 rate;
 	u32 accuracy = 0;
 
+	printk("%s:%i\n", __func__, __LINE__);
 	if (of_property_read_u32(node, "clock-frequency", &rate))
 		return;
 
@@ -129,8 +130,10 @@ void of_fixed_clk_setup(struct device_node *node)
 	clk = clk_register_fixed_rate_with_accuracy(NULL, clk_name, NULL,
 						    CLK_IS_ROOT, rate,
 						    accuracy);
-	if (!IS_ERR(clk))
+	if (!IS_ERR(clk)) {
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
+		printk("%s:%i\n", __func__, __LINE__);
+	}
 }
 EXPORT_SYMBOL_GPL(of_fixed_clk_setup);
 CLK_OF_DECLARE(fixed_clk, "fixed-clock", of_fixed_clk_setup);

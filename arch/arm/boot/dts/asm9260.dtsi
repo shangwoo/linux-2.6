@@ -45,9 +45,17 @@
 
 				pll: pll@0100 {
 					compatible = "alpscale,asm9260-pll-clock";
-					#clock-cells = <1>;
+					#clock-cells = <0>;
 					clocks = <&osc24m>;
 					reg = <0x0100>;
+				};
+
+				main_mux: mux@0120 {
+					compatible = "alpscale,asm9260-bimux-clock";
+					#clock-cells = <0>;
+					clocks = <&osc24m>, <&pll>;
+					mux-table = <0 1>;
+					reg = <0x0120>;
 				};
 			};
 		};

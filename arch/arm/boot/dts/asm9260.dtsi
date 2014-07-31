@@ -57,6 +57,13 @@
 					mux-table = <0 1>;
 					reg = <0x0120>;
 				};
+
+				cpu_div: div@017c {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&main_mux>;
+					reg = <0x017c>;
+				};
 			};
 		};
 	};

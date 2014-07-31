@@ -39,6 +39,26 @@ static void __iomem *asm9260_get_sreg(struct device_node *node)
 	return iomem;
 }
 
+static void __init asm9260_div_init(struct device_node *node)
+{
+	struct clk *clk;
+	const char *clk_name = node->name;
+	void __iomem *iomem;
+	const char *parent_name;
+
+	iomem = asm9260_get_sreg(node);
+	printk("!!! div %x, %x\n", iomem, ioread32(iomem));
+
+	parent_name = of_clk_get_parent_name(node, 0);
+	clk = clk_register_divider(NULL, clk_name, parent_name,
+			0, iomem, 0, 8, CLK_DIVIDER_ONE_BASED,
+			&asm9260_clk_lock);
+
+	if (!IS_ERR(clk))
+		of_clk_add_provider(node, of_clk_src_simple_get, clk);
+}
+CLK_OF_DECLARE(asm9260_div, "alpscale,asm9260-div-clock", asm9260_div_init);
+
 /*
  * Simple one bit MUX for two sources
  */

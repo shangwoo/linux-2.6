@@ -14,29 +14,87 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 
+static DEFINE_SPINLOCK(asm9260_clk_lock);
+
 struct asm9260_clk {
 	void __iomem    *reg;
 	char *parent_name;
 };
 
-static void __init asm9260_pll_init(struct device_node *node)
+static void __iomem *asm9260_get_sreg(struct device_node *node)
 {
-	struct clk *clk;
-	const char *clk_name = node->name;
-	u32 rate, reg;
+	u32 reg;
 	void __iomem *iomem;
 	struct device_node *srnp;
-	const char *parent_name;
-	u32 accuracy = 0;
 	int ret;
 
 	ret = of_property_read_u32(node, "reg", &reg);
 	if (WARN_ON(ret))
-		return;
+		return NULL;
 
 	srnp = of_find_compatible_node(NULL, NULL, "alpscale,asm9260-sregs");
 	iomem = of_iomap(srnp, 0);
 	iomem += reg;
+
+	return iomem;
+}
+
+/*
+ * Simple one bit MUX for two sources
+ */
+static void __init asm9260_bimux_init(struct device_node *node)
+{
+	struct clk *clk;
+	const char *clk_name = node->name;
+	u8 num_parents;
+	void __iomem *iomem;
+	const char **parent_names;
+	int ret, i;
+	u32 *table;
+
+	iomem = asm9260_get_sreg(node);
+	if (!iomem)
+		return;
+
+	num_parents = of_clk_get_parent_count(node);
+	if (WARN_ON(!num_parents || num_parents > 2))
+		return;
+
+	parent_names = kzalloc(sizeof(char *) * num_parents, GFP_KERNEL);
+	if (WARN_ON(!parent_names))
+		return;
+
+	table = kzalloc(sizeof(u32) * num_parents, GFP_KERNEL);
+	if (WARN_ON(!table))
+		return;
+
+	ret = of_property_read_u32_array(node, "mux-table", table,
+			num_parents);
+	if (WARN_ON(ret))
+		return;
+
+	for (i = 0; i < num_parents; i++)
+		parent_names[i] = of_clk_get_parent_name(node, i);
+
+	clk = clk_register_mux_table(NULL, clk_name, parent_names,
+			num_parents, 0, iomem, 0, 1, 0, table,
+			&asm9260_clk_lock);
+
+	if (!IS_ERR(clk))
+		of_clk_add_provider(node, of_clk_src_simple_get, clk);
+}
+CLK_OF_DECLARE(asm9260_bimux, "alpscale,asm9260-bimux-clock", asm9260_bimux_init);
+
+static void __init asm9260_pll_init(struct device_node *node)
+{
+	struct clk *clk;
+	const char *clk_name = node->name;
+	u32 rate;
+	void __iomem *iomem;
+	const char *parent_name;
+	u32 accuracy = 0;
+
+	iomem = asm9260_get_sreg(node);
 	rate = (ioread32(iomem) & 0xffff) * 1000000;
 
 	parent_name = of_clk_get_parent_name(node, 0);

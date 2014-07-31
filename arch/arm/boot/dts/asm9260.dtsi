@@ -43,11 +43,11 @@
 					clock-accuracy = <30000>;
 				};
 
-				sys_pll_ctrl: sys_pll_ctrl {
-					compatible = "alpscale,asm9260-syspllctrl";
+				pll: pll@0100 {
+					compatible = "alpscale,asm9260-pll-clock";
 					#clock-cells = <1>;
 					clocks = <&osc24m>;
-					reg = <0x0102>;
+					reg = <0x0100>;
 				};
 			};
 		};

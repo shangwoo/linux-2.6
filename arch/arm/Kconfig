@@ -380,7 +380,7 @@ config MACH_AS9260
 	select IRQ_DOMAIN
 	select CPU_ARM926T
 	help
-	  Support for Alpscale AS9260 based platform.
+	  Support for Alpscale ASM9260 based platform.
 
 config ARCH_CLPS711X
 	bool "Cirrus Logic CLPS711x/EP721x/EP731x-based"

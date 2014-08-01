@@ -50,7 +50,7 @@
 					reg = <0x0100>;
 				};
 
-				main_mux: mux@0120 {
+				main_mux: main_mux@0120 {
 					compatible = "alpscale,asm9260-bimux-clock";
 					#clock-cells = <0>;
 					clocks = <&osc24m>, <&pll>;
@@ -58,12 +58,68 @@
 					reg = <0x0120>;
 				};
 
-				cpu_div: div@017c {
+				cpu_div: cpu_div@017c {
 					compatible = "alpscale,asm9260-div-clock";
 					#clock-cells = <0>;
 					clocks = <&main_mux>;
 					reg = <0x017c>;
 				};
+
+				ahb_div: ahb_div@0180 {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&cpu_div>;
+					reg = <0x0180>;
+				};
+
+				/* uart related clocks */
+				uart_mux: uart_mux@0128 {
+					compatible = "alpscale,asm9260-bimux-clock";
+					#clock-cells = <0>;
+					clocks = <&osc24m>, <&pll>;
+					mux-table = <0 1>;
+					reg = <0x0128>;
+				};
+
+				uart_gate: uart_gate@012c {
+					compatible = "alpscale,asm9260-gate-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_mux>;
+					reg = <0x012c>;
+				};
+
+				uart0_div: uart0_div@0198 {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_gate>;
+					reg = <0x0198>;
+				};
+				uart1_div: uart1_div@019c {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_gate>;
+					reg = <0x019c>;
+				};
+				uart2_div: uart2_div@01a0 {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_gate>;
+					reg = <0x01a0>;
+				};
+				uart3_div: uart3_div@01a4 {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_gate>;
+					reg = <0x01a4>;
+				};
+				uart4_div: uart4_div@01a8 {
+					compatible = "alpscale,asm9260-div-clock";
+					#clock-cells = <0>;
+					clocks = <&uart_gate>;
+					reg = <0x01a8>;
+				};
+
+
 			};
 		};
 	};

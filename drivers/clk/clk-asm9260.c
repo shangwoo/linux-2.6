@@ -39,6 +39,31 @@ static void __iomem *asm9260_get_sreg(struct device_node *node)
 	return iomem;
 }
 
+/*
+ * On this chip gate used to disable or to update clock
+ * after new source was selected
+ */
+
+static void __init asm9260_gate_init(struct device_node *node)
+{
+	struct clk *clk;
+	const char *clk_name = node->name;
+	void __iomem *iomem;
+	const char *parent_name;
+
+	iomem = asm9260_get_sreg(node);
+
+	parent_name = of_clk_get_parent_name(node, 0);
+	clk = clk_register_gate(NULL, clk_name, parent_name,
+			0, iomem, 0, 0,
+			&asm9260_clk_lock);
+
+	if (!IS_ERR(clk))
+		of_clk_add_provider(node, of_clk_src_simple_get, clk);
+}
+CLK_OF_DECLARE(asm9260_gate, "alpscale,asm9260-gate-clock", asm9260_gate_init);
+
+
 static void __init asm9260_div_init(struct device_node *node)
 {
 	struct clk *clk;
@@ -47,7 +72,6 @@ static void __init asm9260_div_init(struct device_node *node)
 	const char *parent_name;
 
 	iomem = asm9260_get_sreg(node);
-	printk("!!! div %x, %x\n", iomem, ioread32(iomem));
 
 	parent_name = of_clk_get_parent_name(node, 0);
 	clk = clk_register_divider(NULL, clk_name, parent_name,

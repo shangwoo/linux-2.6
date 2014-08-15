@@ -1,0 +1,7 @@
+/dts-v1/;
+#include "asm9260.dtsi"
+
+/ {
+	model = "Alpscale asm9260 Development Kit";
+	compatible = "alpscale,asm9260devkit", "alpscale,asm9260";
+};

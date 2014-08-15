@@ -60,7 +60,6 @@ static void __init asm9260_gate_init(struct device_node *node)
 	if (WARN_ON(ret))
 		return;
 
-	printk("!!!! gate: %x %i\n", iomem, bit);
 	clk = clk_register_gate(NULL, clk_name, parent_name,
 			0, iomem, bit, 0,
 			&asm9260_clk_lock);

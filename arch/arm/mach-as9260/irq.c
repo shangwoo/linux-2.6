@@ -8,7 +8,7 @@
 #include <linux/interrupt.h>
 #include <linux/ioport.h>
 #include <linux/ptrace.h>
-#include <linux/sysdev.h>
+//#include <linux/sysdev.h>
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <asm/mach/irq.h>
@@ -61,8 +61,9 @@ int irq_get_level(int irq){
     return (*priority_reg & 0x3);  // get level
 }
 
-static void as9260_mask_irq(unsigned int irq)
+static void as9260_mask_irq(struct irq_data *data)
 {
+	unsigned int	irq = data->irq;
  	unsigned long mask;
 	unsigned int  reg_addr = HW_ICOLL_PRIORITY0 + ((irq>>2)<<4);	
 	mask = as3310_readl(reg_addr);
@@ -70,11 +71,12 @@ static void as9260_mask_irq(unsigned int irq)
 	as3310_writel(mask, reg_addr);
 }
 
-static void as9260_unmask_irq(unsigned int irq)
+static void as9260_unmask_irq(struct irq_data *data)
 {
-	unsigned long mask;
-	unsigned int  reg_addr = HW_ICOLL_PRIORITY0 + ((irq>>2)<<4);	
-	unsigned long level;  
+	unsigned int	irq = data->irq;
+	unsigned long	mask;
+	unsigned int	reg_addr = HW_ICOLL_PRIORITY0 + ((irq>>2)<<4);	
+	unsigned long	level;
 
 	/* ========= clear irq controller ================*/
 	as3310_writel((0x00000001 << (irq&0x1f)), HW_ICOLL_CLEAR0 + ((irq>>5)*0x10) + 4 );
@@ -91,7 +93,7 @@ static void as9260_unmask_irq(unsigned int irq)
 }
 
 
-static void as9260_ack_irq(unsigned int irq)
+static void as9260_ack_irq(struct irq_data *data)
 {   
    as3310_readl(HW_ICOLL_VECTOR);
    return;
@@ -104,10 +106,10 @@ int as9260_irq_wake (unsigned int irqno, unsigned int state)
 
 static struct irq_chip as9260_irq_chip = {
     .name       = "as9260_irq",
-	.ack		= as9260_ack_irq,
-	.mask		= as9260_mask_irq,
-	.unmask		= as9260_unmask_irq,
-    .mask_ack   = NULL,
+	.irq_ack		= as9260_ack_irq,
+	.irq_mask		= as9260_mask_irq,
+	.irq_unmask		= as9260_unmask_irq,
+    .irq_mask_ack   = NULL,
 };
 
 
@@ -150,8 +152,7 @@ void __init as9260_init_irq(void)
 	as3310_writel(0x00000000, HW_ICOLL_PRIORITY15);
 
 	for (irq_no=0; irq_no<NR_IRQS; irq_no++){
-      set_irq_chip(irq_no, &as9260_irq_chip);
-      set_irq_handler(irq_no, handle_level_irq);
+      irq_set_chip_and_handler(irq_no, &as9260_irq_chip, handle_level_irq);
       set_irq_flags(irq_no, IRQF_VALID);
 	}
 

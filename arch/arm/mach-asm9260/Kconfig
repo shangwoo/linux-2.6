@@ -1,0 +1,66 @@
+if MACH_ASM9260
+
+menu "ASM9260T EVK Uart Enable"
+
+config ENABLE_UART0
+	bool "Enable UART0"
+	depends on SERIAL_ASM9260
+	default n
+
+config ENABLE_UART1
+	bool "Enable UART1"
+	depends on SERIAL_ASM9260
+	default n
+
+config ENABLE_UART2
+	bool "Enable UART2"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART3
+	bool "Enable UART3"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART4
+	bool "Enable UART4"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART5
+	bool "Enable UART5"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART6
+	bool "Enable UART6"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART7
+	bool "Enable UART7"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART8
+	bool "Enable UART8"
+	depends on SERIAL_ASM9260
+	default n
+
+
+config ENABLE_UART9
+	bool "Enable UART9"
+	depends on SERIAL_ASM9260
+	default n
+
+endmenu
+
+
+endif
+

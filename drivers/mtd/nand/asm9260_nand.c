@@ -1268,7 +1268,7 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-		*read_val = (nand_regs->nand_fifo_data);
+		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
 
@@ -1285,7 +1285,7 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 		
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-		*read_val = (nand_regs->nand_fifo_data);
+		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
 
@@ -1540,7 +1540,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 	asm9260_mtd->owner = THIS_MODULE;
 
 	/* first scan to find the device and get the page size */
-	if (nand_scan_ident(asm9260_mtd, 1, NULL)) {
+	if (nand_scan(asm9260_mtd, 1)) {
 		res = -ENXIO;
 		goto err_scan_ident;
 	}

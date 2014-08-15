@@ -13,10 +13,17 @@
 #include <linux/uaccess.h>
 
 #include <linux/io.h>
+#include <linux/slab.h>
 #include <mach/hardware.h>
 #include <mach/asm9260_uart.h>
 #include <linux/serial_core.h>
 #include <linux/tty_flip.h>
+
+#include <linux/of.h>
+#include <linux/of_irq.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/of_platform.h>
 
 #define SERIAL_ASM9260_MAJOR	204
 #define MINOR_START		64
@@ -31,6 +38,8 @@
 
 #define ASM9260_UART_FIFOSIZE	16
 #define ASM9260_ISR_PASS_LIMIT	256
+
+#define ASM9260_BUS_RATE	100000000
 
 #define SOURCE_CLOCK_EXT12M				0
 #define SOURCE_CLOCK_SYSPLL				1
@@ -140,57 +149,57 @@
 #define	ASM9260_UART_RS485_DIR_CTRL			0x10
 #define	ASM9260_UART_RS485_ONIV				0x20
 
-#define UART_PUT_CTRL0(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_CTRL0)
-#define UART_PUT_CTRL0_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL0 + SET_OFFSET)
-#define UART_PUT_CTRL0_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL0 + CLR_OFFSET)
+#define UART_PUT_CTRL0(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL0)
+#define UART_PUT_CTRL0_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + SET_OFFSET)
+#define UART_PUT_CTRL0_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + CLR_OFFSET)
 
-#define UART_PUT_CTRL1(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_CTRL1)
-#define UART_PUT_CTRL1_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL1 + SET_OFFSET)
-#define UART_PUT_CTRL1_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL1 + CLR_OFFSET)
+#define UART_PUT_CTRL1(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL1)
+#define UART_PUT_CTRL1_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL1 + SET_OFFSET)
+#define UART_PUT_CTRL1_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL1 + CLR_OFFSET)
 
-#define UART_PUT_CTRL2(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_CTRL2)
-#define UART_PUT_CTRL2_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL2 + SET_OFFSET)
-#define UART_PUT_CTRL2_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL2 + CLR_OFFSET)
+#define UART_PUT_CTRL2(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL2)
+#define UART_PUT_CTRL2_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + SET_OFFSET)
+#define UART_PUT_CTRL2_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + CLR_OFFSET)
 
-#define UART_PUT_CTRL3(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_CTRL3)
-#define UART_PUT_CTRL3_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL3 + SET_OFFSET)
-#define UART_PUT_CTRL3_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_CTRL3 + CLR_OFFSET)
+#define UART_PUT_CTRL3(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL3)
+#define UART_PUT_CTRL3_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL3 + SET_OFFSET)
+#define UART_PUT_CTRL3_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL3 + CLR_OFFSET)
 
-#define UART_PUT_LINECTRL(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_LINECTRL)
-#define UART_PUT_LINECTRL_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_LINECTRL + SET_OFFSET)
-#define UART_PUT_LINECTRL_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_LINECTRL + CLR_OFFSET)
+#define UART_PUT_LINECTRL(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL)
+#define UART_PUT_LINECTRL_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + SET_OFFSET)
+#define UART_PUT_LINECTRL_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + CLR_OFFSET)
 
-#define UART_PUT_INTR(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_INTR)
-#define UART_PUT_INTR_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_INTR + SET_OFFSET)
-#define UART_PUT_INTR_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_INTR + CLR_OFFSET)
+#define UART_PUT_INTR(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_INTR)
+#define UART_PUT_INTR_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + SET_OFFSET)
+#define UART_PUT_INTR_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + CLR_OFFSET)
 
-#define UART_PUT_DATA(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_DATA)
+#define UART_PUT_DATA(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_DATA)
 
-#define UART_PUT_STAT(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_STAT)
-#define UART_PUT_STAT_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_STAT + SET_OFFSET)
-#define UART_PUT_STAT_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_STAT + CLR_OFFSET)
+#define UART_PUT_STAT(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_STAT)
+#define UART_PUT_STAT_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_STAT + SET_OFFSET)
+#define UART_PUT_STAT_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_STAT + CLR_OFFSET)
 
-#define UART_PUT_ILPR(port, v)				__raw_writel(v, (port)->membase + ASM9260_UART_ILPR)
-#define UART_PUT_ILPR_SET(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_ILPR + SET_OFFSET)
-#define UART_PUT_ILPR_CLR(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_ILPR + CLR_OFFSET)
+#define UART_PUT_ILPR(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_ILPR)
+#define UART_PUT_ILPR_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_ILPR + SET_OFFSET)
+#define UART_PUT_ILPR_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_ILPR + CLR_OFFSET)
 
-#define UART_PUT_RS485CTRL(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_RS485CTRL)
-#define UART_PUT_RS485ADRMATCH(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_RS485ADRMATCH)
-#define UART_PUT_RS485DLY(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_RS485DLY)
-#define UART_PUT_AUTOBAUD(port, v)			__raw_writel(v, (port)->membase + ASM9260_UART_AUTOBAUD)
-#define UART_GET_CTRL0(port)				__raw_readl((port)->membase + ASM9260_UART_CTRL0)
-#define UART_GET_CTRL1(port)				__raw_readl((port)->membase + ASM9260_UART_CTRL1)
-#define UART_GET_CTRL2(port)				__raw_readl((port)->membase + ASM9260_UART_CTRL2)
-#define UART_GET_CTRL3(port)				__raw_readl((port)->membase + ASM9260_UART_CTRL3)
-#define UART_GET_LINECTRL(port)				__raw_readl((port)->membase + ASM9260_UART_LINECTRL)
-#define UART_GET_INTR(port)				__raw_readl((port)->membase + ASM9260_UART_INTR)
-#define UART_GET_DATA(port)				__raw_readl((port)->membase + ASM9260_UART_DATA)
-#define UART_GET_STAT(port)				__raw_readl((port)->membase + ASM9260_UART_STAT)
-#define UART_GET_ILPR(port)				__raw_readl((port)->membase + ASM9260_UART_ILPR)
-#define UART_GET_RS485CTRL(port)			__raw_readl((port)->membase + ASM9260_UART_RS485CTRL)
-#define UART_GET_RS485ADRMATCH(port)			__raw_readl((port)->membase + ASM9260_UART_RS485ADRMATCH)
-#define UART_GET_RS485DLY(port)				__raw_readl((port)->membase + ASM9260_UART_RS485DLY)
-#define UART_GET_AUTOBAUD(port)				__raw_readl((port)->membase + ASM9260_UART_AUTOBAUD)
+#define UART_PUT_RS485CTRL(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485CTRL)
+#define UART_PUT_RS485ADRMATCH(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485ADRMATCH)
+#define UART_PUT_RS485DLY(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485DLY)
+#define UART_PUT_AUTOBAUD(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_AUTOBAUD)
+#define UART_GET_CTRL0(port)				ioread32((port)->membase + ASM9260_UART_CTRL0)
+#define UART_GET_CTRL1(port)				ioread32((port)->membase + ASM9260_UART_CTRL1)
+#define UART_GET_CTRL2(port)				ioread32((port)->membase + ASM9260_UART_CTRL2)
+#define UART_GET_CTRL3(port)				ioread32((port)->membase + ASM9260_UART_CTRL3)
+#define UART_GET_LINECTRL(port)				ioread32((port)->membase + ASM9260_UART_LINECTRL)
+#define UART_GET_INTR(port)				ioread32((port)->membase + ASM9260_UART_INTR)
+#define UART_GET_DATA(port)				ioread32((port)->membase + ASM9260_UART_DATA)
+#define UART_GET_STAT(port)				ioread32((port)->membase + ASM9260_UART_STAT)
+#define UART_GET_ILPR(port)				ioread32((port)->membase + ASM9260_UART_ILPR)
+#define UART_GET_RS485CTRL(port)			ioread32((port)->membase + ASM9260_UART_RS485CTRL)
+#define UART_GET_RS485ADRMATCH(port)			ioread32((port)->membase + ASM9260_UART_RS485ADRMATCH)
+#define UART_GET_RS485DLY(port)				ioread32((port)->membase + ASM9260_UART_RS485DLY)
+#define UART_GET_AUTOBAUD(port)				ioread32((port)->membase + ASM9260_UART_AUTOBAUD)
 
 struct asm9260_uart_char {
 	u16		status;
@@ -204,26 +213,56 @@ struct asm9260_uart_char {
  */
 struct asm9260_uart_port {
 	struct uart_port	uart;		/* uart */
+	struct device_node	*np;
 	struct clk		*clk;		/* uart clock */
+	struct clk		*clk_ahb;
+	int			clk_on;
 	int			break_active;	/* break being received */
 
 	struct tasklet_struct	tasklet;
 
-	int tx_enable;
-
 	struct circ_buf		rx_ring;
 
 	struct serial_rs485	rs485;		/* rs485 settings */
+
+	uint32_t intmask;
+	int init_ok;
 };
 
-static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
+//static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
 static void asm9260_start_rx(struct uart_port *port);
+static struct asm9260_uart_port *asm9260_ports;
+static int asm9260_ports_num;
 
 
 static inline struct asm9260_uart_port *
 to_asm9260_uart_port(struct uart_port *uart)
 {
 	return container_of(uart, struct asm9260_uart_port, uart);
+}
+
+static void asm9260_intr_mask_set(struct uart_port *port, uint32_t val)
+{
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+
+	WARN_ON(val & ~ASM9260_UART_INTREN);
+
+	if (val && (asm9260_port->intmask & val) != val) {
+		UART_PUT_INTR_SET(port, val);
+		asm9260_port->intmask |= val;
+	}
+}
+
+static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
+{
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+
+	WARN_ON(val & ~ASM9260_UART_INTREN);
+
+	if (val && (asm9260_port->intmask & val) != 0) {
+		UART_PUT_INTR_CLR(port, val);
+		asm9260_port->intmask &= ~val;
+	}
 }
 
 /*
@@ -261,9 +300,7 @@ static void asm9260_stop_tx(struct uart_port *port)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
-	dbg("asm9260_stop_tx");
-
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 
 	if ((asm9260_port->rs485.flags & SER_RS485_ENABLED) &&
 	    !(asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX))
@@ -276,18 +313,8 @@ static void asm9260_tx_chars(struct uart_port *port);
  */
 static void asm9260_start_tx(struct uart_port *port)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
-	dbg("asm9260_start_tx");
-
-	if ((asm9260_port->tx_enable != 1) ||
-			(!(UART_GET_INTR(port) & ASM9260_UART_TXIEN))) {
-		UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
-		asm9260_port->tx_enable = 1;
-		spin_lock(&port->lock);
-		asm9260_tx_chars(port);
-		spin_unlock(&port->lock);
-	}
+	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
+	asm9260_tx_chars(port);
 }
 
 /*
@@ -313,7 +340,7 @@ static void asm9260_stop_rx(struct uart_port *port)
 
 	/* disable receive */
 	UART_PUT_CTRL2_CLR(port, ASM9260_UART_RXE);
-	UART_PUT_INTR_CLR(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
 }
 
 /*
@@ -395,9 +422,9 @@ static void asm9260_rx_chars(struct uart_port *port)
 			if (intr & ASM9260_UART_BEIS
 			    && !asm9260_port->break_active) {
 				asm9260_port->break_active = 1;
-				UART_PUT_INTR_SET(port, ASM9260_UART_BEIEN);
+				asm9260_intr_mask_set(port, ASM9260_UART_BEIEN);
 			} else {
-				UART_PUT_INTR_CLR(port, ASM9260_UART_BEIEN);
+				asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
 				intr &= ~ASM9260_UART_BEIS;
 				asm9260_port->break_active = 0;
 			}
@@ -441,7 +468,7 @@ static void asm9260_tx_chars(struct uart_port *port)
 		uart_write_wakeup(port);
 
 	if (uart_circ_empty(xmit))
-		UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+		asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 }
 
 /*
@@ -469,7 +496,7 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 		 * character, asm9260_rx_chars will handle it.
 		 */
 		UART_PUT_STAT(port, 0);
-		UART_PUT_INTR_CLR(port, ASM9260_UART_BEIEN);
+		asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
 		asm9260_port->break_active = 0;
 	}
 }
@@ -616,8 +643,8 @@ static int asm9260_startup(struct uart_port *port)
 	/*
 	 * Allocate the IRQ
 	 */
-	retval = request_irq(port->irq, asm9260_interrupt, IRQF_SHARED,
-			tty ? tty->name : "asm9260_serial", port);
+	retval = request_irq(port->irq, asm9260_interrupt,
+			IRQF_SHARED, tty ? tty->name : "asm9260_serial", port);
 	if (retval) {
 		printk("asm9260_serial : asm9260_startup - Can't get irq\n");
 		return retval;
@@ -629,9 +656,9 @@ static int asm9260_startup(struct uart_port *port)
 	UART_PUT_CTRL0_SET(port, ASM9260_UART_DEFAULT_RXTIMEOUT
 			| ASM9260_UART_RXTO_ENABLE);
 
-	/*disable txfifo empty interrupt, enable rx and rxto interrupt*/
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TFEIEN);
-	UART_PUT_INTR_SET(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	/* disable txfifo empty interrupt, enable rx and rxto interrupt */
+	asm9260_intr_mask_clr(port, ASM9260_UART_TFEIEN);
+	asm9260_intr_mask_set(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
 
 	/*
 	 * Finally, enable the serial port
@@ -650,7 +677,6 @@ static int asm9260_startup(struct uart_port *port)
  */
 static void asm9260_shutdown(struct uart_port *port)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	int timeout = 10000;
 
 	dbg("asm9260_shutdown");
@@ -667,13 +693,7 @@ static void asm9260_shutdown(struct uart_port *port)
 	asm9260_stop_tx(port);
 	asm9260_stop_rx(port);
 
-	asm9260_port->tx_enable = 0;
-
-	/*
-	 * Free the interrupt
-	 */
 	free_irq(port->irq, port);
-
 }
 
 /*
@@ -770,7 +790,7 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	port->read_status_mask = ASM9260_UART_OEIS;
 	if (termios->c_iflag & INPCK)
 		port->read_status_mask |= (ASM9260_UART_FEIS | ASM9260_UART_PEIS);
-	if (termios->c_iflag & (BRKINT | PARMRK))
+	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
 		port->read_status_mask |= ASM9260_UART_BEIS;
 
 	/*
@@ -844,11 +864,10 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	UART_PUT_RS485CTRL(port, rs485_ctrl);
 
 	/* set hardware flow control */
-	if (termios->c_cflag & CRTSCTS) {
+	if (termios->c_cflag & CRTSCTS)
 		UART_PUT_CTRL2_SET(port, ASM9260_UART_CTSE | ASM9260_UART_RTSE);
-	} else {
+	else
 		UART_PUT_CTRL2_CLR(port, ASM9260_UART_CTSE | ASM9260_UART_RTSE);
-	}
 
 	/* set the parity, stop bits, data size and baud rate*/
 	UART_PUT_LINECTRL(port, mode | bauddivint | bauddivfrac);
@@ -941,7 +960,7 @@ void asm9260_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf
 	spin_lock_irqsave(&port->lock, flags);
 
 	/* Disable interrupts */
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 
 	rs485_ctrl = UART_GET_RS485CTRL(port);
 
@@ -986,8 +1005,8 @@ void asm9260_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf
 
 	UART_PUT_RS485CTRL(port, rs485_ctrl);
 
-	/* Enable interrupts */
-	UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
+	/* Enable tx interrupts */
+	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -1042,81 +1061,16 @@ static struct uart_ops asm9260_pops = {
 	.ioctl	= asm9260_ioctl,
 };
 
-static unsigned int get_uart_clock(struct uart_port *port)
-{
-	unsigned int uart_clk_sel, uart_src_clk, uart_clk;
-	int uart_num;
-
-	uart_num = ((unsigned int)(port->membase) - (unsigned int)IO_ADDRESS(UART0_BASEESS)) / 0x4000;
-
-	uart_clk_sel = as3310_readl(HW_UARTCLKSEL);
-	if (uart_clk_sel == SOURCE_CLOCK_EXT12M)
-		uart_src_clk = 12000000;
-	else if (uart_clk_sel == SOURCE_CLOCK_SYSPLL) {
-		if ((as3310_readl(HW_PDRUNCFG) & PLL_POWER_DOWN) != 0)
-			return 0;
-		else
-			uart_src_clk = (as3310_readl(HW_SYSPLLCTRL) &
-					SYSPLL_MASK) * 1000000;
-	} else
-		return 0;
-
-	uart_clk = uart_src_clk / as3310_readl(HW_UART0CLKDIV + uart_num * 4);
-	printk("uart_clk: %d.\n", uart_clk);
-
-	return uart_clk;
-}
-
-/*
- * Configure the port from the platform device resource info.
- */
-static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
-				      struct platform_device *pdev)
-{
-	struct uart_port *port = &asm9260_port->uart;
-	struct asm9260_uart_data *data = pdev->dev.platform_data;
-
-	dbg("asm9260_init_port");
-
-	asm9260_port->rs485	= data->rs485;
-
-	port->iotype	= UPIO_MEM;
-	port->flags	= UPF_BOOT_AUTOCONF;
-	port->ops	= &asm9260_pops;
-	port->fifosize	= ASM9260_UART_FIFOSIZE;
-	port->line	= pdev->id;
-	port->dev	= &pdev->dev;
-
-	if (data->regs)
-		/* Already mapped by setup code */
-		port->membase = data->regs;
-	else {
-		port->flags	|= UPF_IOREMAP;
-		port->membase	= NULL;
-	}
-
-	port->uartclk   = get_uart_clock(port);
-
-	port->mapbase	= pdev->resource[0].start;
-	port->irq	= pdev->resource[1].start;
-
-	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
-			(unsigned long)port);/*setp 2*/
-
-	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
-
-	asm9260_port->tx_enable = 0;
-}
-
 #ifdef CONFIG_SERIAL_ASM9260_CONSOLE
 
+static struct asm9260_uart_port *get_asm9260_uart_port(int line);
 static struct console asm9260_console;
 
-static void asm9260_console_putchar(struct uart_port *port, int ch)
+static void asm9260_console_putchar(struct uart_port *uport, int ch)
 {
-	while (UART_GET_STAT(port) & ASM9260_UART_TXFULL)
+	while (UART_GET_STAT(uport) & ASM9260_UART_TXFULL)
 		cpu_relax();
-	UART_PUT_DATA(port, ch);
+	UART_PUT_DATA(uport, ch);
 }
 
 /*
@@ -1124,26 +1078,40 @@ static void asm9260_console_putchar(struct uart_port *port, int ch)
  */
 static void asm9260_console_write(struct console *co, const char *s, u_int count)
 {
-	struct uart_port *port = &asm9260_ports[co->index].uart;
+	struct uart_port *uport;
+	struct asm9260_uart_port *port;
 	unsigned int status, intr;
+	unsigned long flags;
+	int locked = 1;
+
+	port = get_asm9260_uart_port(co->index);
+	uport = &port->uart;
+
+	if (oops_in_progress)
+		locked = spin_trylock_irqsave(&uport->lock, flags);
+	else
+		spin_lock_irqsave(&uport->lock, flags);
 
 	/*
 	 * First, save IMR and then disable interrupts
 	 */
-	intr = UART_GET_INTR(port);
-	UART_PUT_INTR(port, intr & (~(ASM9260_UART_RXIEN | ASM9260_UART_TXIEN)));
+	intr = UART_GET_INTR(uport) & (ASM9260_UART_RXIEN | ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(uport, intr);
 
-	uart_console_write(port, s, count, asm9260_console_putchar);
+	uart_console_write(uport, s, count, asm9260_console_putchar);
 
 	/*
 	 * Finally, wait for transmitter to become empty
 	 * and restore IMR
 	 */
 	do {
-		status = UART_GET_STAT(port);
+		status = UART_GET_STAT(uport);
 	} while (!(status & ASM9260_UART_TXEMPTY));
 
-	UART_PUT_INTR(port, intr);
+	asm9260_intr_mask_set(uport, intr);
+
+	if (locked)
+		spin_unlock_irqrestore(&uport->lock, flags);
 }
 
 /*
@@ -1189,23 +1157,35 @@ static void __init asm9260_console_get_options(struct uart_port *port, int *baud
 	*baud = (port->uartclk * 4) / quot;
 }
 
+static int asm9260_get_of_clks(struct asm9260_uart_port *port,
+		struct device_node *np);
+static void asm9260_enable_clks(struct asm9260_uart_port *port);
+static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_setup(struct console *co, char *options)
 {
-	struct uart_port *port = &asm9260_ports[co->index].uart;
+	struct uart_port *uport;
+	struct asm9260_uart_port *port;
 	int baud = 115200;
 	int bits = 8;
 	int parity = 'n';
 	int flow = 'n';
 
-	UART_PUT_CTRL2_SET(port, ASM9260_UART_TXE
+	asm9260_uart_of_enumerate();
+
+	port = get_asm9260_uart_port(co->index);
+	uport = &port->uart;
+
+	asm9260_enable_clks(port);
+
+	UART_PUT_CTRL2_SET(uport, ASM9260_UART_TXE
 			| ASM9260_UART_RXE | ASM9260_UART_ENABLE);
 
 	if (options)
 		uart_parse_options(options, &baud, &parity, &bits, &flow);
 	else
-		asm9260_console_get_options(port, &baud, &parity, &bits);
+		asm9260_console_get_options(uport, &baud, &parity, &bits);
 
-	return uart_set_options(port, co, baud, parity, bits, flow);
+	return uart_set_options(uport, co, baud, parity, bits, flow);
 }
 
 static struct uart_driver asm9260_uart;
@@ -1222,23 +1202,18 @@ static struct console asm9260_console = {
 
 #define ASM9260_CONSOLE_DEVICE	(&asm9260_console)
 
+#if 1
 /*
  * Early console initialization (before VM subsystem initialized).
  */
 static int __init asm9260_console_init(void)
 {
-	if (asm9260_default_console_device) {
-		add_preferred_console(ASM9260_DEVICENAME,
-				      asm9260_default_console_device->id, NULL);
-		asm9260_init_port(&asm9260_ports[asm9260_default_console_device->id],
-				asm9260_default_console_device);
-		register_console(&asm9260_console);
-	}
-
+	register_console(&asm9260_console);
 	return 0;
 }
 
 console_initcall(asm9260_console_init);
+#endif
 
 static inline bool asm9260_is_console_port(struct uart_port *port)
 {
@@ -1258,68 +1233,225 @@ static struct uart_driver asm9260_uart = {
 	.owner			= THIS_MODULE,
 	.driver_name		= "asm9260_serial",
 	.dev_name		= ASM9260_DEVICENAME,
-	.major			= SERIAL_ASM9260_MAJOR,
-	.minor			= MINOR_START,
 	.nr			= ASM9260_MAX_UART,
 	.cons			= ASM9260_CONSOLE_DEVICE,
 };
 
-#ifdef CONFIG_PM
-static int asm9260_serial_suspend(struct platform_device *pdev,
-				pm_message_t state)
+#if defined(CONFIG_OF)
+/* Match table for of_platform binding */
+static struct of_device_id asm9260_of_match[] = {
+	{ .compatible = "alpscale,asm9260-uart", },
+	{}
+};
+MODULE_DEVICE_TABLE(of, asm9260_of_match);
+#endif /* CONFIG_OF */
+
+
+static void asm9260_enable_clks(struct asm9260_uart_port *port)
 {
-	return 0;
+	struct uart_port *uport = &port->uart;
+	int err;
+
+	if (port->clk_on)
+		return;
+
+	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
+	if (err) {
+		dev_err(uport->dev, "Failed to set rate!\n");
+	}
+
+	err = clk_prepare_enable(port->clk);
+	if (err) {
+		dev_err(uport->dev, "Failed to enable clk!\n");
+	}
+
+	err = clk_prepare_enable(port->clk_ahb);
+	if (err) {
+		dev_err(uport->dev, "Failed to enable ahb_clk!\n");
+	}
+
+	uport->uartclk = clk_get_rate(port->clk);
+	port->clk_on = 1;
 }
 
-static int asm9260_serial_resume(struct platform_device *pdev)
+
+/* get devicetree clocks, if some thing wrong, warn about it */
+static int asm9260_get_of_clks(struct asm9260_uart_port *port,
+		struct device_node *np)
 {
+	int clk_idx = 0;
+
+	port->clk = of_clk_get(np, clk_idx);
+	if (IS_ERR(port->clk))
+		goto out_err;
+
+	/* configure AHB clock */
+	clk_idx = 1;
+	port->clk_ahb = of_clk_get(np, clk_idx);
+	if (IS_ERR(port->clk_ahb))
+		goto out_err;
 
 	return 0;
+out_err:
+	pr_err("%s: Failed to get clk (%i)\n", __func__, clk_idx);
+	return 1;
 }
-#else
-#define asm9260_serial_suspend NULL
-#define asm9260_serial_resume NULL
-#endif
+
+static int asm9260_get_count_of_nodes(const struct of_device_id *matches)
+{
+	int count = 0;
+	struct device_node *np;
+
+	for_each_matching_node(np, matches)
+		count++;
+
+	return count;
+}
+
+static struct asm9260_uart_port *get_asm9260_uart_port(int line)
+{
+	if (line >= asm9260_ports_num) {
+		pr_err("%s: Line number overflow. Check DeviceTree!!",
+				__func__);
+		return NULL;
+	}
+
+	return &asm9260_ports[line];
+}
+
+static void asm9260_uart_of_enumerate(void)
+{
+	static int enum_done;
+	struct device_node *np;
+
+	if (enum_done)
+		return;
+
+	asm9260_ports_num = asm9260_get_count_of_nodes(asm9260_of_match);
+	asm9260_ports = kcalloc(asm9260_ports_num,
+				sizeof(struct asm9260_uart_port), GFP_KERNEL);
+
+	for_each_matching_node(np, asm9260_of_match) {
+		struct uart_port *uport;
+		struct asm9260_uart_port *port;
+		int line;
+
+		line = of_alias_get_id(np, "serial");
+		if (line < 0) {
+			pr_err("Error! Devicetree has no \"serial\" aliases\n");
+			continue;
+		}
+
+		port = get_asm9260_uart_port(line);
+		if (!port)
+			continue;
+
+		uport = &port->uart;
+		if(asm9260_get_of_clks(port, np))
+			return;
+
+		uport->iotype	= UPIO_MEM;
+		uport->flags	= UPF_BOOT_AUTOCONF;
+		uport->ops	= &asm9260_pops;
+		uport->fifosize	= ASM9260_UART_FIFOSIZE;
+		uport->line	= line;
+
+		/* Since of_map don't do actual request of memory region,
+		 * it is save to use it for all, enabled and disabled uarts. */
+		uport->membase = of_iomap(np, 0);
+		if (!uport->membase) {
+			pr_err("Unable to map registers\n");
+			continue;
+		}
+		port->np = np;
+		port->init_ok = 1;
+	}
+
+	enum_done = 1;
+}
+
+/*
+ * Configure the port from the platform device resource info.
+ */
+static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
+				      struct platform_device *pdev)
+{
+	struct uart_port *uport = &asm9260_port->uart;
+	struct device_node *np = pdev->dev.of_node;
+
+	/* TODO: wait for of_io_request_and_map */
+	/* TODO: need working DT irq infrastructure */
+	//uport->irq	= of_irq_get(np, 0);
+	of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
+	uport->mapbase	= uport->membase;
+
+	asm9260_enable_clks(asm9260_port);
+
+	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
+			(unsigned long)uport);/*setp 2*/
+
+	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
+}
+
+
 
 static int asm9260_serial_probe(struct platform_device *pdev)
 {
 	struct asm9260_uart_port *port;
+	struct device_node *np = pdev->dev.of_node;
 	void *data;
-	int ret;
-
-	dbg("asm9260_serial_probe");
+	int ret, line;
 
 	BUILD_BUG_ON(!is_power_of_2(ASM9260_SERIAL_RINGSIZE));
 
-	port = &asm9260_ports[pdev->id];
+	asm9260_uart_of_enumerate();
+
+	if (!np) {
+		dev_err(&pdev->dev, "Error! We support only DeviceTree!\n");
+		return -EPERM;
+	}
+
+	line = of_alias_get_id(np, "serial");
+	if (line < 0) {
+		dev_err(&pdev->dev, "Error! Devicetree has no \"serial\" aliases\n");
+		return -EPERM;
+	}
+
+	port = get_asm9260_uart_port(line);
+
+	if (!port->init_ok) {
+		dev_err(&pdev->dev, "Bad init!\n");
+	}
 
 	asm9260_init_port(port, pdev);
 
 	data = devm_kmalloc(&pdev->dev, sizeof(struct asm9260_uart_char)
 			* ASM9260_SERIAL_RINGSIZE, GFP_KERNEL);
 	if (!data) {
+		dev_err(&pdev->dev, "Filed to allocate ring\n");
 		ret = -ENOMEM;
 		goto err_alloc_ring;
 	}
 	port->rx_ring.buf = data;
 
 	ret = uart_add_one_port(&asm9260_uart, &port->uart);
-	if (ret)
+	if (ret) {
+		dev_err(&pdev->dev, "Filed to add uart port\n");
 		goto err_add_port;
+	}
 
-	device_init_wakeup(&pdev->dev, 1);
 	platform_set_drvdata(pdev, port);
 
 	return 0;
 
 err_add_port:
-	port->rx_ring.buf = NULL;
+//	port->rx_ring.buf = NULL;
 err_alloc_ring:
 	if (!asm9260_is_console_port(&port->uart)) {
 		clk_put(port->clk);
 		port->clk = NULL;
 	}
-
+	dev_err(&pdev->dev, "Filed to probe device\n");
 	return ret;
 }
 
@@ -1329,29 +1461,25 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	int ret = 0;
 
-	device_init_wakeup(&pdev->dev, 0);
-	platform_set_drvdata(pdev, NULL);
-
-	ret = uart_remove_one_port(&asm9260_uart, port);
-
 	tasklet_kill(&asm9260_port->tasklet);
 
-	/* "port" is allocated statically, so we shouldn't free it */
+	uart_remove_one_port(&asm9260_uart, port);
+	uart_unregister_driver(&asm9260_uart);
 
+	/* TODO: how should we handle clks here */
 	clk_put(asm9260_port->clk);
 
 	return ret;
 }
 
 static struct platform_driver asm9260_serial_driver = {
-	.probe		= asm9260_serial_probe,
-	.remove		= asm9260_serial_remove,
-	.suspend	= asm9260_serial_suspend,
-	.resume		= asm9260_serial_resume,
 	.driver		= {
 		.name	= "asm9260_uart",
 		.owner	= THIS_MODULE,
+		.of_match_table = of_match_ptr(asm9260_of_match),
 	},
+	.probe		= asm9260_serial_probe,
+	.remove		= asm9260_serial_remove,
 };
 
 static int __init asm9260_serial_init(void)

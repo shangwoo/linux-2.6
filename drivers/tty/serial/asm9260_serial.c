@@ -209,8 +209,6 @@ struct asm9260_uart_port {
 
 	struct tasklet_struct	tasklet;
 
-	int tx_enable;
-
 	struct circ_buf		rx_ring;
 
 	struct serial_rs485	rs485;		/* rs485 settings */
@@ -280,14 +278,8 @@ static void asm9260_start_tx(struct uart_port *port)
 
 	dbg("asm9260_start_tx");
 
-	if ((asm9260_port->tx_enable != 1) ||
-			(!(UART_GET_INTR(port) & ASM9260_UART_TXIEN))) {
-		UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
-		asm9260_port->tx_enable = 1;
-		spin_lock(&port->lock);
-		asm9260_tx_chars(port);
-		spin_unlock(&port->lock);
-	}
+	UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
+	asm9260_tx_chars(port);
 }
 
 /*
@@ -667,13 +659,10 @@ static void asm9260_shutdown(struct uart_port *port)
 	asm9260_stop_tx(port);
 	asm9260_stop_rx(port);
 
-	asm9260_port->tx_enable = 0;
-
 	/*
 	 * Free the interrupt
 	 */
 	free_irq(port->irq, port);
-
 }
 
 /*
@@ -1103,8 +1092,6 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 			(unsigned long)port);/*setp 2*/
 
 	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
-
-	asm9260_port->tx_enable = 0;
 }
 
 #ifdef CONFIG_SERIAL_ASM9260_CONSOLE

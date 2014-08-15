@@ -79,14 +79,15 @@ static struct irqaction as9260_timer0_irq = {
 	.handler	= as9260_timer0_interrupt,
 };
 
-static void __init as9260_timer_init(void)
+void __init as9260_timer_init(void)
 {
 	setup_irq(INT_TIMER0, &as9260_timer0_irq);
 	as9260_timer0_setup();
 }
 
+#if 0
 struct sys_timer as9260_timer = {
 	.init		= as9260_timer_init,
 	.offset		= NULL,		/* Initialized later */
 };
-
+#endif

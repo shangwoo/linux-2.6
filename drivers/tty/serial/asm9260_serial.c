@@ -1112,12 +1112,20 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 {
 	struct uart_port *port = &asm9260_ports[co->index].uart;
 	unsigned int status, intr;
+	unsigned long flags;
+	int locked = 1;
+
+	if (oops_in_progress)
+		locked = spin_trylock_irqsave(&port->lock, flags);
+	else
+		spin_lock_irqsave(&port->lock, flags);
 
 	/*
 	 * First, save IMR and then disable interrupts
 	 */
 	intr = UART_GET_INTR(port);
-	UART_PUT_INTR(port, intr & (~(ASM9260_UART_RXIEN | ASM9260_UART_TXIEN)));
+	intr &= ASM9260_UART_RXIEN | ASM9260_UART_TXIEN;
+	UART_PUT_INTR_CLR(port, intr);
 
 	uart_console_write(port, s, count, asm9260_console_putchar);
 
@@ -1129,7 +1137,11 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 		status = UART_GET_STAT(port);
 	} while (!(status & ASM9260_UART_TXEMPTY));
 
-	UART_PUT_INTR(port, intr);
+	if (intr)
+		UART_PUT_INTR_SET(port, intr);
+
+	if (locked)
+		spin_unlock_irqrestore(&port->lock, flags);
 }
 
 /*

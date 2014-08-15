@@ -1552,6 +1552,30 @@ config SERIAL_MEN_Z135
 	  This driver can also be build as a module. If so, the module will be called
 	  men_z135_uart.ko
 
+config SERIAL_ASM9260
+	tristate "ASM9260 controller serial support"
+	select SERIAL_CORE
+	help
+		If you have an asm9260 based Base IO card
+		and wish to use the serial ports on this card, say Y.
+		Otherwise, say N.
+
+config SERIAL_ASM9260_CONSOLE
+	bool "ASM9260 console support"
+	depends on SERIAL_ASM9260
+	select SERIAL_CORE_CONSOLE
+	help
+		If you want to support serial console on borad asm9260
+		say Y. Otherwise, say N.
+
+config ASM9260_UART_DEBUG
+	bool "ASM9260 uart debug"
+	depends on SERIAL_ASM9260
+	help
+		Add support for debugging the serial driver.
+
+source "arch/arm/mach-asm9260/Kconfig"
+
 endmenu
 
 config SERIAL_MCTRL_GPIO

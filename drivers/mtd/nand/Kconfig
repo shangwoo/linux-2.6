@@ -513,4 +513,35 @@ config MTD_NAND_XWAY
 	  Enables support for NAND Flash chips on Lantiq XWAY SoCs. NAND is attached
 	  to the External Bus Unit (EBU).
 
+config MTD_NAND_ASM9260
+       tristate "NAND Flash support for ASM9260 SoC"
+       depends on MACH_AS9260
+       default y
+       help
+         This enables the NAND flash controller on the ASM9260 SoCs,
+         the driver support NAND chips(page size 2K, 4k, 8k).
+
+
+config MTD_NAND_ASM9260_DEBUG
+       bool "ASM9260 NAND driver debug"
+       depends on MTD_NAND_ASM9260
+       default n
+       help
+         Enable debugging of the ASM9260 NAND driver
+
+config MTD_NAND_ASM9260_HWECC
+       bool "ASM9260 NAND Hardware ECC"
+       depends on MTD_NAND_ASM9260
+       default y
+       help
+         Enable the use of the ASM9260's internal ECC generator when
+         using NAND. 
+
+config MTD_NAND_ASAP9260_DMA
+       bool "ASAP9260 NAND DMA"
+       depends on MTD_NAND_ASM9260
+       default y
+       help
+         Enable Hardware DMA of the ASAP1826T NAND driver
+
 endif # MTD_NAND

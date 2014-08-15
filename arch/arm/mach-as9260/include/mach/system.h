@@ -6,9 +6,10 @@
 #define __ASM_ARCH_SYSTEM_H
 #include <asm/mach-types.h>
 #include <mach/hardware.h>
-#include <asm/cpu-single.h>
+//#include <asm/cpu-single.h>
 #include <mach/io.h>
 #include <linux/delay.h>
+#include <asm/proc-fns.h>
 
 #ifndef CONFIG_MACH_VOICEBLUE
 #define voiceblue_reset()		do {} while (0)

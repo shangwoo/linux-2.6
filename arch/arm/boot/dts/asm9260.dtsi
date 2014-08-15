@@ -12,17 +12,6 @@
 #include "skeleton.dtsi"
 
 / {
-	clocks {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		osc24m: oscillator {
-			compatible = "fixed-clock";
-			#clock-cells = <1>;
-			clock-frequency = <24000000>;
-		};
-	};
-
 	cpus {
 		#address-cells = <0>;
 		#size-cells = <0>;
@@ -30,6 +19,36 @@
 		cpu {
 			compatible = "arm,arm926ej-s";
 			device_type = "cpu";
+		};
+	};
+
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+                ranges;
+
+		sregs@80040000 {
+			compatible = "alpscale,asm9260-sregs";
+			reg = <0x80040000 0x504>;
+
+			clocks {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				osc24m: oscillator {
+					compatible = "fixed-clock";
+					#clock-cells = <0>;
+					clock-frequency = <24000000>;
+				};
+
+				sys_pll_ctrl2: sys_pll_ctrl2 {
+					compatible = "alpscale,asm9260-syspllctrl";
+					#clock-cells = <0>;
+					clocks = <&osc24m>;
+					reg = <0x0102>;
+				};
+			};
 		};
 	};
 };

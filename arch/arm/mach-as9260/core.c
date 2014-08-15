@@ -3,6 +3,10 @@
  *  Copyright (C) 2011-2014 Alpscale
  *
  */
+
+#include <linux/clk-provider.h>
+#include <linux/of_platform.h>
+
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
@@ -834,6 +838,7 @@ static void __init as9260_init(void)
 	asm9260_gpio_init();
 
 	asm9260_add_device_serial();
+	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 
 #ifdef CONFIG_CAN1_ASM9260_PLATFORM
 	asm9260_add_device_can();

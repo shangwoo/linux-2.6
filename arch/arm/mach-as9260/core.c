@@ -3,6 +3,10 @@
  *  Copyright (C) 2011-2014 Alpscale
  *
  */
+
+#include <linux/clk-provider.h>
+#include <linux/of_platform.h>
+
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
@@ -829,6 +833,10 @@ extern void __init setup_usb(void);
 
 static void __init as9260_init(void)
 {
+	/* TODO: if platform .time_init is remove,
+	 * it will be executed by kernel */
+	of_clk_init(NULL);
+
 	/* must init before any other
 	 * devices which may use gpio pins */
 	asm9260_gpio_init();

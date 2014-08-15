@@ -770,7 +770,7 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	port->read_status_mask = ASM9260_UART_OEIS;
 	if (termios->c_iflag & INPCK)
 		port->read_status_mask |= (ASM9260_UART_FEIS | ASM9260_UART_PEIS);
-	if (termios->c_iflag & (BRKINT | PARMRK))
+	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
 		port->read_status_mask |= ASM9260_UART_BEIS;
 
 	/*
@@ -844,11 +844,10 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	UART_PUT_RS485CTRL(port, rs485_ctrl);
 
 	/* set hardware flow control */
-	if (termios->c_cflag & CRTSCTS) {
+	if (termios->c_cflag & CRTSCTS)
 		UART_PUT_CTRL2_SET(port, ASM9260_UART_CTSE | ASM9260_UART_RTSE);
-	} else {
+	else
 		UART_PUT_CTRL2_CLR(port, ASM9260_UART_CTSE | ASM9260_UART_RTSE);
-	}
 
 	/* set the parity, stop bits, data size and baud rate*/
 	UART_PUT_LINECTRL(port, mode | bauddivint | bauddivfrac);

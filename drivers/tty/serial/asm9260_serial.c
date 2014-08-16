@@ -212,6 +212,8 @@ struct asm9260_uart_port {
 	struct circ_buf		rx_ring;
 
 	struct serial_rs485	rs485;		/* rs485 settings */
+
+	uint32_t intmask;
 };
 
 static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
@@ -222,6 +224,30 @@ static inline struct asm9260_uart_port *
 to_asm9260_uart_port(struct uart_port *uart)
 {
 	return container_of(uart, struct asm9260_uart_port, uart);
+}
+
+static void asm9260_intr_mask_set(struct uart_port *port, uint32_t val)
+{
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+
+	WARN_ON(val & ~ASM9260_UART_INTREN);
+
+	if (val && (asm9260_port->intmask & val) != val) {
+		UART_PUT_INTR_SET(port, val);
+		asm9260_port->intmask |= val;
+	}
+}
+
+static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
+{
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+
+	WARN_ON(val & ~ASM9260_UART_INTREN);
+
+	if (val && (asm9260_port->intmask & val) != 0) {
+		UART_PUT_INTR_CLR(port, val);
+		asm9260_port->intmask &= ~val;
+	}
 }
 
 /*
@@ -259,9 +285,7 @@ static void asm9260_stop_tx(struct uart_port *port)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
-	dbg("asm9260_stop_tx");
-
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 
 	if ((asm9260_port->rs485.flags & SER_RS485_ENABLED) &&
 	    !(asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX))
@@ -274,11 +298,7 @@ static void asm9260_tx_chars(struct uart_port *port);
  */
 static void asm9260_start_tx(struct uart_port *port)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
-	dbg("asm9260_start_tx");
-
-	UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
 	asm9260_tx_chars(port);
 }
 
@@ -305,7 +325,7 @@ static void asm9260_stop_rx(struct uart_port *port)
 
 	/* disable receive */
 	UART_PUT_CTRL2_CLR(port, ASM9260_UART_RXE);
-	UART_PUT_INTR_CLR(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
 }
 
 /*
@@ -387,9 +407,9 @@ static void asm9260_rx_chars(struct uart_port *port)
 			if (intr & ASM9260_UART_BEIS
 			    && !asm9260_port->break_active) {
 				asm9260_port->break_active = 1;
-				UART_PUT_INTR_SET(port, ASM9260_UART_BEIEN);
+				asm9260_intr_mask_set(port, ASM9260_UART_BEIEN);
 			} else {
-				UART_PUT_INTR_CLR(port, ASM9260_UART_BEIEN);
+				asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
 				intr &= ~ASM9260_UART_BEIS;
 				asm9260_port->break_active = 0;
 			}
@@ -433,7 +453,7 @@ static void asm9260_tx_chars(struct uart_port *port)
 		uart_write_wakeup(port);
 
 	if (uart_circ_empty(xmit))
-		UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+		asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 }
 
 /*
@@ -461,7 +481,7 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 		 * character, asm9260_rx_chars will handle it.
 		 */
 		UART_PUT_STAT(port, 0);
-		UART_PUT_INTR_CLR(port, ASM9260_UART_BEIEN);
+		asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
 		asm9260_port->break_active = 0;
 	}
 }
@@ -621,9 +641,9 @@ static int asm9260_startup(struct uart_port *port)
 	UART_PUT_CTRL0_SET(port, ASM9260_UART_DEFAULT_RXTIMEOUT
 			| ASM9260_UART_RXTO_ENABLE);
 
-	/*disable txfifo empty interrupt, enable rx and rxto interrupt*/
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TFEIEN);
-	UART_PUT_INTR_SET(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	/* disable txfifo empty interrupt, enable rx and rxto interrupt */
+	asm9260_intr_mask_clr(port, ASM9260_UART_TFEIEN);
+	asm9260_intr_mask_set(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
 
 	/*
 	 * Finally, enable the serial port
@@ -642,7 +662,6 @@ static int asm9260_startup(struct uart_port *port)
  */
 static void asm9260_shutdown(struct uart_port *port)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	int timeout = 10000;
 
 	dbg("asm9260_shutdown");
@@ -929,7 +948,7 @@ void asm9260_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf
 	spin_lock_irqsave(&port->lock, flags);
 
 	/* Disable interrupts */
-	UART_PUT_INTR_CLR(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
 
 	rs485_ctrl = UART_GET_RS485CTRL(port);
 
@@ -974,8 +993,8 @@ void asm9260_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf
 
 	UART_PUT_RS485CTRL(port, rs485_ctrl);
 
-	/* Enable interrupts */
-	UART_PUT_INTR_SET(port, ASM9260_UART_TXIEN);
+	/* Enable tx interrupts */
+	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
 
 	spin_unlock_irqrestore(&port->lock, flags);
 
@@ -1123,9 +1142,8 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	/*
 	 * First, save IMR and then disable interrupts
 	 */
-	intr = UART_GET_INTR(port);
-	intr &= ASM9260_UART_RXIEN | ASM9260_UART_TXIEN;
-	UART_PUT_INTR_CLR(port, intr);
+	intr = UART_GET_INTR(port) & (ASM9260_UART_RXIEN | ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, intr);
 
 	uart_console_write(port, s, count, asm9260_console_putchar);
 
@@ -1137,8 +1155,7 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 		status = UART_GET_STAT(port);
 	} while (!(status & ASM9260_UART_TXEMPTY));
 
-	if (intr)
-		UART_PUT_INTR_SET(port, intr);
+	asm9260_intr_mask_set(port, intr);
 
 	if (locked)
 		spin_unlock_irqrestore(&port->lock, flags);

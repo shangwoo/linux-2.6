@@ -1279,22 +1279,14 @@ static struct uart_driver asm9260_uart = {
 	.cons			= ASM9260_CONSOLE_DEVICE,
 };
 
-#ifdef CONFIG_PM
-static int asm9260_serial_suspend(struct platform_device *pdev,
-				pm_message_t state)
-{
-	return 0;
-}
-
-static int asm9260_serial_resume(struct platform_device *pdev)
-{
-
-	return 0;
-}
-#else
-#define asm9260_serial_suspend NULL
-#define asm9260_serial_resume NULL
-#endif
+#if defined(CONFIG_OF)
+/* Match table for of_platform binding */
+static struct of_device_id asm9260_of_match[] = {
+	{ .compatible = "alpscale,asm9260-uart", },
+	{}
+};
+MODULE_DEVICE_TABLE(of, asm9260_of_match);
+#endif /* CONFIG_OF */
 
 static int asm9260_serial_probe(struct platform_device *pdev)
 {
@@ -1317,6 +1309,10 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 		goto err_alloc_ring;
 	}
 	port->rx_ring.buf = data;
+
+	ret = uart_register_driver(&asm9260_uart);
+	if (ret)
+		goto err_add_port;
 
 	ret = uart_add_one_port(&asm9260_uart, &port->uart);
 	if (ret)
@@ -1347,11 +1343,10 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 	device_init_wakeup(&pdev->dev, 0);
 	platform_set_drvdata(pdev, NULL);
 
-	ret = uart_remove_one_port(&asm9260_uart, port);
-
 	tasklet_kill(&asm9260_port->tasklet);
 
-	/* "port" is allocated statically, so we shouldn't free it */
+	uart_remove_one_port(&asm9260_uart, port);
+	uart_unregister_driver(&asm9260_uart);
 
 	clk_put(asm9260_port->clk);
 
@@ -1359,40 +1354,16 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 }
 
 static struct platform_driver asm9260_serial_driver = {
-	.probe		= asm9260_serial_probe,
-	.remove		= asm9260_serial_remove,
-	.suspend	= asm9260_serial_suspend,
-	.resume		= asm9260_serial_resume,
 	.driver		= {
 		.name	= "asm9260_uart",
 		.owner	= THIS_MODULE,
+		.of_match_table = of_match_ptr(asm9260_of_match),
 	},
+	.probe		= asm9260_serial_probe,
+	.remove		= asm9260_serial_remove,
 };
 
-static int __init asm9260_serial_init(void)
-{
-	int ret;
-	dbg("asm9260_serial_init");
-	ret = uart_register_driver(&asm9260_uart);
-	if (ret)
-		return ret;
-
-	ret = platform_driver_register(&asm9260_serial_driver);
-	if (ret)
-		uart_unregister_driver(&asm9260_uart);
-
-	return ret;
-}
-
-static void __exit asm9260_serial_exit(void)
-{
-	dbg("asm9260_serial_exit");
-	platform_driver_unregister(&asm9260_serial_driver);
-	uart_unregister_driver(&asm9260_uart);
-}
-
-module_init(asm9260_serial_init);
-module_exit(asm9260_serial_exit);
+module_platform_driver(asm9260_serial_driver);
 
 MODULE_AUTHOR("Chen Dongdong");
 MODULE_DESCRIPTION("ASM9260 serial port driver");

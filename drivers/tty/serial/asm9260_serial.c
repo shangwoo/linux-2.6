@@ -1332,8 +1332,6 @@ static struct console asm9260_console = {
 static int __init asm9260_console_init(void)
 {
 	if (asm9260_default_console_device) {
-	//	add_preferred_console(ASM9260_DEVICENAME,
-	//			      asm9260_default_console_device->id, NULL);
 		asm9260_init_port(&asm9260_ports[asm9260_default_console_device->id],
 				asm9260_default_console_device);
 		register_console(&asm9260_console);

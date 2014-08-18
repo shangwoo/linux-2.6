@@ -1145,7 +1145,6 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	port->flags	= UPF_BOOT_AUTOCONF;
 	port->ops	= &asm9260_pops;
 	port->fifosize	= ASM9260_UART_FIFOSIZE;
-	port->line	= pdev->id;
 	port->dev	= &pdev->dev;
 
 	printk("%s:%i\n", __func__, __LINE__);
@@ -1170,13 +1169,18 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	printk("clk = %d\n", clk_get_rate(asm9260_port->clk));
 
 	if (np) {
-		port->irq = irq_of_parse_and_map(np, 0);
-		port->mapbase = port->membase;
+		port->line	= of_alias_get_id(np, "serial");
+		/* todo: need working DT irq infrastructure */
+		//port->irq	= of_irq_get(np, 0);
+		of_property_read_u32_index(np, "interrupts", 0, &port->irq);
+		port->mapbase	= port->membase;
 	} else {
+		port->line	= pdev->id;
 		port->mapbase	= pdev->resource[0].start;
 		port->irq	= pdev->resource[1].start;
 	}
 
+		printk("port->line == %x; irq == %x\n", port->line, port->irq);
 	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
 			(unsigned long)port);/*setp 2*/
 
@@ -1359,14 +1363,18 @@ MODULE_DEVICE_TABLE(of, asm9260_of_match);
 static int asm9260_serial_probe(struct platform_device *pdev)
 {
 	struct asm9260_uart_port *port;
+	struct device_node *np = pdev->dev.of_node;
 	void *data;
 	int ret;
 
 	printk("asm9260_serial_probe: %x\n", pdev->id);
 
 	BUILD_BUG_ON(!is_power_of_2(ASM9260_SERIAL_RINGSIZE));
-
-	port = &asm9260_ports[pdev->id];
+	if (np) {
+		port = devm_kmalloc(&pdev->dev, sizeof(struct
+					asm9260_uart_port), GFP_KERNEL);
+	} else
+		port = &asm9260_ports[pdev->id];
 
 	asm9260_init_port(port, pdev);
 
@@ -1399,7 +1407,7 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_port:
-	port->rx_ring.buf = NULL;
+//	port->rx_ring.buf = NULL;
 err_alloc_ring:
 	if (!asm9260_is_console_port(&port->uart)) {
 		clk_put(port->clk);

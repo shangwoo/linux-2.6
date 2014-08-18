@@ -44,35 +44,35 @@
 		uart0: serial@80000000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80000000 0x4000>;
-			clocks = <&uart0_div>;
+			clocks = <&uart0_div>, <&ahb_uart0_gate>;
 			interrupts = <15>;
 			status = "disabled";
 		};
 		uart1: serial@80004000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80004000 0x4000>;
-			clocks = <&uart1_div>;
+			clocks = <&uart1_div>, <&ahb_uart1_gate>;
 			interrupts = <16>;
 			status = "disabled";
 		};
 		uart2: serial@80008000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80008000 0x4000>;
-			clocks = <&uart2_div>;
+			clocks = <&uart2_div>, <&ahb_uart2_gate>;
 			interrupts = <17>;
 			status = "disabled";
 		};
 		uart3: serial@8000c000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x8000c000 0x4000>;
-			clocks = <&uart3_div>;
+			clocks = <&uart3_div>, <&ahb_uart3_gate>;
 			interrupts = <18>;
 			status = "disabled";
 		};
 		uart4: serial@80010000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80010000 0x4000>;
-			clocks = <&uart4_div>;
+			clocks = <&uart4_div>, <&ahb_uart4_gate>;
 			interrupts = <19>;
 			/*
 			status = "disabled";
@@ -81,35 +81,35 @@
 		uart5: serial@80014000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80014000 0x4000>;
-			clocks = <&uart5_div>;
+			clocks = <&uart5_div>, <&ahb_uart5_gate>;
 			interrupts = <20>;
 			status = "disabled";
 		};
 		uart6: serial@80018000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80018000 0x4000>;
-			clocks = <&uart6_div>;
+			clocks = <&uart6_div>, <&ahb_uart6_gate>;
 			interrupts = <21>;
 			status = "disabled";
 		};
 		uart7: serial@8001c000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x8001c000 0x4000>;
-			clocks = <&uart7_div>;
+			clocks = <&uart7_div>, <&ahb_uart7_gate>;
 			interrupts = <22>;
 			status = "disabled";
 		};
 		uart8: serial@80020000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80020000 0x4000>;
-			clocks = <&uart8_div>;
+			clocks = <&uart8_div>, <&ahb_uart8_gate>;
 			interrupts = <23>;
 			status = "disabled";
 		};
 		uart9: serial@80024000 {
 			compatible = "alpscale,asm9260-uart";
 			reg = <0x80024000 0x4000>;
-			clocks = <&uart9_div>;
+			clocks = <&uart9_div>, <&ahb_uart9_gate>;
 			interrupts = <24>;
 			status = "disabled";
 		};
@@ -268,7 +268,6 @@
 					bit-index = <14>;
 				};
 
-/*
 				ahb_uart4_gate: ahb_uart4_gate@0020 {
 					compatible = "alpscale,asm9260-gate-clock";
 					#clock-cells = <0>;
@@ -277,7 +276,6 @@
 					bit-index = <15>;
 				};
 
-*/
 				ahb_uart5_gate: ahb_uart5_gate@0020 {
 					compatible = "alpscale,asm9260-gate-clock";
 					#clock-cells = <0>;

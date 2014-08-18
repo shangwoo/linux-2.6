@@ -842,6 +842,7 @@ static void __init as9260_init(void)
 	asm9260_gpio_init();
 
 	asm9260_add_device_serial();
+	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 
 #ifdef CONFIG_CAN1_ASM9260_PLATFORM
 	asm9260_add_device_can();
@@ -926,7 +927,6 @@ static void __init as9260_init(void)
 #if defined(CONFIG_TIMER_ASM9260) || defined(CONFIG_TIMER_ASM9260_MODULE)
 	platform_device_register(&as9260_timer_device);
 #endif
-	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 }
 
 static const char * const as9260_dt_board_compat[] __initconst = {

@@ -1325,14 +1325,15 @@ static struct console asm9260_console = {
 
 #define ASM9260_CONSOLE_DEVICE	(&asm9260_console)
 
+#if 1
 /*
  * Early console initialization (before VM subsystem initialized).
  */
 static int __init asm9260_console_init(void)
 {
 	if (asm9260_default_console_device) {
-		add_preferred_console(ASM9260_DEVICENAME,
-				      asm9260_default_console_device->id, NULL);
+	//	add_preferred_console(ASM9260_DEVICENAME,
+	//			      asm9260_default_console_device->id, NULL);
 		asm9260_init_port(&asm9260_ports[asm9260_default_console_device->id],
 				asm9260_default_console_device);
 		register_console(&asm9260_console);
@@ -1342,6 +1343,7 @@ static int __init asm9260_console_init(void)
 }
 
 console_initcall(asm9260_console_init);
+#endif
 
 static inline bool asm9260_is_console_port(struct uart_port *port)
 {
@@ -1401,15 +1403,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	}
 	port->rx_ring.buf = data;
 
-	/* register driver only first time */
-	if (!asm9260_uart.state) {
-		ret = uart_register_driver(&asm9260_uart);
-		if (ret) {
-			dev_err(&pdev->dev, "Filed to register uart driver\n");
-			goto err_add_port;
-		}
-	}
-
 	ret = uart_add_one_port(&asm9260_uart, &port->uart);
 	if (ret) {
 		dev_err(&pdev->dev, "Filed to add uart port\n");
@@ -1457,7 +1450,30 @@ static struct platform_driver asm9260_serial_driver = {
 	.remove		= asm9260_serial_remove,
 };
 
-module_platform_driver(asm9260_serial_driver);
+static int __init asm9260_serial_init(void)
+{
+	int ret;
+	dbg("asm9260_serial_init");
+	ret = uart_register_driver(&asm9260_uart);
+	if (ret)
+		return ret;
+
+	ret = platform_driver_register(&asm9260_serial_driver);
+	if (ret)
+		uart_unregister_driver(&asm9260_uart);
+
+	return ret;
+}
+
+static void __exit asm9260_serial_exit(void)
+{
+	dbg("asm9260_serial_exit");
+	platform_driver_unregister(&asm9260_serial_driver);
+	uart_unregister_driver(&asm9260_uart);
+}
+
+module_init(asm9260_serial_init);
+module_exit(asm9260_serial_exit);
 
 MODULE_AUTHOR("Chen Dongdong");
 MODULE_DESCRIPTION("ASM9260 serial port driver");

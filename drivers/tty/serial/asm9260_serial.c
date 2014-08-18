@@ -1102,7 +1102,7 @@ static unsigned int get_uart_clock(struct uart_port *port)
 
 	clk = of_clk_get(np, 0);
 	if (IS_ERR(clk)) {
-		dev_err(port->dev, "Failed to get uart4_div!\n");
+		dev_err(port->dev, "Failed to get clk!\n");
 		err = PTR_ERR(clk);
 		goto out_err;
 	}
@@ -1119,6 +1119,20 @@ static unsigned int get_uart_clock(struct uart_port *port)
 	}
 
 	asm9260_port->clk = clk;
+
+	/* configure AHB clock */
+	clk = of_clk_get(np, 1);
+	if (IS_ERR(clk)) {
+		dev_err(port->dev, "Failed to get ahb clk\n");
+		err = PTR_ERR(clk);
+		goto out_err;
+	}
+	err = clk_prepare_enable(clk);
+	if (err) {
+		dev_err(port->dev, "Failed to enable uart4_div!\n");
+		goto out_err;
+	}
+	asm9260_port->clk_ahb = clk;
 
 	return clk_get_rate(asm9260_port->clk);
 out_err:

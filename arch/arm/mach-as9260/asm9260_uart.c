@@ -533,10 +533,12 @@ void __init asm9260_add_device_serial(void)
 {
 	int i;
 
+#if 0
 	for (i = 0; i < ASM9260_MAX_UART; i++) {
 		if (asm9260_uarts[i])
 			platform_device_register(asm9260_uarts[i]);
 	}
+#endif
 
 	if (!asm9260_default_console_device)
 		printk(KERN_INFO "ASM9260: No default serial console defined.\n");

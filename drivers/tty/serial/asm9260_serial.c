@@ -13,7 +13,6 @@
 #include <linux/uaccess.h>
 
 #include <linux/io.h>
-#include <linux/slab.h>
 #include <mach/hardware.h>
 #include <mach/asm9260_uart.h>
 #include <linux/serial_core.h>
@@ -213,7 +212,6 @@ struct asm9260_uart_char {
  */
 struct asm9260_uart_port {
 	struct uart_port	uart;		/* uart */
-	struct device_node	*np;
 	struct clk		*clk;		/* uart clock */
 	struct clk		*clk_ahb;
 	int			break_active;	/* break being received */
@@ -225,13 +223,10 @@ struct asm9260_uart_port {
 	struct serial_rs485	rs485;		/* rs485 settings */
 
 	uint32_t intmask;
-	int init_ok;
 };
 
-//static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
+static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
 static void asm9260_start_rx(struct uart_port *port);
-static struct asm9260_uart_port *asm9260_ports;
-static int asm9260_ports_num;
 
 
 static inline struct asm9260_uart_port *
@@ -1076,14 +1071,15 @@ static void asm9260_release_clk(struct uart_port *port)
 	}
 }
 
-static unsigned int get_uart_clock(struct uart_port *uport)
+static unsigned int get_uart_clock(struct uart_port *port)
 {
-	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
-	struct device_node *np = uport->dev->of_node;
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+	struct device_node *np = port->dev->of_node;
+	struct clk *clk;
 	unsigned int uart_clk_sel, uart_src_clk, uart_clk;
 	int uart_num, err;
 
-	uart_num = ((unsigned int)(uport->membase) - (unsigned int)IO_ADDRESS(UART0_BASEESS)) / 0x4000;
+	uart_num = ((unsigned int)(port->membase) - (unsigned int)IO_ADDRESS(UART0_BASEESS)) / 0x4000;
 
 	uart_clk_sel = as3310_readl(HW_UARTCLKSEL);
 	if (uart_clk_sel == SOURCE_CLOCK_EXT12M)
@@ -1104,26 +1100,43 @@ static unsigned int get_uart_clock(struct uart_port *uport)
 	/****************************************************************/
 
 
-	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
-	if (err)
-		dev_err(uport->dev, "Failed to set rate!\n");
-
-	err = clk_prepare_enable(port->clk);
-	if (err) {
-		dev_err(uport->dev, "Failed to enable uart4_div!\n");
+	clk = of_clk_get(np, 0);
+	if (IS_ERR(clk)) {
+		dev_err(port->dev, "Failed to get clk!\n");
+		err = PTR_ERR(clk);
 		goto out_err;
 	}
+
+	err = clk_set_rate(clk, ASM9260_BUS_RATE);
+	if (err) {
+		dev_err(port->dev, "Failed to set rate!\n");
+	}
+
+	err = clk_prepare_enable(clk);
+	if (err) {
+		dev_err(port->dev, "Failed to enable uart4_div!\n");
+		goto out_err;
+	}
+
+	asm9260_port->clk = clk;
 
 	/* configure AHB clock */
-	err = clk_prepare_enable(port->clk_ahb);
-	if (err) {
-		dev_err(uport->dev, "Failed to enable uart4_div!\n");
+	clk = of_clk_get(np, 1);
+	if (IS_ERR(clk)) {
+		dev_err(port->dev, "Failed to get ahb clk\n");
+		err = PTR_ERR(clk);
 		goto out_err;
 	}
+	err = clk_prepare_enable(clk);
+	if (err) {
+		dev_err(port->dev, "Failed to enable uart4_div!\n");
+		goto out_err;
+	}
+	asm9260_port->clk_ahb = clk;
 
-	return clk_get_rate(port->clk);
+	return clk_get_rate(asm9260_port->clk);
 out_err:
-	asm9260_release_clk(uport);
+	asm9260_release_clk(port);
 	return uart_clk;
 }
 
@@ -1141,6 +1154,12 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 
 	if (data)
 		asm9260_port->rs485	= data->rs485;
+
+	port->iotype	= UPIO_MEM;
+	port->flags	= UPF_BOOT_AUTOCONF;
+	port->ops	= &asm9260_pops;
+	port->fifosize	= ASM9260_UART_FIFOSIZE;
+	port->dev	= &pdev->dev;
 
 	printk("%s:%i\n", __func__, __LINE__);
 	if (np) {
@@ -1161,14 +1180,14 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 
 	port->uartclk = get_uart_clock(port);
 
-	printk("clk = %li\n", clk_get_rate(asm9260_port->clk));
+	printk("clk = %d\n", clk_get_rate(asm9260_port->clk));
 
 	if (np) {
 		port->line	= of_alias_get_id(np, "serial");
 		/* todo: need working DT irq infrastructure */
 		//port->irq	= of_irq_get(np, 0);
 		of_property_read_u32_index(np, "interrupts", 0, &port->irq);
-		port->mapbase	= 0;
+		port->mapbase	= port->membase;
 	} else {
 		port->line	= pdev->id;
 		port->mapbase	= pdev->resource[0].start;
@@ -1306,19 +1325,18 @@ static struct console asm9260_console = {
 
 #define ASM9260_CONSOLE_DEVICE	(&asm9260_console)
 
-#if 0
+#if 1
 /*
  * Early console initialization (before VM subsystem initialized).
  */
-static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_init(void)
 {
 	if (asm9260_default_console_device) {
-		asm9260_uart_of_enumerate();
 		asm9260_init_port(&asm9260_ports[asm9260_default_console_device->id],
 				asm9260_default_console_device);
 		register_console(&asm9260_console);
 	}
+
 	return 0;
 }
 
@@ -1356,111 +1374,21 @@ static struct of_device_id asm9260_of_match[] = {
 MODULE_DEVICE_TABLE(of, asm9260_of_match);
 #endif /* CONFIG_OF */
 
-/* get devicetree clocks, if some thing wrong, warn about it */
-static int asm9260_get_of_clks(struct asm9260_uart_port *port,
-		struct device_node *np)
-{
-	int clk_idx = 0;
-
-	port->clk = of_clk_get(np, clk_idx);
-	if (IS_ERR(port->clk))
-		goto out_err;
-
-	/* configure AHB clock */
-	clk_idx = 1;
-	port->clk_ahb = of_clk_get(np, clk_idx);
-	if (IS_ERR(port->clk_ahb))
-		goto out_err;
-
-	return 0;
-out_err:
-	pr_err("%s: Failed to get clk (%i)\n", __func__, clk_idx);
-	return 1;
-}
-
-static int asm9260_get_count_of_nodes(const struct of_device_id *matches)
-{
-	int count = 0;
-	struct device_node *np;
-
-	for_each_matching_node(np, matches)
-		count++;
-
-	return count;
-}
-
-static struct asm9260_uart_port *get_asm9260_uart_port(int line)
-{
-	if (line >= asm9260_ports_num) {
-		pr_err("%s: Line number overflow. Check DeviceTree!!",
-				__func__);
-		return NULL;
-	}
-
-	return &asm9260_ports[line];
-}
-
-static void asm9260_uart_of_enumerate(void)
-{
-	static int enum_done;
-	struct device_node *np;
-
-	if (enum_done)
-		return;
-
-	asm9260_ports_num = asm9260_get_count_of_nodes(asm9260_of_match);
-	asm9260_ports = kcalloc(asm9260_ports_num,
-				sizeof(struct asm9260_uart_port), GFP_KERNEL);
-
-	for_each_matching_node(np, asm9260_of_match) {
-		struct uart_port *uport;
-		struct asm9260_uart_port *port;
-		int line;
-
-		line = of_alias_get_id(np, "serial");
-
-		port = get_asm9260_uart_port(line);
-		if (!port)
-			continue;
-
-		if(asm9260_get_of_clks(port, np))
-			continue;
-
-		uport = &port->uart;
-		uport->iotype	= UPIO_MEM;
-		uport->flags	= UPF_BOOT_AUTOCONF;
-		uport->ops	= &asm9260_pops;
-		uport->fifosize	= ASM9260_UART_FIFOSIZE;
-		uport->line	= line;
-		port->init_ok = 1;
-	}
-
-	enum_done = 1;
-}
-
 static int asm9260_serial_probe(struct platform_device *pdev)
 {
 	struct asm9260_uart_port *port;
 	struct device_node *np = pdev->dev.of_node;
 	void *data;
-	int ret, line;
+	int ret;
 
 	printk("asm9260_serial_probe: %x\n", pdev->id);
 
 	BUILD_BUG_ON(!is_power_of_2(ASM9260_SERIAL_RINGSIZE));
-
-	asm9260_uart_of_enumerate();
-
-	if (np)
-		line = of_alias_get_id(np, "serial");
-	else
-		line = pdev->id;
-
-	port = &asm9260_ports[line];
-
-	if (!port->init_ok) {
-		dev_err(&pdev->dev, "Bad init!\n");
-	}
+	if (np) {
+		port = devm_kmalloc(&pdev->dev, sizeof(struct
+					asm9260_uart_port), GFP_KERNEL);
+	} else
+		port = &asm9260_ports[pdev->id];
 
 	asm9260_init_port(port, pdev);
 

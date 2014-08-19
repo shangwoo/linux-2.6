@@ -1281,6 +1281,14 @@ static int __init asm9260_console_setup(struct console *co, char *options)
 	int parity = 'n';
 	int flow = 'n';
 
+	port->iotype    = UPIO_MEM;
+	port->flags     = UPF_BOOT_AUTOCONF;
+	port->ops       = &asm9260_pops;
+	port->fifosize  = ASM9260_UART_FIFOSIZE;
+	port->membase = 0xf0010000;
+	port->line = co->index;
+	port->uartclk = 100000000;
+
 	UART_PUT_CTRL2_SET(port, ASM9260_UART_TXE
 			| ASM9260_UART_RXE | ASM9260_UART_ENABLE);
 
@@ -1306,19 +1314,15 @@ static struct console asm9260_console = {
 
 #define ASM9260_CONSOLE_DEVICE	(&asm9260_console)
 
-#if 0
+#if 1
 /*
  * Early console initialization (before VM subsystem initialized).
  */
 static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_init(void)
 {
-	if (asm9260_default_console_device) {
-		asm9260_uart_of_enumerate();
-		asm9260_init_port(&asm9260_ports[asm9260_default_console_device->id],
-				asm9260_default_console_device);
-		register_console(&asm9260_console);
-	}
+	asm9260_uart_of_enumerate();
+	register_console(&asm9260_console);
 	return 0;
 }
 

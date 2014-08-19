@@ -10,3 +10,6 @@
 	};
 
 };
+&uart4 {
+	status = "okay";
+};

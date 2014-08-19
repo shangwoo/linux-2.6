@@ -1,4 +1,4 @@
-/* linux/include/asm-arm/arch-omap/debug-macro.S
+/* arch/arm/mach-sa1100/include/mach/debug-macro.S
  *
  * Debugging macro include header
  *
@@ -10,49 +10,32 @@
  * published by the Free Software Foundation.
  *
 */
+#include <mach/hardware.h>
 
-		.macro	addruart,rx
-		mrc	p15, 0, \rx, c1, c0
-		tst	\rx, #1			@ MMU enabled?
-#ifdef CONFIG_ARCH_OMAP1
-		moveq	\rx, #0xff000000	@ physical base address
-		movne	\rx, #0xfe000000	@ virtual base
-		orr	\rx, \rx, #0x00fb0000
-#ifdef CONFIG_OMAP_LL_DEBUG_UART3
-		orr	\rx, \rx, #0x00009000	@ UART 3
-#endif
-#if defined(CONFIG_OMAP_LL_DEBUG_UART2) || defined(CONFIG_OMAP_LL_DEBUG_UART3)
-		orr	\rx, \rx, #0x00000800	@ UART 2 & 3
-#endif
+#define ASM9260_DBG		UART4_BASEESS
+#define ASM9260_UART_DATA	0x50
+#define ASM9260_UART_STAT	0x60
+#define ASM9260_UART_TXEMPTY	(1<<27)
+#define ASM9260_UART_TXFULL	(1<<25)
 
-#elif  CONFIG_ARCH_OMAP2
-		moveq	\rx, #0x48000000	@ physical base address
-		movne	\rx, #0xd8000000	@ virtual base
-		orr	\rx, \rx, #0x0006a000
-#ifdef CONFIG_OMAP_LL_DEBUG_UART2
-		add	\rx, \rx, #0x00002000	@ UART 2
-#endif
-#ifdef CONFIG_OMAP_LL_DEBUG_UART3
-		add	\rx, \rx, #0x00004000	@ UART 3
-#endif
-#endif
+
+		.macro	addruart, rp, rv, tmp
+		ldr	\rp, =ASM9260_DBG			@ physical base address
+		ldr	\rv, =ASM9260_DBG			@ virtual address
 		.endm
 
 		.macro	senduart,rd,rx
-		strb	\rd, [\rx]
-		.endm
-
-		.macro	busyuart,rd,rx
-1001:		ldrb	\rd, [\rx, #(0x5 << 2)]	@ OMAP-1510 and friends
-		and	\rd, \rd, #0x60
-		teq	\rd, #0x60
-		beq	1002f
-		ldrb	\rd, [\rx, #(0x5 << 0)]	@ OMAP-730 only
-		and	\rd, \rd, #0x60
-		teq	\rd, #0x60
-		bne	1001b
-1002:
+		str	\rd, [\rx, #ASM9260_UART_DATA]
 		.endm
 
 		.macro	waituart,rd,rx
+1001:		ldr	\rd, [\rx, #ASM9260_UART_STAT]
+		tst	\rd, #ASM9260_UART_TXFULL
+		beq	1001b
+		.endm
+
+		.macro	busyuart,rd,rx
+1001:		ldr	\rd, [\rx, #ASM9260_UART_STAT]
+		tst	\rd, #ASM9260_UART_TXEMPTY
+		bne	1001b
 		.endm

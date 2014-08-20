@@ -1354,19 +1354,6 @@ static void asm9260_uart_of_enumerate(void)
 	enum_done = 1;
 }
 
-static void asm9260_release_clk(struct uart_port *port)
-{
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-	if (asm9260_port->clk) {
-		clk_disable_unprepare(asm9260_port->clk);
-		asm9260_port->clk = NULL;
-	}
-	if (asm9260_port->clk_ahb) {
-		clk_disable_unprepare(asm9260_port->clk_ahb);
-		asm9260_port->clk_ahb = NULL;
-	}
-}
-
 /*
  * Configure the port from the platform device resource info.
  */
@@ -1375,8 +1362,8 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 {
 	struct uart_port *uport = &asm9260_port->uart;
 	struct device_node *np = pdev->dev.of_node;
+	unsigned long flags;
 	int locked = 0;
-	unsigned int flags;
 
 	if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) {
 		spin_lock_irqsave(&uport->lock, flags);
@@ -1483,6 +1470,7 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 	uart_remove_one_port(&asm9260_uart, port);
 	uart_unregister_driver(&asm9260_uart);
 
+	/* TODO: how should we handle clks here */
 	clk_put(asm9260_port->clk);
 
 	return ret;

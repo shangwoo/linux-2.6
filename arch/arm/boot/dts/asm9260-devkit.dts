@@ -6,7 +6,7 @@
 	compatible = "alpscale,asm9260devkit", "alpscale,asm9260";
 
 	chosen {
-		bootargs = "mem=32M earlyprintk=serial console=ttyS4,115200n8 root=/dev/mtdblock1 init=/linuxrc mtdparts=NAND:4M@10M(logo)ro,60M@14M(root)ro";
+		bootargs = "mem=32M console=ttyS4,115200n8 root=/dev/mtdblock1 init=/linuxrc mtdparts=NAND:4M@10M(logo)ro,60M@14M(root)ro";
 	};
 
 };

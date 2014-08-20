@@ -30,7 +30,8 @@
 #define ASM9260_DEVICENAME	"ttyS"
 
 
-#ifdef CONFIG_ASM9260_UART_DEBUG
+//#ifdef CONFIG_ASM9260_UART_DEBUG
+#if 1
 #define dbg(format, arg...) printk("ASM9260_UART_DBG: " format "\n" , ## arg)
 #else
 #define dbg(format, arg...) do {} while (0)
@@ -1309,9 +1310,6 @@ static void asm9260_uart_of_enumerate(void)
 		if (!port)
 			continue;
 
-		if(asm9260_get_of_clks(port, np))
-			continue;
-
 		uport = &port->uart;
 		uport->iotype	= UPIO_MEM;
 		uport->flags	= UPF_BOOT_AUTOCONF;
@@ -1335,57 +1333,6 @@ static void asm9260_release_clk(struct uart_port *port)
 		clk_disable_unprepare(asm9260_port->clk_ahb);
 		asm9260_port->clk_ahb = NULL;
 	}
-}
-
-static unsigned int get_uart_clock(struct uart_port *uport)
-{
-	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
-	struct device_node *np = uport->dev->of_node;
-	unsigned int uart_clk_sel, uart_src_clk, uart_clk;
-	int uart_num, err;
-
-	uart_num = ((unsigned int)(uport->membase) - (unsigned int)IO_ADDRESS(UART0_BASEESS)) / 0x4000;
-
-	uart_clk_sel = as3310_readl(HW_UARTCLKSEL);
-	if (uart_clk_sel == SOURCE_CLOCK_EXT12M)
-		uart_src_clk = 12000000;
-	else if (uart_clk_sel == SOURCE_CLOCK_SYSPLL) {
-		if ((as3310_readl(HW_PDRUNCFG) & PLL_POWER_DOWN) != 0)
-			return 0;
-		else
-			uart_src_clk = (as3310_readl(HW_SYSPLLCTRL) &
-					SYSPLL_MASK) * 1000000;
-	} else
-		return 0;
-
-	uart_clk = uart_src_clk / as3310_readl(HW_UART0CLKDIV + uart_num * 4);
-	printk("uart_clk: %d.\n", uart_clk);
-	if (!np)
-		return uart_clk;
-	/****************************************************************/
-
-
-	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
-	if (err)
-		dev_err(uport->dev, "Failed to set rate!\n");
-
-	err = clk_prepare_enable(port->clk);
-	if (err) {
-		dev_err(uport->dev, "Failed to enable uart4_div!\n");
-		goto out_err;
-	}
-
-	/* configure AHB clock */
-	err = clk_prepare_enable(port->clk_ahb);
-	if (err) {
-		dev_err(uport->dev, "Failed to enable uart4_div!\n");
-		goto out_err;
-	}
-
-	return clk_get_rate(port->clk);
-out_err:
-	asm9260_release_clk(uport);
-	return uart_clk;
 }
 
 /*
@@ -1420,16 +1367,16 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 		port->membase	= NULL;
 	}
 
-	port->uartclk = get_uart_clock(port);
-
+	if(asm9260_get_of_clks(asm9260_port, np))
+		return;
+	port->uartclk = clk_get_rate(asm9260_port->clk);
 	printk("clk = %li\n", clk_get_rate(asm9260_port->clk));
 
 	if (np) {
-		port->line	= of_alias_get_id(np, "serial");
 		/* todo: need working DT irq infrastructure */
 		//port->irq	= of_irq_get(np, 0);
 		of_property_read_u32_index(np, "interrupts", 0, &port->irq);
-		port->mapbase	= 0;
+		port->mapbase	= port->membase;
 	} else {
 		port->line	= pdev->id;
 		port->mapbase	= pdev->resource[0].start;

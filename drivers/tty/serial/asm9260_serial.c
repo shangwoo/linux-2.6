@@ -1174,10 +1174,6 @@ static int __init asm9260_console_setup(struct console *co, char *options)
 	port = get_asm9260_uart_port(co->index);
 	uport = &port->uart;
 
-	/* TODO: need correct init */
-	uport->membase = 0xf0010000;
-	uport->uartclk = 100000000;
-
 	UART_PUT_CTRL2_SET(uport, ASM9260_UART_TXE
 			| ASM9260_UART_RXE | ASM9260_UART_ENABLE);
 
@@ -1342,12 +1338,19 @@ static void asm9260_uart_of_enumerate(void)
 			continue;
 
 		uport = &port->uart;
+
+		of_property_read_u32_index(np, "frequency", 0, &uport->uartclk);
 		uport->iotype	= UPIO_MEM;
 		uport->flags	= UPF_BOOT_AUTOCONF;
 		uport->ops	= &asm9260_pops;
 		uport->fifosize	= ASM9260_UART_FIFOSIZE;
 		uport->line	= line;
 
+		uport->membase = of_iomap(np, 0);
+		if (!uport->membase) {
+			pr_err("Unable to map registers\n");
+			continue;
+		}
 		port->init_ok = 1;
 	}
 
@@ -1374,11 +1377,7 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 		return;
 
 	/* TODO: wait for of_io_request_and_map */
-	uport->membase = of_iomap(np, 0);
-	if (!uport->membase) {
-		dev_err(uport->dev, "Unable to map registers\n");
-		return;
-	}
+
 
 	/* TODO: need working DT irq infrastructure */
 	//uport->irq	= of_irq_get(np, 0);

@@ -1085,10 +1085,12 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	unsigned long flags;
 	int locked = 1;
 
+#if 0
 	if (oops_in_progress)
 		locked = spin_trylock_irqsave(&port->lock, flags);
 	else
 		spin_lock_irqsave(&port->lock, flags);
+#endif
 
 	/*
 	 * First, save IMR and then disable interrupts
@@ -1108,8 +1110,8 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 
 	asm9260_intr_mask_set(port, intr);
 
-	if (locked)
-		spin_unlock_irqrestore(&port->lock, flags);
+//	if (locked)
+//		spin_unlock_irqrestore(&port->lock, flags);
 }
 
 /*
@@ -1344,9 +1346,14 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	struct uart_port *uport = &asm9260_port->uart;
 	struct asm9260_uart_data *data = pdev->dev.platform_data;
 	struct device_node *np = pdev->dev.of_node;
+	int locked = 0;
+	unsigned int flags;
 
 	printk("asm9260_init_port\n");
-	//if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) 
+	if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) {
+		spin_lock_irqsave(&uport->lock, flags);
+		locked = 1;
+	}
 
 	if (data)
 		asm9260_port->rs485	= data->rs485;
@@ -1383,6 +1390,9 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 		uport->mapbase	= pdev->resource[0].start;
 		uport->irq	= pdev->resource[1].start;
 	}
+
+	if (locked)
+		spin_unlock_irqrestore(&uport->lock, flags);
 
 		printk("uport->line == %x; irq == %x\n", uport->line, uport->irq);
 	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,

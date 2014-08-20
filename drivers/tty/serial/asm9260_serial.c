@@ -1341,51 +1341,52 @@ static void asm9260_release_clk(struct uart_port *port)
 static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 				      struct platform_device *pdev)
 {
-	struct uart_port *port = &asm9260_port->uart;
+	struct uart_port *uport = &asm9260_port->uart;
 	struct asm9260_uart_data *data = pdev->dev.platform_data;
 	struct device_node *np = pdev->dev.of_node;
 
 	printk("asm9260_init_port\n");
+	//if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) 
 
 	if (data)
 		asm9260_port->rs485	= data->rs485;
 
 	printk("%s:%i\n", __func__, __LINE__);
 	if (np) {
-		port->membase = of_iomap(np, 0);
-		printk("iomap: %p\n", port->membase);
-		if (!port->membase) {
-			dev_err(port->dev, "Unable to map registers\n");
+		uport->membase = of_iomap(np, 0);
+		printk("iomap: %p\n", uport->membase);
+		if (!uport->membase) {
+			dev_err(uport->dev, "Unable to map registers\n");
 			return;
 		}
 		asm9260_port->clk = of_clk_get(np, 0);
 	} else if (data && data->regs)
 		/* Already mapped by setup code */
-		port->membase = data->regs;
+		uport->membase = data->regs;
 	else {
-		port->flags	|= UPF_IOREMAP;
-		port->membase	= NULL;
+		uport->flags	|= UPF_IOREMAP;
+		uport->membase	= NULL;
 	}
 
 	if(asm9260_get_of_clks(asm9260_port, np))
 		return;
-	port->uartclk = clk_get_rate(asm9260_port->clk);
+	uport->uartclk = clk_get_rate(asm9260_port->clk);
 	printk("clk = %li\n", clk_get_rate(asm9260_port->clk));
 
 	if (np) {
 		/* todo: need working DT irq infrastructure */
-		//port->irq	= of_irq_get(np, 0);
-		of_property_read_u32_index(np, "interrupts", 0, &port->irq);
-		port->mapbase	= port->membase;
+		//uport->irq	= of_irq_get(np, 0);
+		of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
+		uport->mapbase	= uport->membase;
 	} else {
-		port->line	= pdev->id;
-		port->mapbase	= pdev->resource[0].start;
-		port->irq	= pdev->resource[1].start;
+		uport->line	= pdev->id;
+		uport->mapbase	= pdev->resource[0].start;
+		uport->irq	= pdev->resource[1].start;
 	}
 
-		printk("port->line == %x; irq == %x\n", port->line, port->irq);
+		printk("uport->line == %x; irq == %x\n", uport->line, uport->irq);
 	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
-			(unsigned long)port);/*setp 2*/
+			(unsigned long)uport);/*setp 2*/
 
 	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
 }
@@ -1410,7 +1411,7 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	else
 		line = pdev->id;
 
-	port = &asm9260_ports[line];
+	port = get_asm9260_uart_port(line);
 
 	if (!port->init_ok) {
 		dev_err(&pdev->dev, "Bad init!\n");

@@ -1066,13 +1066,14 @@ static struct uart_ops asm9260_pops = {
 
 #ifdef CONFIG_SERIAL_ASM9260_CONSOLE
 
+static struct asm9260_uart_port *get_asm9260_uart_port(int line);
 static struct console asm9260_console;
 
-static void asm9260_console_putchar(struct uart_port *port, int ch)
+static void asm9260_console_putchar(struct uart_port *uport, int ch)
 {
-	while (UART_GET_STAT(port) & ASM9260_UART_TXFULL)
+	while (UART_GET_STAT(uport) & ASM9260_UART_TXFULL)
 		cpu_relax();
-	UART_PUT_DATA(port, ch);
+	UART_PUT_DATA(uport, ch);
 }
 
 /*
@@ -1080,38 +1081,41 @@ static void asm9260_console_putchar(struct uart_port *port, int ch)
  */
 static void asm9260_console_write(struct console *co, const char *s, u_int count)
 {
-	struct uart_port *port = &asm9260_ports[co->index].uart;
+	struct uart_port *uport;
+	struct asm9260_uart_port *port;
 	unsigned int status, intr;
 	unsigned long flags;
 	int locked = 1;
 
+	port = get_asm9260_uart_port(co->index);
+	uport = &port->uart;
 #if 0
 	if (oops_in_progress)
-		locked = spin_trylock_irqsave(&port->lock, flags);
+		locked = spin_trylock_irqsave(&uport->lock, flags);
 	else
-		spin_lock_irqsave(&port->lock, flags);
+		spin_lock_irqsave(&uport->lock, flags);
 #endif
 
 	/*
 	 * First, save IMR and then disable interrupts
 	 */
-	intr = UART_GET_INTR(port) & (ASM9260_UART_RXIEN | ASM9260_UART_TXIEN);
-	asm9260_intr_mask_clr(port, intr);
+	intr = UART_GET_INTR(uport) & (ASM9260_UART_RXIEN | ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(uport, intr);
 
-	uart_console_write(port, s, count, asm9260_console_putchar);
+	uart_console_write(uport, s, count, asm9260_console_putchar);
 
 	/*
 	 * Finally, wait for transmitter to become empty
 	 * and restore IMR
 	 */
 	do {
-		status = UART_GET_STAT(port);
+		status = UART_GET_STAT(uport);
 	} while (!(status & ASM9260_UART_TXEMPTY));
 
-	asm9260_intr_mask_set(port, intr);
+	asm9260_intr_mask_set(uport, intr);
 
 //	if (locked)
-//		spin_unlock_irqrestore(&port->lock, flags);
+//		spin_unlock_irqrestore(&uport->lock, flags);
 }
 
 /*
@@ -1160,31 +1164,34 @@ static void __init asm9260_console_get_options(struct uart_port *port, int *baud
 static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_setup(struct console *co, char *options)
 {
-	struct uart_port *port;
+	struct uart_port *uport;
+	struct asm9260_uart_port *port;
 	int baud = 115200;
 	int bits = 8;
 	int parity = 'n';
 	int flow = 'n';
 	asm9260_uart_of_enumerate();
-	port = &asm9260_ports[co->index].uart;
 
-	port->iotype    = UPIO_MEM;
-	port->flags     = UPF_BOOT_AUTOCONF;
-	port->ops       = &asm9260_pops;
-	port->fifosize  = ASM9260_UART_FIFOSIZE;
-	port->membase = 0xf0010000;
-	port->line = co->index;
-	port->uartclk = 100000000;
+	port = get_asm9260_uart_port(co->index);
+	uport = &port->uart;
 
-	UART_PUT_CTRL2_SET(port, ASM9260_UART_TXE
+	uport->iotype    = UPIO_MEM;
+	uport->flags     = UPF_BOOT_AUTOCONF;
+	uport->ops       = &asm9260_pops;
+	uport->fifosize  = ASM9260_UART_FIFOSIZE;
+	uport->membase = 0xf0010000;
+	uport->line = co->index;
+	uport->uartclk = 100000000;
+
+	UART_PUT_CTRL2_SET(uport, ASM9260_UART_TXE
 			| ASM9260_UART_RXE | ASM9260_UART_ENABLE);
 
 	if (options)
 		uart_parse_options(options, &baud, &parity, &bits, &flow);
 	else
-		asm9260_console_get_options(port, &baud, &parity, &bits);
+		asm9260_console_get_options(uport, &baud, &parity, &bits);
 
-	return uart_set_options(port, co, baud, parity, bits, flow);
+	return uart_set_options(uport, co, baud, parity, bits, flow);
 }
 
 static struct uart_driver asm9260_uart;

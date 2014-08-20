@@ -839,7 +839,7 @@ static void __init as9260_init(void)
 
 	/* must init before any other
 	 * devices which may use gpio pins */
-//	asm9260_gpio_init();
+	asm9260_gpio_init();
 
 	asm9260_add_device_serial();
 	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);

@@ -30,8 +30,7 @@
 #define ASM9260_DEVICENAME	"ttyS"
 
 
-//#ifdef CONFIG_ASM9260_UART_DEBUG
-#if 1
+#ifdef CONFIG_ASM9260_UART_DEBUG
 #define dbg(format, arg...) printk("ASM9260_UART_DBG: " format "\n" , ## arg)
 #else
 #define dbg(format, arg...) do {} while (0)
@@ -1089,12 +1088,11 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 
 	port = get_asm9260_uart_port(co->index);
 	uport = &port->uart;
-#if 0
+
 	if (oops_in_progress)
 		locked = spin_trylock_irqsave(&uport->lock, flags);
 	else
 		spin_lock_irqsave(&uport->lock, flags);
-#endif
 
 	/*
 	 * First, save IMR and then disable interrupts
@@ -1114,8 +1112,8 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 
 	asm9260_intr_mask_set(uport, intr);
 
-//	if (locked)
-//		spin_unlock_irqrestore(&uport->lock, flags);
+	if (locked)
+		spin_unlock_irqrestore(&uport->lock, flags);
 }
 
 /*
@@ -1249,6 +1247,29 @@ static struct of_device_id asm9260_of_match[] = {
 MODULE_DEVICE_TABLE(of, asm9260_of_match);
 #endif /* CONFIG_OF */
 
+
+static void asm9260_enable_clks(struct asm9260_uart_port *port)
+{
+	struct uart_port *uport = &port->uart;
+	int err;
+
+	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
+	if (err) {
+		dev_err(uport->dev, "Failed to set rate!\n");
+	}
+
+	err = clk_prepare_enable(port->clk);
+	if (err) {
+		dev_err(uport->dev, "Failed to enable clk!\n");
+	}
+
+	err = clk_prepare_enable(port->clk_ahb);
+	if (err) {
+		dev_err(uport->dev, "Failed to enable ahb_clk!\n");
+	}
+}
+
+
 /* get devicetree clocks, if some thing wrong, warn about it */
 static int asm9260_get_of_clks(struct asm9260_uart_port *port,
 		struct device_node *np)
@@ -1370,7 +1391,6 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 			dev_err(uport->dev, "Unable to map registers\n");
 			return;
 		}
-		asm9260_port->clk = of_clk_get(np, 0);
 	} else if (data && data->regs)
 		/* Already mapped by setup code */
 		uport->membase = data->regs;
@@ -1381,6 +1401,9 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 
 	if(asm9260_get_of_clks(asm9260_port, np))
 		return;
+
+	asm9260_enable_clks(asm9260_port);
+
 	uport->uartclk = clk_get_rate(asm9260_port->clk);
 	printk("clk = %li\n", clk_get_rate(asm9260_port->clk));
 

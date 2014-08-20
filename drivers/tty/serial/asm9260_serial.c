@@ -1332,6 +1332,10 @@ static void asm9260_uart_of_enumerate(void)
 		int line;
 
 		line = of_alias_get_id(np, "serial");
+		if (line < 0) {
+			pr_err("Error! Devicetree has no \"serial\" aliases\n");
+			continue;
+		}
 
 		port = get_asm9260_uart_port(line);
 		if (!port)
@@ -1343,6 +1347,7 @@ static void asm9260_uart_of_enumerate(void)
 		uport->ops	= &asm9260_pops;
 		uport->fifosize	= ASM9260_UART_FIFOSIZE;
 		uport->line	= line;
+
 		port->init_ok = 1;
 	}
 
@@ -1369,59 +1374,36 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 				      struct platform_device *pdev)
 {
 	struct uart_port *uport = &asm9260_port->uart;
-	struct asm9260_uart_data *data = pdev->dev.platform_data;
 	struct device_node *np = pdev->dev.of_node;
 	int locked = 0;
 	unsigned int flags;
 
-	printk("asm9260_init_port\n");
 	if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) {
 		spin_lock_irqsave(&uport->lock, flags);
 		locked = 1;
 	}
 
-	if (data)
-		asm9260_port->rs485	= data->rs485;
-
-	printk("%s:%i\n", __func__, __LINE__);
-	if (np) {
-		uport->membase = of_iomap(np, 0);
-		printk("iomap: %p\n", uport->membase);
-		if (!uport->membase) {
-			dev_err(uport->dev, "Unable to map registers\n");
-			return;
-		}
-	} else if (data && data->regs)
-		/* Already mapped by setup code */
-		uport->membase = data->regs;
-	else {
-		uport->flags	|= UPF_IOREMAP;
-		uport->membase	= NULL;
-	}
-
 	if(asm9260_get_of_clks(asm9260_port, np))
 		return;
 
-	asm9260_enable_clks(asm9260_port);
-
-	uport->uartclk = clk_get_rate(asm9260_port->clk);
-	printk("clk = %li\n", clk_get_rate(asm9260_port->clk));
-
-	if (np) {
-		/* todo: need working DT irq infrastructure */
-		//uport->irq	= of_irq_get(np, 0);
-		of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
-		uport->mapbase	= uport->membase;
-	} else {
-		uport->line	= pdev->id;
-		uport->mapbase	= pdev->resource[0].start;
-		uport->irq	= pdev->resource[1].start;
+	/* TODO: wait for of_io_request_and_map */
+	uport->membase = of_iomap(np, 0);
+	if (!uport->membase) {
+		dev_err(uport->dev, "Unable to map registers\n");
+		return;
 	}
+
+	/* TODO: need working DT irq infrastructure */
+	//uport->irq	= of_irq_get(np, 0);
+	of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
+	uport->mapbase	= uport->membase;
+
+	asm9260_enable_clks(asm9260_port);
+	uport->uartclk = clk_get_rate(asm9260_port->clk);
 
 	if (locked)
 		spin_unlock_irqrestore(&uport->lock, flags);
 
-		printk("uport->line == %x; irq == %x\n", uport->line, uport->irq);
 	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
 			(unsigned long)uport);/*setp 2*/
 
@@ -1437,16 +1419,20 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	void *data;
 	int ret, line;
 
-	printk("asm9260_serial_probe: %x\n", pdev->id);
-
 	BUILD_BUG_ON(!is_power_of_2(ASM9260_SERIAL_RINGSIZE));
 
 	asm9260_uart_of_enumerate();
 
-	if (np)
-		line = of_alias_get_id(np, "serial");
-	else
-		line = pdev->id;
+	if (!np) {
+		dev_err(&pdev->dev, "Error! We support only DeviceTree!\n");
+		return -EPERM;
+	}
+
+	line = of_alias_get_id(np, "serial");
+	if (line < 0) {
+		dev_err(&pdev->dev, "Error! Devicetree has no \"serial\" aliases\n");
+		return -EPERM;
+	}
 
 	port = get_asm9260_uart_port(line);
 

@@ -1170,17 +1170,14 @@ static int __init asm9260_console_setup(struct console *co, char *options)
 	int bits = 8;
 	int parity = 'n';
 	int flow = 'n';
+
 	asm9260_uart_of_enumerate();
 
 	port = get_asm9260_uart_port(co->index);
 	uport = &port->uart;
 
-	uport->iotype    = UPIO_MEM;
-	uport->flags     = UPF_BOOT_AUTOCONF;
-	uport->ops       = &asm9260_pops;
-	uport->fifosize  = ASM9260_UART_FIFOSIZE;
+	/* TODO: need correct init */
 	uport->membase = 0xf0010000;
-	uport->line = co->index;
 	uport->uartclk = 100000000;
 
 	UART_PUT_CTRL2_SET(uport, ASM9260_UART_TXE

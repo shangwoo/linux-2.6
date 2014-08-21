@@ -4,6 +4,8 @@
  *
  */
 
+#include <linux/clk-provider.h>
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/delay.h>
@@ -83,6 +85,7 @@ void __init as9260_timer_init(void)
 {
 	setup_irq(INT_TIMER0, &as9260_timer0_irq);
 	as9260_timer0_setup();
+	of_clk_init(NULL);
 }
 
 #if 0

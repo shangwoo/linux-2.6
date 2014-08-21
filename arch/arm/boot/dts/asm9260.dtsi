@@ -74,10 +74,7 @@
 			reg = <0x80010000 0x4000>;
 			clocks = <&uart4_div>, <&ahb_uart4_gate>;
 			interrupts = <19>;
-			frequency = <100000000>;
-			/*
 			status = "disabled";
-			*/
 		};
 		uart5: serial@80014000 {
 			compatible = "alpscale,asm9260-uart";

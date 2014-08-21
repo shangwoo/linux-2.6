@@ -833,10 +833,6 @@ extern void __init setup_usb(void);
 
 static void __init as9260_init(void)
 {
-	/* TODO: if platform .time_init is remove,
-	 * it will be executed by kernel */
-	of_clk_init(NULL);
-
 	/* must init before any other
 	 * devices which may use gpio pins */
 	asm9260_gpio_init();

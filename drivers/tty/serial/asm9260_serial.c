@@ -216,6 +216,7 @@ struct asm9260_uart_port {
 	struct device_node	*np;
 	struct clk		*clk;		/* uart clock */
 	struct clk		*clk_ahb;
+	int			clk_on;
 	int			break_active;	/* break being received */
 
 	struct tasklet_struct	tasklet;
@@ -642,8 +643,8 @@ static int asm9260_startup(struct uart_port *port)
 	/*
 	 * Allocate the IRQ
 	 */
-	retval = request_irq(port->irq, asm9260_interrupt, IRQF_SHARED,
-			tty ? tty->name : "asm9260_serial", port);
+	retval = request_irq(port->irq, asm9260_interrupt,
+			IRQF_SHARED, tty ? tty->name : "asm9260_serial", port);
 	if (retval) {
 		printk("asm9260_serial : asm9260_startup - Can't get irq\n");
 		return retval;
@@ -692,9 +693,6 @@ static void asm9260_shutdown(struct uart_port *port)
 	asm9260_stop_tx(port);
 	asm9260_stop_rx(port);
 
-	/*
-	 * Free the interrupt
-	 */
 	free_irq(port->irq, port);
 }
 
@@ -1159,6 +1157,9 @@ static void __init asm9260_console_get_options(struct uart_port *port, int *baud
 	*baud = (port->uartclk * 4) / quot;
 }
 
+static int asm9260_get_of_clks(struct asm9260_uart_port *port,
+		struct device_node *np);
+static void asm9260_enable_clks(struct asm9260_uart_port *port);
 static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_setup(struct console *co, char *options)
 {
@@ -1173,6 +1174,8 @@ static int __init asm9260_console_setup(struct console *co, char *options)
 
 	port = get_asm9260_uart_port(co->index);
 	uport = &port->uart;
+
+	asm9260_enable_clks(port);
 
 	UART_PUT_CTRL2_SET(uport, ASM9260_UART_TXE
 			| ASM9260_UART_RXE | ASM9260_UART_ENABLE);
@@ -1249,6 +1252,9 @@ static void asm9260_enable_clks(struct asm9260_uart_port *port)
 	struct uart_port *uport = &port->uart;
 	int err;
 
+	if (port->clk_on)
+		return;
+
 	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
 	if (err) {
 		dev_err(uport->dev, "Failed to set rate!\n");
@@ -1263,6 +1269,9 @@ static void asm9260_enable_clks(struct asm9260_uart_port *port)
 	if (err) {
 		dev_err(uport->dev, "Failed to enable ahb_clk!\n");
 	}
+
+	uport->uartclk = clk_get_rate(port->clk);
+	port->clk_on = 1;
 }
 
 
@@ -1338,19 +1347,23 @@ static void asm9260_uart_of_enumerate(void)
 			continue;
 
 		uport = &port->uart;
+		if(asm9260_get_of_clks(port, np))
+			return;
 
-		of_property_read_u32_index(np, "frequency", 0, &uport->uartclk);
 		uport->iotype	= UPIO_MEM;
 		uport->flags	= UPF_BOOT_AUTOCONF;
 		uport->ops	= &asm9260_pops;
 		uport->fifosize	= ASM9260_UART_FIFOSIZE;
 		uport->line	= line;
 
+		/* Since of_map don't do actual request of memory region,
+		 * it is save to use it for all, enabled and disabled uarts. */
 		uport->membase = of_iomap(np, 0);
 		if (!uport->membase) {
 			pr_err("Unable to map registers\n");
 			continue;
 		}
+		port->np = np;
 		port->init_ok = 1;
 	}
 
@@ -1365,30 +1378,14 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 {
 	struct uart_port *uport = &asm9260_port->uart;
 	struct device_node *np = pdev->dev.of_node;
-	unsigned long flags;
-	int locked = 0;
-
-	if (!(uart_console(uport) && (uport->cons->flags & CON_ENABLED))) {
-		spin_lock_irqsave(&uport->lock, flags);
-		locked = 1;
-	}
-
-	if(asm9260_get_of_clks(asm9260_port, np))
-		return;
 
 	/* TODO: wait for of_io_request_and_map */
-
-
 	/* TODO: need working DT irq infrastructure */
 	//uport->irq	= of_irq_get(np, 0);
 	of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
 	uport->mapbase	= uport->membase;
 
 	asm9260_enable_clks(asm9260_port);
-	uport->uartclk = clk_get_rate(asm9260_port->clk);
-
-	if (locked)
-		spin_unlock_irqrestore(&uport->lock, flags);
 
 	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
 			(unsigned long)uport);/*setp 2*/

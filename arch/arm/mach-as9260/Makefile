@@ -5,7 +5,7 @@
 # Object file lists.
 
 obj-y			:= core.o  timer.o irq.o dma.o \
-			   pincontrol.o lradc.o usb.o clock.o asm9260_uart.o asm9260_canserial.o
+			   pincontrol.o lradc.o usb.o asm9260_uart.o asm9260_canserial.o
 obj-m			:=
 obj-n			:=
 obj-			:=

@@ -373,8 +373,8 @@ config ARCH_AT91
 	  This enables support for systems based on Atmel
 	  AT91RM9200 and AT91SAM9* processors.
 
-config MACH_AS9260
-	bool "Alpscale AS9260"
+config MACH_ASM9260
+	bool "Alpscale ASM9260"
 	select ARCH_REQUIRE_GPIOLIB
 	select COMMON_CLK
 	select IRQ_DOMAIN

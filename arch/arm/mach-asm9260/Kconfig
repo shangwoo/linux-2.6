@@ -1,4 +1,4 @@
-if MACH_AS9260
+if MACH_ASM9260
 
 menu "ASM9260T EVK Uart Enable"
 

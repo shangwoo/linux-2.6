@@ -152,14 +152,14 @@
 #define HW_ICOLL_DEBUGRDREQ1 	(HW_ICOLL_BASE + 0x1C0)	//	R	Debug Read Request Register 1
 #define HW_ICOLL_IRQCLEAR0 	    (HW_ICOLL_BASE + 0x1D0)	//	IRQ Clear 0
 #define HW_ICOLL_IRQCLEAR1 	    (HW_ICOLL_BASE + 0x1E0)	//	IRQ Clear 1
-#define HW_ICOLL_UNDEF_VECTOR   (HW_ICOLL_BASE + 0x1F0)	//	IRQ Clear 1
+C#define HW_ICOLL_UNDEF_VECTOR   (HW_ICOLL_BASE + 0x1F0)	//	IRQ Clear 1
 #endif
 
 ////////////////////////////////////////////////////
 /*irq*/
 #define IRQ_BASE_ADDRESS        0x80054000
 
-#if 0
+#if 1
 #define	HW_ICOLL_VECTOR         0x80054000                
 #define	HW_ICOLL_VECTOR_SET     0x80054004 
 #define	HW_ICOLL_VECTOR_CLR     0x80054008

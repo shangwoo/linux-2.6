@@ -935,7 +935,8 @@ DT_MACHINE_START(AS9260, "Alpscale AS9260 (Device Tree Support)")
 //	.phys_io	= 0x80000000,   /* the perih address */
 //	.io_pg_offst	= ((0xfef00000) >> 18) & 0xfffc,
 	.map_io		= as9260_map_io,    /*MAP_IO*/
-	.init_irq	= as9260_init_irq,
+//	.handle_irq	= icoll_handle_irq,
+	//.init_irq	= as9260_init_irq,
 	.init_machine	= as9260_init,
 	.dt_compat	= as9260_dt_board_compat,
 //	.timer		= &as9260_timer,

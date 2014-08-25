@@ -380,6 +380,7 @@ config MACH_ASM9260
 	select IRQ_DOMAIN
 	select GENERIC_IRQ_CHIP
 	select CPU_ARM926T
+	select STMP_DEVICE
 	help
 	  Support for Alpscale ASM9260 based platform.
 

@@ -12,6 +12,8 @@
 #include "skeleton.dtsi"
 
 / {
+	interrupt-parent = <&icoll>;
+
         aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
@@ -32,6 +34,7 @@
 		cpu {
 			compatible = "arm,arm926ej-s";
 			device_type = "cpu";
+			clocks = <&cpu_div>;
 		};
 	};
 
@@ -40,6 +43,13 @@
 		#size-cells = <1>;
 		compatible = "simple-bus";
                 ranges;
+
+		icoll: interrupt-controller@80054000 {
+			compatible = "alpscale,asm9260-icall";
+			interrupt-controller;
+			#interrupt-cells = <1>;
+			reg = <0x80054000 0x200>;
+		};
 
 		uart0: serial@80000000 {
 			compatible = "alpscale,asm9260-uart";

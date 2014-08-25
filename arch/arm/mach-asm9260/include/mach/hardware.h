@@ -159,6 +159,7 @@
 /*irq*/
 #define IRQ_BASE_ADDRESS        0x80054000
 
+#if 0
 #define	HW_ICOLL_VECTOR         0x80054000                
 #define	HW_ICOLL_VECTOR_SET     0x80054004 
 #define	HW_ICOLL_VECTOR_CLR     0x80054008
@@ -319,6 +320,7 @@
 #define HW_ICOLL_UNDEF_VECTOR_CLR 0x800541F8
 #define HW_ICOLL_UNDEF_VECTOR_TOG 0x800541FC  
 
+#endif
 /*
  * ----------------------------------------------------------------------------
  * DIGFILT register

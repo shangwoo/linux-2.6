@@ -15,7 +15,7 @@
 #include <mach/mac.h>
 #include <linux/irqchip.h>
 
-#if 0
+#if 1
 
 char * get_irq_reg(int irq) {
 	if (irq < 0 || irq >= 64)
@@ -117,7 +117,7 @@ static struct irq_chip as9260_irq_chip = {
 void __init as9260_init_irq(void)
 {
 
-#if 0
+#if 1
 	int irq_no;
 	int delay;
 
@@ -159,8 +159,8 @@ void __init as9260_init_irq(void)
 		set_irq_flags(irq_no, IRQF_VALID);
 	}
 
-#endif
-
+#else
 	irqchip_init();
+#endif
 	return;
 }

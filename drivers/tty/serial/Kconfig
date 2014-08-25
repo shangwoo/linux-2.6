@@ -1574,7 +1574,7 @@ config ASM9260_UART_DEBUG
 	help
 		Add support for debugging the serial driver.
 
-source "arch/arm/mach-as9260/Kconfig"
+source "arch/arm/mach-asm9260/Kconfig"
 
 endmenu
 

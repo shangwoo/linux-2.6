@@ -10,7 +10,6 @@
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/interrupt.h>
-#include <linux/irq.h>
 #include <linux/list.h>
 #include <linux/sched.h>
 #include <linux/init.h>
@@ -28,7 +27,6 @@
 #include <linux/spi/flash.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
-#include <asm/mach/irq.h>
 #include <asm/mach/time.h>
 #include <mach/as9260_ts.h>
 #include <mach/lradc.h>
@@ -36,11 +34,9 @@
 #include <mach/pincontrol.h>
 //#include <mach/dma.h>
 #include <mach/mac.h>
-#include <mach/irqs.h>
 #include <mach/system.h>
 #include <asm/hardware/iomd.h>
 #include <linux/io.h>
-#include <asm/irq.h>
 #include <asm/mach-types.h>
 #include <mach/uart_reg.h>
 #include <mach/mci.h>
@@ -54,7 +50,6 @@
 #include <linux/usb/musb.h>
 #include <linux/usb/otg.h>
 //#include <linux/asmnet.h>
-#include "irq.h"
 #include "timer.h"
 #include <mach/asm9260_nand.h>
 #include <mach/xpt2046_ts.h>
@@ -925,20 +920,14 @@ static void __init as9260_init(void)
 #endif
 }
 
-static const char * const as9260_dt_board_compat[] __initconst = {
+static const char * const asm9260_dt_board_compat[] __initconst = {
 	"alpscale,asm9260",
 	NULL
 };
 
-DT_MACHINE_START(AS9260, "Alpscale AS9260 (Device Tree Support)")
-//	.boot_params	= 0x20000100,
-//	.phys_io	= 0x80000000,   /* the perih address */
-//	.io_pg_offst	= ((0xfef00000) >> 18) & 0xfffc,
+DT_MACHINE_START(ASM9260, "Alpscale ASM9260 (Device Tree Support)")
 	.map_io		= as9260_map_io,    /*MAP_IO*/
-//	.handle_irq	= icoll_handle_irq,
-	//.init_irq	= as9260_init_irq,
 	.init_machine	= as9260_init,
-	.dt_compat	= as9260_dt_board_compat,
-//	.timer		= &as9260_timer,
-	.init_time	= as9260_timer_init,
+	.dt_compat	= asm9260_dt_board_compat,
+	//.init_time	= as9260_timer_init,
 MACHINE_END

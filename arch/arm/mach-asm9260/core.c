@@ -936,7 +936,7 @@ DT_MACHINE_START(ASM9260, "Alpscale ASM9260 (Device Tree Support)")
 //	.io_pg_offst	= ((0xfef00000) >> 18) & 0xfffc,
 	.map_io		= as9260_map_io,    /*MAP_IO*/
 //	.handle_irq	= icoll_handle_irq,
-	.init_irq	= as9260_init_irq,
+//	.init_irq	= as9260_init_irq,
 	.init_machine	= as9260_init,
 	.dt_compat	= asm9260_dt_board_compat,
 //	.timer		= &as9260_timer,

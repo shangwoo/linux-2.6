@@ -25,7 +25,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/stmp_device.h>
-#include <asm/exception.h>
+//#include <asm/exception.h>
 
 #include "irqchip.h"
 
@@ -58,6 +58,7 @@ static void asm9260_init_icall(void)
 	unsigned int i;
 	int delay;
 
+#if 0
 	__raw_writel(1 << 30, icoll_base + HW_ICOLL_CTRL + 8);//clear bit 30 open clk
 
 	/*reset controller*/
@@ -68,7 +69,7 @@ static void asm9260_init_icall(void)
 	__raw_writel(1 << 31, icoll_base + HW_ICOLL_CTRL + 8); //clear bit 31
 	delay = 0x1000;
 	while(delay--);//wait
-
+#endif
 
 	/* IRQ enable,RISC32_RSE_MODE */
 	__raw_writel(0x5 << 16, icoll_base + HW_ICOLL_CTRL);
@@ -109,7 +110,6 @@ static void icoll_unmask_irq(struct irq_data *d)
 {
 	u32 level;
 
-	printk(">");
 	__raw_writel((1 << (d->hwirq & 0x1f)),
 			icoll_base + HW_ICOLL_CLEAR0 + ((d->hwirq >> 5) * 0x10) + 4);
 
@@ -126,7 +126,7 @@ static struct irq_chip asm9260_icoll_chip = {
 	.irq_unmask = icoll_unmask_irq,
 };
 
-#if 1
+#if 0
 asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 {
 	u32 irqnr;
@@ -142,7 +142,6 @@ asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 static int icoll_irq_domain_map(struct irq_domain *d, unsigned int virq,
 				irq_hw_number_t hw)
 {
-	printk(">>>>> %i/%x\n", virq, hw);
 	irq_set_chip_and_handler(virq, &asm9260_icoll_chip, handle_level_irq);
 	set_irq_flags(virq, IRQF_VALID);
 
@@ -164,14 +163,15 @@ static int __init icoll_of_init(struct device_node *np,
 	 * Interrupt Collector reset, which initializes the priority
 	 * for each irq to level 0.
 	 */
-//	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
+	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
 
-	printk("!!!!!!adr %X\n", icoll_base);
 	asm9260_init_icall();
 
 	icoll_domain = irq_domain_add_linear(np, ICOLL_NUM_IRQS,
 					     &icoll_irq_domain_ops, NULL);
-	printk("!!!!!!adr %X\n", icoll_domain);
+
+	irq_set_default_host(icoll_domain);
+
 	return icoll_domain ? 0 : -ENODEV;
 }
 IRQCHIP_DECLARE(mxs, "alpscale,asm9260-icall", icoll_of_init);

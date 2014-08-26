@@ -122,6 +122,40 @@
 			status = "disabled";
 		};
 
+		/* timers, should be moved after sregs */
+		timer0: timer@80088000 {
+			compatible = "alpscale,asm9260-timer";
+			reg = <0x80088000 0x4000>;
+			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
+			interrupts = <29>;
+			/* status = "disabled"; */
+		};
+
+		timer1: timer@8008c000 {
+			compatible = "alpscale,asm9260-timer";
+			reg = <0x8008c000 0x4000>;
+			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
+			interrupts = <30>;
+			/* status = "disabled"; */
+		};
+
+		timer2: timer@80090000 {
+			compatible = "alpscale,asm9260-timer";
+			reg = <0x80090000 0x4000>;
+			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
+			interrupts = <31>;
+			/* status = "disabled"; */
+		};
+
+		timer3: timer@80094000 {
+			compatible = "alpscale,asm9260-timer";
+			reg = <0x80094000 0x4000>;
+			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
+			interrupts = <32>;
+			/* status = "disabled"; */
+		};
+
+
 
 		sregs@80040000 {
 			compatible = "alpscale,asm9260-sregs";

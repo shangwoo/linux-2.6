@@ -1380,9 +1380,7 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	struct device_node *np = pdev->dev.of_node;
 
 	/* TODO: wait for of_io_request_and_map */
-	/* TODO: need working DT irq infrastructure */
-	//uport->irq	= of_irq_get(np, 0);
-	of_property_read_u32_index(np, "interrupts", 0, &uport->irq);
+	uport->irq = irq_of_parse_and_map(np, 0);
 	uport->mapbase	= uport->membase;
 
 	asm9260_enable_clks(asm9260_port);

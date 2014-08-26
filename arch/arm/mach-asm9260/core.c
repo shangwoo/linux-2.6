@@ -927,9 +927,7 @@ static const char * const asm9260_dt_board_compat[] __initconst = {
 
 DT_MACHINE_START(ASM9260, "Alpscale ASM9260 (Device Tree Support)")
 	.map_io		= as9260_map_io,    /*MAP_IO*/
-//	.handle_irq	= icoll_handle_irq,
 	.init_machine	= as9260_init,
 	.dt_compat	= asm9260_dt_board_compat,
-//	.timer		= &as9260_timer,
 	.init_time	= as9260_timer_init,
 MACHINE_END

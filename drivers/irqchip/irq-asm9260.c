@@ -30,6 +30,9 @@
 
 #include "irqchip.h"
 
+#define SET_REG 4
+#define CLR_REG 8
+
 #define HW_ICOLL_VECTOR				0x0000
 /* bits 31:2
  * This register presents the vector address for the interrupt currently
@@ -66,20 +69,46 @@
 #define BM_CTRL_IRQ_ENABLE			BIT(16)
 
 #define HW_ICOLL_STAT_OFFSET			0x0030
+/* bits 5:0
+ * Vector number of current interrupt. Multiply by 4 and add to vector base
+ * address to obtain the value in HW_ICOLL_VECTOR.
+ */
+
 #define HW_ICOLL_RAW0				0x0040
 #define HW_ICOLL_RAW1				0x0050
-#define	HW_ICOLL_PRIORITYn(n)			(0x0060 + ((n) >> 2) * 0x10)
-#define	HW_ICOLL_INTERRUPTn_SET(n)		(0x0064 + ((n) >> 2) * 0x10)
-#define	HW_ICOLL_INTERRUPTn_CLR(n)		(0x0068 + ((n) >> 2) * 0x10)
+/* This register provides a read-only view of the raw interrupt request lines
+ * coming from various parts of the chip. Its purpose is to improve diagnostic
+ * observability.
+ */
+
+#define	HW_ICOLL_INTERRUPTn(n)			(0x0060 + ((n) >> 2) * 0x10)
+#define	HW_ICOLL_INTERRUPTn_SET(n)		(HW_ICOLL_INTERRUPTn(n) \
+		+ SET_REG)
+#define	HW_ICOLL_INTERRUPTn_CLR(n)		(HW_ICOLL_INTERRUPTn(n) \
+		+ CLR_REG)
+#define BM_INT_PRIORITY_MASK			0x3
+/* WARNING: Modifying the priority of an enabled interrupt may result in
+ * undefined behavior. */
+#define BM_INT_ENABLE				BIT(2)
+#define BM_INT_SOFTIRQ				BIT(3)
 
 #define BM_ICOLL_INTERRUPTn_SHIFT(n)		(((n) & 0x3) << 3)
 #define BM_ICOLL_INTERRUPTn_ENABLE(n)		(1 << (2 + \
 			BM_ICOLL_INTERRUPTn_SHIFT(n)))
 
 #define HW_ICOLL_VBASE				0x0160
+/* bits 31:2
+ * This bitfield holds the upper 30 bits of the base address of the vector
+ * table. */
+
 #define HW_ICOLL_CLEAR0				0x01d0
 #define	HW_ICOLL_CLEAR1				0x01e0
+#define HW_ICOLL_CLEARn(n)			(0x01d0 + ((n >> 5) * 0x10) \
+							+ SET_REG)
+#define BM_CLEAR_BIT(n)				BIT(n & 0x1f)
+
 #define HW_ICOLL_UNDEF_VECTOR			0x01f0
+/* Scratchpad */
 
 #define ICOLL_NUM_IRQS		64
 
@@ -100,10 +129,10 @@ static void asm9260_init_icall(void)
 	__raw_writel(0xffff0000, icoll_base + HW_ICOLL_UNDEF_VECTOR);
 
 	for (i = 0; i < 16 * 0x10; i += 0x10)
-		__raw_writel(0x00000000, icoll_base + HW_ICOLL_PRIORITYn(0) + i);
+		__raw_writel(0x00000000, icoll_base + HW_ICOLL_INTERRUPTn(0) + i);
 
 	/* set timer 0 priority level high */
-        __raw_writel(0x00000300, icoll_base + HW_ICOLL_PRIORITYn(0) + 0x70);
+        __raw_writel(0x00000300, icoll_base + HW_ICOLL_INTERRUPTn(0) + 0x70);
 }
 
 static unsigned int irq_get_level(struct irq_data *d)
@@ -129,8 +158,8 @@ static void icoll_unmask_irq(struct irq_data *d)
 {
 	u32 level;
 
-	__raw_writel((1 << (d->hwirq & 0x1f)),
-			icoll_base + HW_ICOLL_CLEAR0 + ((d->hwirq >> 5) * 0x10) + 4);
+	__raw_writel(BM_CLEAR_BIT(d->hwirq),
+			icoll_base + HW_ICOLL_CLEARn(d->hwirq));
 
 	level = irq_get_level(d);
 	__raw_writel(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);

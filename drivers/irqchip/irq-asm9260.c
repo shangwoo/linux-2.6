@@ -41,9 +41,30 @@
  */
 
 #define HW_ICOLL_LEVELACK			0x0010
+/* The Interrupt Collector Level Acknowledge Register is used by software to
+ * indicate the completion of an interrupt on a specific level.
+ * This register is written at the very end of an interrupt service routine. If
+ * nesting is used then the CPU irq must be turned on before writing to this
+ * register to avoid a race condition in the CPU interrupt hardware.
+ */
 #define BM_LEVELn(nr)				BIT(nr)
 
 #define HW_ICOLL_CTRL				0x0020
+#define BM_CTRL_SFTRST				BIT(31)
+#define BM_CTRL_CLKGATE				BIT(30)
+#define BM_CTRL_NO_NESTING			BIT(19)
+/* disable interrupt level nesting */
+#define BM_CTRL_ARM_RSE_MODER			BIT(18)
+/* Set this bit to one enable the RISC32-style read side effect associated with
+ * the vector address register. In this mode, interrupt in-service is signaled
+ * by the read of the HW_ICOLL_VECTOR register to acquire the interrupt vector
+ * address. Set this bit to zero for normal operation, in which the ISR signals
+ * in-service explicitly by means of a write to the HW_ICOLL_VECTOR register.
+ * 0 - Must Write to Vector register to go in-service.
+ * 1 - Go in-service as a read side effect
+ */
+#define BM_CTRL_IRQ_ENABLE			BIT(16)
+
 #define HW_ICOLL_STAT_OFFSET			0x0030
 #define HW_ICOLL_RAW0				0x0040
 #define HW_ICOLL_RAW1				0x0050
@@ -69,8 +90,8 @@ static void asm9260_init_icall(void)
 {
 	unsigned int i;
 
-	/* IRQ enable,RISC32_RSE_MODE */
-	__raw_writel(0x5 << 16, icoll_base + HW_ICOLL_CTRL);
+	__raw_writel(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
+			icoll_base + HW_ICOLL_CTRL);
 
 	/* set irq_table addr */
 	__raw_writel(0x0, icoll_base + HW_ICOLL_VBASE);

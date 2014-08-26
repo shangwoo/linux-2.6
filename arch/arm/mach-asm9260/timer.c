@@ -12,6 +12,7 @@
 #include <linux/interrupt.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
+#include <linux/irqdomain.h>
 
 //#include <asm/system.h>
 //#include <asm/hardware.h>
@@ -83,10 +84,13 @@ static struct irqaction as9260_timer0_irq = {
 
 void __init as9260_timer_init(void)
 {
+	int err, inter;
 	printk("%s\n", __func__);
-	//setup_irq(INT_TIMER0, &as9260_timer0_irq);
-	request_irq(INT_TIMER0, as9260_timer0_interrupt, IRQF_DISABLED |
-			IRQF_TIMER | IRQF_IRQPOLL, "AS9260 Timer 0 - Tick", NULL);
+	inter = irq_create_mapping(NULL, INT_TIMER0);
+	err = setup_irq(inter, &as9260_timer0_irq);
+	printk("timer err %i\n", err);
+	//request_irq(INT_TIMER0, as9260_timer0_interrupt, IRQF_DISABLED |
+	//		IRQF_TIMER | IRQF_IRQPOLL, "AS9260 Timer 0 - Tick", NULL);
 	as9260_timer0_setup();
 	of_clk_init(NULL);
 }

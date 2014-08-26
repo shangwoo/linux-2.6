@@ -114,10 +114,15 @@
 
 static void __iomem *icoll_base;
 static struct irq_domain *icoll_domain;
+static int use_cached_level = 1;
+static u8 level_cache[ICOLL_NUM_IRQS];
 
 static unsigned int irq_get_level(struct irq_data *d)
 {
 	unsigned int tmp;
+
+	if (use_cached_level)
+		return level_cache[d->hwirq];
 
 	tmp = __raw_readl(icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
 	return (tmp >> BM_ICOLL_INTERRUPTn_SHIFT(d->hwirq)) & 0x3;
@@ -125,12 +130,15 @@ static unsigned int irq_get_level(struct irq_data *d)
 
 static void irq_set_level(int hwirq, int level)
 {
-	if (level < 0 || level > 3) {
+	if (unlikely(level < 0 || level > 3)) {
 		pr_err("%s Wrong level (%i) for irq (%i)!", __func__, level,
 				hwirq);
 		return;
 	}
-        __raw_writel(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
+	if (use_cached_level)
+		level_cache[hwirq] = level;
+
+	__raw_writel(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn(hwirq));
 }
 
@@ -169,9 +177,8 @@ asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 {
 	u32 irqnr;
 
-	irqnr = __raw_readl(icoll_base + HW_ICOLL_STAT_OFFSET);
-	__raw_writel(irqnr * 4, icoll_base + HW_ICOLL_VECTOR);
-	irqnr = irq_find_mapping(icoll_domain, irqnr);
+	irqnr = irq_find_mapping(icoll_domain,
+			__raw_readl(icoll_base + HW_ICOLL_STAT_OFFSET));
 
 	handle_IRQ(irqnr, regs);
 }

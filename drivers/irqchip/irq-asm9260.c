@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -115,32 +115,23 @@
 static void __iomem *icoll_base;
 static struct irq_domain *icoll_domain;
 
-static void asm9260_init_icall(void)
-{
-	unsigned int i;
-
-	__raw_writel(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
-			icoll_base + HW_ICOLL_CTRL);
-
-	/* set irq_table addr */
-	__raw_writel(0x0, icoll_base + HW_ICOLL_VBASE);
-
-	/* set irq_table addr */
-	__raw_writel(0xffff0000, icoll_base + HW_ICOLL_UNDEF_VECTOR);
-
-	for (i = 0; i < 16 * 0x10; i += 0x10)
-		__raw_writel(0x00000000, icoll_base + HW_ICOLL_INTERRUPTn(0) + i);
-
-	/* set timer 0 priority level high */
-        __raw_writel(0x00000300, icoll_base + HW_ICOLL_INTERRUPTn(0) + 0x70);
-}
-
 static unsigned int irq_get_level(struct irq_data *d)
 {
 	unsigned int tmp;
 
 	tmp = __raw_readl(icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
 	return (tmp >> BM_ICOLL_INTERRUPTn_SHIFT(d->hwirq)) & 0x3;
+}
+
+static void irq_set_level(int hwirq, int level)
+{
+	if (level < 0 || level > 3) {
+		pr_err("%s Wrong level (%i) for irq (%i)!", __func__, level,
+				hwirq);
+		return;
+	}
+        __raw_writel(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
+			icoll_base + HW_ICOLL_INTERRUPTn(hwirq));
 }
 
 static void icoll_ack_irq(struct irq_data *d)
@@ -211,7 +202,12 @@ static int __init icoll_of_init(struct device_node *np,
 	 */
 	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
 
-	asm9260_init_icall();
+	/* enable IRQ controller */
+	__raw_writel(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
+			icoll_base + HW_ICOLL_CTRL);
+
+	/* set timer 0 priority level high. TODO: should be done by DT  */
+	irq_set_level(29, 3);
 
 	icoll_domain = irq_domain_add_linear(np, ICOLL_NUM_IRQS,
 					     &icoll_irq_domain_ops, NULL);

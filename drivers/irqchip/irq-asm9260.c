@@ -174,18 +174,16 @@ static struct irq_chip asm9260_icoll_chip = {
 	.irq_unmask = icoll_unmask_irq,
 };
 
-#if 0
 asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 {
 	u32 irqnr;
 
 	irqnr = __raw_readl(icoll_base + HW_ICOLL_STAT_OFFSET);
-	__raw_writel(irqnr, icoll_base + HW_ICOLL_VECTOR);
+	__raw_writel(irqnr * 4, icoll_base + HW_ICOLL_VECTOR);
 	irqnr = irq_find_mapping(icoll_domain, irqnr);
 
 	handle_IRQ(irqnr, regs);
 }
-#endif
 
 static int icoll_irq_domain_map(struct irq_domain *d, unsigned int virq,
 				irq_hw_number_t hw)
@@ -219,6 +217,8 @@ static int __init icoll_of_init(struct device_node *np,
 					     &icoll_irq_domain_ops, NULL);
 
 	irq_set_default_host(icoll_domain);
+
+	set_handle_irq(icoll_handle_irq);
 
 	return icoll_domain ? 0 : -ENODEV;
 }

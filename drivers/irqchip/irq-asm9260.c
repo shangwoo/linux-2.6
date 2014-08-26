@@ -58,19 +58,6 @@ static void asm9260_init_icall(void)
 	unsigned int i;
 	int delay;
 
-#if 0
-	__raw_writel(1 << 30, icoll_base + HW_ICOLL_CTRL + 8);//clear bit 30 open clk
-
-	/*reset controller*/
-	__raw_writel(1 << 31, icoll_base + HW_ICOLL_CTRL + 4);//set bit 31
-	delay = 0x1000;
-	while(delay--);//wait
-
-	__raw_writel(1 << 31, icoll_base + HW_ICOLL_CTRL + 8); //clear bit 31
-	delay = 0x1000;
-	while(delay--);//wait
-#endif
-
 	/* IRQ enable,RISC32_RSE_MODE */
 	__raw_writel(0x5 << 16, icoll_base + HW_ICOLL_CTRL);
 

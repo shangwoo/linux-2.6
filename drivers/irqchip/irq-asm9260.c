@@ -25,12 +25,24 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/stmp_device.h>
-//#include <asm/exception.h>
+#include <asm/exception.h>
+#include <linux/bitops.h>
 
 #include "irqchip.h"
 
 #define HW_ICOLL_VECTOR				0x0000
+/* bits 31:2
+ * This register presents the vector address for the interrupt currently
+ * active on the CPU IRQ input. Writing to this register notifies the
+ * interrupt collector that the interrupt service routine for the current
+ * interrupt has been entered.
+ * The exception trap should have a LDPC instruction from this address:
+ * LDPC HW_ICOLL_VECTOR_ADDR; IRQ exception at 0xffff0018
+ */
+
 #define HW_ICOLL_LEVELACK			0x0010
+#define BM_LEVELn(nr)				BIT(nr)
+
 #define HW_ICOLL_CTRL				0x0020
 #define HW_ICOLL_STAT_OFFSET			0x0030
 #define HW_ICOLL_RAW0				0x0040
@@ -56,7 +68,6 @@ static struct irq_domain *icoll_domain;
 static void asm9260_init_icall(void)
 {
 	unsigned int i;
-	int delay;
 
 	/* IRQ enable,RISC32_RSE_MODE */
 	__raw_writel(0x5 << 16, icoll_base + HW_ICOLL_CTRL);
@@ -101,7 +112,7 @@ static void icoll_unmask_irq(struct irq_data *d)
 			icoll_base + HW_ICOLL_CLEAR0 + ((d->hwirq >> 5) * 0x10) + 4);
 
 	level = irq_get_level(d);
-	__raw_writel(1 << level, icoll_base + HW_ICOLL_LEVELACK);
+	__raw_writel(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);
 
 	__raw_writel(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));

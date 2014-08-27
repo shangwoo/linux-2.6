@@ -124,7 +124,7 @@ static unsigned int irq_get_level(struct irq_data *d)
 	if (use_cached_level)
 		return level_cache[d->hwirq];
 
-	tmp = __raw_readl(icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
+	tmp = readl_relaxed(icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
 	return (tmp >> BM_ICOLL_INTERRUPTn_SHIFT(d->hwirq)) & 0x3;
 }
 
@@ -138,18 +138,18 @@ static void irq_set_level(int hwirq, int level)
 	if (use_cached_level)
 		level_cache[hwirq] = level;
 
-	__raw_writel(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
+	writel_relaxed(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn(hwirq));
 }
 
 static void icoll_ack_irq(struct irq_data *d)
 {
-	__raw_readl(icoll_base + HW_ICOLL_VECTOR);
+	readl_relaxed(icoll_base + HW_ICOLL_VECTOR);
 }
 
 static void icoll_mask_irq(struct irq_data *d)
 {
-	__raw_writel(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
+	writel_relaxed(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn_CLR(d->hwirq));
 }
 
@@ -157,13 +157,13 @@ static void icoll_unmask_irq(struct irq_data *d)
 {
 	u32 level;
 
-	__raw_writel(BM_CLEAR_BIT(d->hwirq),
+	writel_relaxed(BM_CLEAR_BIT(d->hwirq),
 			icoll_base + HW_ICOLL_CLEARn(d->hwirq));
 
 	level = irq_get_level(d);
-	__raw_writel(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);
+	writel_relaxed(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);
 
-	__raw_writel(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
+	writel_relaxed(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
 }
 
@@ -178,7 +178,7 @@ asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 	u32 irqnr;
 
 	irqnr = irq_find_mapping(icoll_domain,
-			__raw_readl(icoll_base + HW_ICOLL_STAT_OFFSET));
+			readl_relaxed(icoll_base + HW_ICOLL_STAT_OFFSET));
 
 	handle_IRQ(irqnr, regs);
 }
@@ -210,7 +210,7 @@ static int __init icoll_of_init(struct device_node *np,
 	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
 
 	/* enable IRQ controller */
-	__raw_writel(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
+	writel_relaxed(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
 			icoll_base + HW_ICOLL_CTRL);
 
 	/* set timer 0 priority level high. TODO: should be done by DT  */

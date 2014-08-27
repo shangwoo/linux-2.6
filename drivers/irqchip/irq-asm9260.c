@@ -57,7 +57,7 @@
 #define BM_CTRL_CLKGATE				BIT(30)
 #define BM_CTRL_NO_NESTING			BIT(19)
 /* disable interrupt level nesting */
-#define BM_CTRL_ARM_RSE_MODER			BIT(18)
+#define BM_CTRL_ARM_RSE_MODE			BIT(18)
 /* Set this bit to one enable the RISC32-style read side effect associated with
  * the vector address register. In this mode, interrupt in-service is signaled
  * by the read of the HW_ICOLL_VECTOR register to acquire the interrupt vector
@@ -200,8 +200,15 @@ static struct irq_domain_ops icoll_irq_domain_ops = {
 static int __init icoll_of_init(struct device_node *np,
 			  struct device_node *interrupt_parent)
 {
-	icoll_base = of_iomap(np, 0);
-	WARN_ON(!icoll_base);
+	struct resource res;
+
+	of_address_to_resource(np, 0, &res);
+	if (!request_mem_region(res.start, resource_size(&res), np->name))
+		panic("%s: unable to request mem region", np->name);
+
+	icoll_base = ioremap(res.start, resource_size(&res));
+	if (!icoll_base)
+		panic("%s: unable to map resource", np->name);
 
 	/*
 	 * Interrupt Collector reset, which initializes the priority
@@ -210,7 +217,7 @@ static int __init icoll_of_init(struct device_node *np,
 	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
 
 	/* enable IRQ controller */
-	writel_relaxed(BM_CTRL_ARM_RSE_MODER | BM_CTRL_IRQ_ENABLE,
+	writel_relaxed(BM_CTRL_ARM_RSE_MODE | BM_CTRL_IRQ_ENABLE,
 			icoll_base + HW_ICOLL_CTRL);
 
 	/* set timer 0 priority level high. TODO: should be done by DT  */

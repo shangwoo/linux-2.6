@@ -207,7 +207,7 @@ static int __init icoll_of_init(struct device_node *np,
 	if (!request_mem_region(res.start, resource_size(&res), np->name))
 		panic("%s: unable to request mem region", np->name);
 
-	icoll_base = ioremap(res.start, resource_size(&res));
+	icoll_base = ioremap_nocache(res.start, resource_size(&res));
 	if (!icoll_base)
 		panic("%s: unable to map resource", np->name);
 

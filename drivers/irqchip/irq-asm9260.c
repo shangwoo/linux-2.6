@@ -27,6 +27,7 @@
 #include <linux/stmp_device.h>
 #include <asm/exception.h>
 #include <linux/bitops.h>
+#include <linux/delay.h>
 
 #include "irqchip.h"
 
@@ -214,7 +215,13 @@ static int __init icoll_of_init(struct device_node *np,
 	 * Interrupt Collector reset, which initializes the priority
 	 * for each irq to level 0.
 	 */
-	stmp_reset_block(icoll_base + HW_ICOLL_CTRL);
+	writel(BM_CTRL_CLKGATE, icoll_base + HW_ICOLL_CTRL + CLR_REG);
+
+	writel(BM_CTRL_SFTRST, icoll_base + HW_ICOLL_CTRL + SET_REG);
+	udelay(100);
+
+	writel(BM_CTRL_SFTRST, icoll_base + HW_ICOLL_CTRL + CLR_REG);
+	udelay(100);
 
 	/* enable IRQ controller */
 	writel_relaxed(BM_CTRL_ARM_RSE_MODE | BM_CTRL_IRQ_ENABLE,
@@ -232,4 +239,4 @@ static int __init icoll_of_init(struct device_node *np,
 
 	return icoll_domain ? 0 : -ENODEV;
 }
-IRQCHIP_DECLARE(mxs, "alpscale,asm9260-icall", icoll_of_init);
+IRQCHIP_DECLARE(asm9260, "alpscale,asm9260-icall", icoll_of_init);

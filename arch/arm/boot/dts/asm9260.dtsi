@@ -126,36 +126,10 @@
 		timer0: timer@80088000 {
 			compatible = "alpscale,asm9260-timer";
 			reg = <0x80088000 0x4000>;
-			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
+			clocks = <&ahb_timer0_gate>;
 			interrupts = <29>;
 			/* status = "disabled"; */
 		};
-
-		timer1: timer@8008c000 {
-			compatible = "alpscale,asm9260-timer";
-			reg = <0x8008c000 0x4000>;
-			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
-			interrupts = <30>;
-			/* status = "disabled"; */
-		};
-
-		timer2: timer@80090000 {
-			compatible = "alpscale,asm9260-timer";
-			reg = <0x80090000 0x4000>;
-			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
-			interrupts = <31>;
-			/* status = "disabled"; */
-		};
-
-		timer3: timer@80094000 {
-			compatible = "alpscale,asm9260-timer";
-			reg = <0x80094000 0x4000>;
-			/* clocks = <&uart9_div>, <&ahb_uart9_gate>; */
-			interrupts = <32>;
-			/* status = "disabled"; */
-		};
-
-
 
 		sregs@80040000 {
 			compatible = "alpscale,asm9260-sregs";
@@ -354,6 +328,15 @@
 					reg = <0x0020>;
 					bit-index = <20>;
 				};
+
+				ahb_timer0_gate: ahb_timer0_gate@0030 {
+					compatible = "alpscale,asm9260-gate-clock";
+					#clock-cells = <0>;
+					clocks = <&ahb_div>;
+					reg = <0x0030>;
+					bit-index = <4>;
+				};
+
 
 
 				/* ahb devices end */

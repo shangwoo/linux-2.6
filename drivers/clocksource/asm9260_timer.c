@@ -199,7 +199,7 @@ static void __init asm9260_timer_init(struct device_node *np)
 
 	/* timer0 count-Up */
 	writel(0x3, base + HW_DIR + CLR_REG);
-	writel(clk_get_rate(clk), base + HW_MR0);
+	writel(clk_get_rate(clk) / 1000000, base + HW_MR0);
 	/* MR0 * (PR + 1) = hclk * 10000----100HZ-->hclk M */
 	writel(9999, base + HW_PR);
 	/* timer mode */

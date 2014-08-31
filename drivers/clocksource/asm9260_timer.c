@@ -26,8 +26,8 @@
 #include <linux/bitops.h>
 
 #include <asm/irq.h>
-#include <asm/mach/irq.h>
-#include <asm/mach/time.h>
+//#include <asm/mach/irq.h>
+//#include <asm/mach/time.h>
 
 #define SET_REG 4
 #define CLR_REG 8
@@ -92,15 +92,16 @@
 #define HW_CTCR		0x0180 /* Counter control */
 #define HW_PWMC		0x0190 /* PWM control */
 
-
+#if 0
 /*
  * TRM says 1 / HZ = ( TVR + 1) / 32768, so TRV = (32768 / HZ) - 1
  * so with HZ = 128, TVR = 255.
  */
-//#define OMAP_32K_TIMER_TICK_PERIOD	((OMAP_32K_TICKS_PER_SEC / HZ) - 1)
+#define OMAP_32K_TIMER_TICK_PERIOD	((OMAP_32K_TICKS_PER_SEC / HZ) - 1)
 
-//#define JIFFIES_TO_HW_TICKS(nr_jiffies, clock_rate)			\
-//				(((nr_jiffies) * (clock_rate)) / HZ)
+#define JIFFIES_TO_HW_TICKS(nr_jiffies, clock_rate)			\
+				(((nr_jiffies) * (clock_rate)) / HZ)
+#endif
 
 static void __iomem *base;
 
@@ -164,6 +165,7 @@ static struct irqaction asm9260_timer_irq = {
 	.name		= "ASM9260 timer",
 	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
 	.handler	= asm9260_timer_interrupt,
+	.dev_id		= &asm9260_clockevent_device,
 };
 
 /*
@@ -171,11 +173,12 @@ static struct irqaction asm9260_timer_irq = {
  * Timer initialization
  * ---------------------------------------------------------------------------
  */
-int __init asm9260_timer_init(void)
+static void __init asm9260_timer_init(struct device_node *np)
 {
 	int irq;
 	struct clk *clk;
-	int ret = -ENODEV;
+	struct resource res;
+	int ret;
 
 	of_address_to_resource(np, 0, &res);
 	if (!request_mem_region(res.start, resource_size(&res), np->name))
@@ -187,12 +190,12 @@ int __init asm9260_timer_init(void)
 
 	clk = of_clk_get(np, 0);
 
-	err = clk_prepare_enable(clk);
-	if (err)
-		panic(uport->dev, "Failed to enable clk!\n");
+	ret = clk_prepare_enable(clk);
+	if (ret)
+		panic("Failed to enable clk!\n");
 
 	irq = irq_of_parse_and_map(np, 0);
-	setup_irq(irq, &mxs_timer_irq);
+	setup_irq(irq, &asm9260_timer_irq);
 
 	/* timer0 count-Up */
 	writel(0x3, base + HW_DIR + CLR_REG);
@@ -207,8 +210,6 @@ int __init asm9260_timer_init(void)
 	asm9260_clockevent_device.cpumask = cpumask_of(0);
 	clockevents_config_and_register(&asm9260_clockevent_device,
 					100 * HZ, 1, 0xfffffffe);
-
-	return ret;
 }
-CLOCKSOURCE_OF_DECLARE(asm9260-timer, "alpscale,asm9260-timer",
+CLOCKSOURCE_OF_DECLARE(asm9260_timer, "alpscale,asm9260-timer",
 		asm9260_timer_init);

@@ -381,8 +381,8 @@ config MACH_ASM9260
 	select MULTI_IRQ_HANDLER
 	select GENERIC_IRQ_CHIP
 	select GENERIC_CLOCKEVENTS
+	select CLKSRC_MMIO
 	select CPU_ARM926T
-	select STMP_DEVICE
 	help
 	  Support for Alpscale ASM9260 based platform.
 

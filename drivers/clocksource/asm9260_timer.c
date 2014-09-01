@@ -90,21 +90,11 @@
 #define HW_PWMC		0x0190 /* PWM control */
 
 static void __iomem *base;
-
-static inline void asm9260_timer_start(void)
-{
-	writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
-}
-
-static inline void asm9260_timer_stop(void)
-{
-	writel_relaxed(BM_C0_EN, base + HW_TCR + CLR_REG);
-}
+static unsigned long ticks_per_jiffy;
 
 static int asm9260_timer_set_next_event(unsigned long delta,
 					 struct clock_event_device *dev)
 {
-
 	writel_relaxed(delta, base + HW_MR0);
 	writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
 	return 0;
@@ -113,35 +103,46 @@ static int asm9260_timer_set_next_event(unsigned long delta,
 static void asm9260_timer_set_mode(enum clock_event_mode mode,
 				    struct clock_event_device *evt)
 {
-	asm9260_timer_stop();
-	/* We support only ONESHOT mode, which will be triggered by
-	 * set_next_event. So, nothing should be done here. */
+	/* stop timer0 */
+	writel_relaxed(BM_C0_EN, base + HW_TCR + CLR_REG);
+
+	switch (mode) {
+	case CLOCK_EVT_MODE_PERIODIC:
+		writel_relaxed(BIT(1) | BIT(2), base + HW_MCR + CLR_REG);
+		writel_relaxed(ticks_per_jiffy, base + HW_MR0);
+		writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
+		break;
+	case CLOCK_EVT_MODE_ONESHOT:
+		writel_relaxed(BIT(1) | BIT(2), base + HW_MCR + SET_REG);
+		break;
+	default:
+		break;
+	}
 }
 
 static struct clock_event_device asm9260_clockevent_device = {
 	.name		= "asm9260-timer",
 	.rating		= 200,
-	.features       = CLOCK_EVT_FEAT_ONESHOT,
+	.features       = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
 	.set_next_event	= asm9260_timer_set_next_event,
 	.set_mode	= asm9260_timer_set_mode,
 };
 
 static irqreturn_t asm9260_timer_interrupt(int irq, void *dev_id)
 {
-	struct clock_event_device *evt = dev_id;
-
-	writel_relaxed(1, base + HW_IR + SET_REG);
+	struct clock_event_device *evt = &asm9260_clockevent_device;
 
 	evt->event_handler(evt);
+
+	writel(1, base + HW_IR);
 
 	return IRQ_HANDLED;
 }
 
 static struct irqaction asm9260_timer_irq = {
 	.name		= "ASM9260 timer",
-	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
+	.flags		= IRQF_TIMER,
 	.handler	= asm9260_timer_interrupt,
-	.dev_id		= &asm9260_clockevent_device,
 };
 
 /*
@@ -152,11 +153,12 @@ static struct irqaction asm9260_timer_irq = {
 
 static void __init asm9260_clockevent_init(struct clk *clk)
 {
-	unsigned long hz = clk_get_rate(clk);
+	unsigned long rate = clk_get_rate(clk);
 
+	ticks_per_jiffy = DIV_ROUND_CLOSEST(rate, HZ);
 	asm9260_clockevent_device.cpumask = cpumask_of(0);
 	clockevents_config_and_register(&asm9260_clockevent_device,
-					hz, 0xf, 0xfffffffe);
+					rate, 0x2c00, 0xfffffffe);
 }
 
 static void __init asm9260_clocksource_init(struct clk *clk)
@@ -164,7 +166,7 @@ static void __init asm9260_clocksource_init(struct clk *clk)
 	unsigned long hz = clk_get_rate(clk);
 
 	clocksource_mmio_init(base + HW_TC1,
-			"asm9260-clocksource", hz,
+			"asm9260-timer", hz,
 			200, 32, clocksource_mmio_readl_up);
 
 	writel_relaxed(0xffffffff, base + HW_MR1);
@@ -202,8 +204,8 @@ static void __init asm9260_timer_init(struct device_node *np)
 	writel_relaxed(0, base + HW_PR);
 	/* timer mode: timer 0 reset and stop  */
 	writel_relaxed(0, base + HW_CTCR);
-	/* if (tc == mr0) then reset tc and interrupt */
-	writel_relaxed(BIT(0) | BIT(1) | BIT(2), base + HW_MCR + SET_REG);
+	/* enable interrupt for TC0 and clean setting for all other lines */
+	writel_relaxed(BIT(0) , base + HW_MCR);
 
 	asm9260_clocksource_init(clk);
 	asm9260_clockevent_init(clk);

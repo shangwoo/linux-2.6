@@ -72,6 +72,10 @@
 #define HW_PR		0x0070 /* RW. prescaler */
 #define HW_PC		0x0080 /* RO. Prescaler counter */
 #define HW_MCR		0x0090 /* RW. Match control */
+#define BM_MCR_INT_EN(n)	(1 << (n * 3 + 0)) /* enable interrupt on match */
+#define BM_MCR_RES_EN(n)	(1 << (n * 3 + 1)) /* enable TC reset on match */
+#define BM_MCR_STOP_EN(n)	(1 << (n * 3 + 2)) /* enable stop TC on match */
+
 #define HW_MR0		0x00a0 /* RW. Match reg */
 #define HW_MR1		0x00b0
 #define HW_MR2		0x00C0
@@ -95,7 +99,9 @@ static unsigned long ticks_per_jiffy;
 static int asm9260_timer_set_next_event(unsigned long delta,
 					 struct clock_event_device *dev)
 {
+	/* configure match count for TC0 */
 	writel_relaxed(delta, base + HW_MR0);
+	/* enable TC0 */
 	writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
 	return 0;
 }
@@ -108,12 +114,18 @@ static void asm9260_timer_set_mode(enum clock_event_mode mode,
 
 	switch (mode) {
 	case CLOCK_EVT_MODE_PERIODIC:
-		writel_relaxed(BIT(1) | BIT(2), base + HW_MCR + CLR_REG);
+		/* disable reset and stop on match */
+		writel_relaxed(BM_MCR_RES_EN(0) | BM_MCR_STOP_EN(0),
+				base + HW_MCR + CLR_REG);
+		/* configure match count for TC0 */
 		writel_relaxed(ticks_per_jiffy, base + HW_MR0);
+		/* enable TC0 */
 		writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
 		break;
 	case CLOCK_EVT_MODE_ONESHOT:
-		writel_relaxed(BIT(1) | BIT(2), base + HW_MCR + SET_REG);
+		/* enable reset and stop on match */
+		writel_relaxed(BM_MCR_RES_EN(0) | BM_MCR_STOP_EN(0),
+				base + HW_MCR + SET_REG);
 		break;
 	default:
 		break;
@@ -197,15 +209,14 @@ static void __init asm9260_timer_init(struct device_node *np)
 	irq = irq_of_parse_and_map(np, 0);
 	setup_irq(irq, &asm9260_timer_irq);
 
-	/* set all timers for count-Up and one to count down */
+	/* set all timers for count-up */
 	writel_relaxed(0, base + HW_DIR);
-	//writel(clk_get_rate(clk) / 1000000, base + HW_MR0);
-	/* MR0 * (PR + 1) = hclk * 10000----100HZ-->hclk M */
+	/* disbale devider */
 	writel_relaxed(0, base + HW_PR);
-	/* timer mode: timer 0 reset and stop  */
+	/* make sure all timers use every rising PCLK edge. */
 	writel_relaxed(0, base + HW_CTCR);
 	/* enable interrupt for TC0 and clean setting for all other lines */
-	writel_relaxed(BIT(0) , base + HW_MCR);
+	writel_relaxed(BM_MCR_INT_EN(0) , base + HW_MCR);
 
 	asm9260_clocksource_init(clk);
 	asm9260_clockevent_init(clk);

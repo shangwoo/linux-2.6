@@ -133,7 +133,7 @@ static void asm9260_timer_set_mode(enum clock_event_mode mode,
 }
 
 static struct clock_event_device asm9260_clockevent_device = {
-	.name		= "asm9260-timer",
+	.name		= "asm9260-clockevent-dev",
 	.rating		= 200,
 	.features       = CLOCK_EVT_FEAT_PERIODIC | CLOCK_EVT_FEAT_ONESHOT,
 	.set_next_event	= asm9260_timer_set_next_event,
@@ -146,14 +146,14 @@ static irqreturn_t asm9260_timer_interrupt(int irq, void *dev_id)
 
 	evt->event_handler(evt);
 
-	writel(1, base + HW_IR);
+	writel_relaxed(BM_IR_MR0, base + HW_IR);
 
 	return IRQ_HANDLED;
 }
 
 static struct irqaction asm9260_timer_irq = {
-	.name		= "ASM9260 timer",
-	.flags		= IRQF_TIMER,
+	.name		= "asm9260-clockevent-dev",
+	.flags		= IRQF_TIMER | IRQF_IRQPOLL,
 	.handler	= asm9260_timer_interrupt,
 };
 
@@ -178,7 +178,7 @@ static void __init asm9260_clocksource_init(struct clk *clk)
 	unsigned long hz = clk_get_rate(clk);
 
 	clocksource_mmio_init(base + HW_TC1,
-			"asm9260-timer", hz,
+			"asm9260-clocksource", hz,
 			200, 32, clocksource_mmio_readl_up);
 
 	writel_relaxed(0xffffffff, base + HW_MR1);
@@ -193,7 +193,7 @@ static void __init asm9260_timer_init(struct device_node *np)
 	int ret;
 
 	of_address_to_resource(np, 0, &res);
-	if (!request_mem_region(res.start, resource_size(&res), np->name))
+	if (!request_mem_region(res.start, resource_size(&res), "asm9260-timer"))
 		panic("%s: unable to request mem region", np->name);
 
 	base = ioremap_nocache(res.start, resource_size(&res));

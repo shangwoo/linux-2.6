@@ -19,15 +19,12 @@
 #include <linux/clocksource.h>
 #include <linux/clockchips.h>
 #include <linux/io.h>
-#include <linux/io.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/bitops.h>
 
 #include <asm/irq.h>
-//#include <asm/mach/irq.h>
-//#include <asm/mach/time.h>
 
 #define SET_REG 4
 #define CLR_REG 8
@@ -92,34 +89,24 @@
 #define HW_CTCR		0x0180 /* Counter control */
 #define HW_PWMC		0x0190 /* PWM control */
 
-#if 0
-/*
- * TRM says 1 / HZ = ( TVR + 1) / 32768, so TRV = (32768 / HZ) - 1
- * so with HZ = 128, TVR = 255.
- */
-#define OMAP_32K_TIMER_TICK_PERIOD	((OMAP_32K_TICKS_PER_SEC / HZ) - 1)
-
-#define JIFFIES_TO_HW_TICKS(nr_jiffies, clock_rate)			\
-				(((nr_jiffies) * (clock_rate)) / HZ)
-#endif
-
 static void __iomem *base;
 
 static inline void asm9260_timer_start(void)
 {
-	writel(1 << 0, base + HW_TCR + SET_REG);
+	writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
 }
 
 static inline void asm9260_timer_stop(void)
 {
-	writel(1 << 0, base + HW_TCR + CLR_REG);
+	writel_relaxed(BM_C0_EN, base + HW_TCR + CLR_REG);
 }
 
 static int asm9260_timer_set_next_event(unsigned long delta,
 					 struct clock_event_device *dev)
 {
-	asm9260_timer_start();
 
+	writel_relaxed(delta, base + HW_MR0);
+	writel_relaxed(BM_C0_EN, base + HW_TCR + SET_REG);
 	return 0;
 }
 
@@ -127,34 +114,23 @@ static void asm9260_timer_set_mode(enum clock_event_mode mode,
 				    struct clock_event_device *evt)
 {
 	asm9260_timer_stop();
-
-	switch (mode) {
-	case CLOCK_EVT_MODE_PERIODIC:
-		asm9260_timer_start();
-		break;
-	case CLOCK_EVT_MODE_ONESHOT:
-	case CLOCK_EVT_MODE_UNUSED:
-	case CLOCK_EVT_MODE_SHUTDOWN:
-		break;
-	case CLOCK_EVT_MODE_RESUME:
-		break;
-	}
+	/* We support only ONESHOT mode, which will be triggered by
+	 * set_next_event. So, nothing should be done here. */
 }
 
 static struct clock_event_device asm9260_clockevent_device = {
 	.name		= "asm9260-timer",
 	.rating		= 200,
-	.features       = CLOCK_EVT_FEAT_PERIODIC,
+	.features       = CLOCK_EVT_FEAT_ONESHOT,
 	.set_next_event	= asm9260_timer_set_next_event,
 	.set_mode	= asm9260_timer_set_mode,
 };
 
 static irqreturn_t asm9260_timer_interrupt(int irq, void *dev_id)
 {
-	struct clock_event_device *evt = &asm9260_clockevent_device;
+	struct clock_event_device *evt = dev_id;
 
-	/* TODO: need to ack timer register */
-	writel(0x00000001, base + HW_IR);
+	writel_relaxed(1, base + HW_IR + SET_REG);
 
 	evt->event_handler(evt);
 
@@ -173,6 +149,28 @@ static struct irqaction asm9260_timer_irq = {
  * Timer initialization
  * ---------------------------------------------------------------------------
  */
+
+static void __init asm9260_clockevent_init(struct clk *clk)
+{
+	unsigned long hz = clk_get_rate(clk);
+
+	asm9260_clockevent_device.cpumask = cpumask_of(0);
+	clockevents_config_and_register(&asm9260_clockevent_device,
+					hz, 0xf, 0xfffffffe);
+}
+
+static void __init asm9260_clocksource_init(struct clk *clk)
+{
+	unsigned long hz = clk_get_rate(clk);
+
+	clocksource_mmio_init(base + HW_TC1,
+			"asm9260-clocksource", hz,
+			200, 32, clocksource_mmio_readl_up);
+
+	writel_relaxed(0xffffffff, base + HW_MR1);
+	writel_relaxed(BM_C1_EN, base + HW_TCR + SET_REG);
+}
+
 static void __init asm9260_timer_init(struct device_node *np)
 {
 	int irq;
@@ -197,19 +195,18 @@ static void __init asm9260_timer_init(struct device_node *np)
 	irq = irq_of_parse_and_map(np, 0);
 	setup_irq(irq, &asm9260_timer_irq);
 
-	/* timer0 count-Up */
-	writel(0x3, base + HW_DIR + CLR_REG);
-	writel(clk_get_rate(clk) / 1000000, base + HW_MR0);
+	/* set all timers for count-Up and one to count down */
+	writel_relaxed(0, base + HW_DIR);
+	//writel(clk_get_rate(clk) / 1000000, base + HW_MR0);
 	/* MR0 * (PR + 1) = hclk * 10000----100HZ-->hclk M */
-	writel(9999, base + HW_PR);
-	/* timer mode */
-	writel(0x3, base + HW_CTCR + CLR_REG);
+	writel_relaxed(0, base + HW_PR);
+	/* timer mode: timer 0 reset and stop  */
+	writel_relaxed(0, base + HW_CTCR);
 	/* if (tc == mr0) then reset tc and interrupt */
-	writel(0x3, base + HW_MCR + SET_REG);
+	writel_relaxed(BIT(0) | BIT(1) | BIT(2), base + HW_MCR + SET_REG);
 
-	asm9260_clockevent_device.cpumask = cpumask_of(0);
-	clockevents_config_and_register(&asm9260_clockevent_device,
-					100 * HZ, 1, 0xfffffffe);
+	asm9260_clocksource_init(clk);
+	asm9260_clockevent_init(clk);
 }
 CLOCKSOURCE_OF_DECLARE(asm9260_timer, "alpscale,asm9260-timer",
 		asm9260_timer_init);

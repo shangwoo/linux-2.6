@@ -937,6 +937,27 @@ choice
 		  options; the platform specific options are deprecated
 		  and will be soon removed.
 
+	config DEBUG_ASM9260_UART
+		bool "Kernel low-level debugging via asm9260 UART"
+		depends on MACH_ASM9260
+		help
+		  Say Y here if you want the debug print routines to direct
+		  their output to an UART or USART port on asm9260 based
+		  machines.
+
+		    DEBUG_UART_PHYS | DEBUG_UART_VIRT
+
+		    0x80000000      | 0xf0000000     | UART0
+		    0x80004000      | 0xf0004000     | UART1
+		    0x80008000      | 0xf0008000     | UART2
+		    0x8000c000      | 0xf000c000     | UART3
+		    0x80010000      | 0xf0010000     | UART4
+		    0x80014000      | 0xf0014000     | UART5
+		    0x80018000      | 0xf0018000     | UART6
+		    0x8001c000      | 0xf001c000     | UART7
+		    0x80020000      | 0xf0020000     | UART8
+		    0x80024000      | 0xf0024000     | UART9
+
 endchoice
 
 config DEBUG_EXYNOS_UART
@@ -1017,6 +1038,7 @@ config DEBUG_LL_INCLUDE
 	default "debug/vf.S" if DEBUG_VF_UART
 	default "debug/vt8500.S" if DEBUG_VT8500_UART0
 	default "debug/zynq.S" if DEBUG_ZYNQ_UART0 || DEBUG_ZYNQ_UART1
+	default "debug/asm9260.S" if DEBUG_ASM9260_UART
 	default "mach/debug-macro.S"
 
 # Compatibility options for PL01x
@@ -1072,6 +1094,7 @@ config DEBUG_UART_PHYS
 	default 0x50008000 if DEBUG_S3C24XX_UART && (DEBUG_S3C_UART2 || \
 				DEBUG_S3C2410_UART2)
 	default 0x7c0003f8 if FOOTBRIDGE
+	default 0x80010000 if DEBUG_ASM9260_UART
 	default 0x80070000 if DEBUG_IMX23_UART
 	default 0x80074000 if DEBUG_IMX28_UART
 	default 0x80230000 if DEBUG_PICOXCELL_UART
@@ -1103,7 +1126,8 @@ config DEBUG_UART_PHYS
 	depends on DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || \
 		DEBUG_LL_UART_EFM32 || \
 		DEBUG_UART_8250 || DEBUG_UART_PL01X || \
-		DEBUG_MSM_UART || DEBUG_QCOM_UARTDM || DEBUG_S3C24XX_UART
+		DEBUG_MSM_UART || DEBUG_QCOM_UARTDM || \
+		DEBUG_S3C24XX_UART || DEBUG_ASM9260_UART
 
 config DEBUG_UART_VIRT
 	hex "Virtual base address of debug UART"
@@ -1111,6 +1135,7 @@ config DEBUG_UART_VIRT
 	default 0xe1000000 if DEBUG_MSM_UART
 	default 0xf0000be0 if ARCH_EBSA110
 	default 0xf0009000 if DEBUG_CNS3XXX
+	default 0xf0010000 if DEBUG_ASM9260_UART
 	default 0xf01fb000 if DEBUG_NOMADIK_UART
 	default 0xf0201000 if DEBUG_BCM2835
 	default 0xf1000300 if DEBUG_BCM_5301X
@@ -1170,7 +1195,8 @@ config DEBUG_UART_VIRT
 	default DEBUG_UART_PHYS if !MMU
 	depends on DEBUG_LL_UART_8250 || DEBUG_LL_UART_PL01X || \
 		DEBUG_UART_8250 || DEBUG_UART_PL01X || \
-		DEBUG_MSM_UART || DEBUG_QCOM_UARTDM || DEBUG_S3C24XX_UART
+		DEBUG_MSM_UART || DEBUG_QCOM_UARTDM || \
+		DEBUG_S3C24XX_UART || DEBUG_ASM9260_UART
 
 config DEBUG_UART_8250_SHIFT
 	int "Register offset shift for the 8250 debug UART"
@@ -1212,7 +1238,8 @@ config DEBUG_UNCOMPRESS
 config UNCOMPRESS_INCLUDE
 	string
 	default "debug/uncompress.h" if ARCH_MULTIPLATFORM || ARCH_MSM || \
-					PLAT_SAMSUNG || ARCH_EFM32
+					PLAT_SAMSUNG || ARCH_EFM32 || \
+					MACH_ASM9260
 	default "mach/uncompress.h"
 
 config EARLY_PRINTK

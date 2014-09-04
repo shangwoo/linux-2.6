@@ -272,26 +272,15 @@ static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
  */
 static u_int asm9260_tx_empty(struct uart_port *port)
 {
-	dbg("asm9260_tx_empty");
 	return (UART_GET_STAT(port) & ASM9260_UART_TXEMPTY) ? TIOCSER_TEMT : 0;
 }
 
-/*
- * Set state of the modem control output lines
- */
 static void asm9260_set_mctrl(struct uart_port *port, u_int mctrl)
 {
-	dbg("asm9260_set_mctrl:0x%x", mctrl);
 }
 
-/*
- * Get state of the modem control input lines
- */
 static u_int asm9260_get_mctrl(struct uart_port *port)
 {
-	dbg("asm9260_get_mctrl");
-	/*The driver doesn't support modem control*/
-
 	return 0;
 }
 
@@ -324,8 +313,6 @@ static void asm9260_start_tx(struct uart_port *port)
  */
 static void asm9260_start_rx(struct uart_port *port)
 {
-	dbg("asm9260_start_rx");
-
 	UART_PUT_INTR_CLR(port, ASM9260_UART_RXIS | ASM9260_UART_RTIS);
 
 	/* enable receive */
@@ -338,8 +325,6 @@ static void asm9260_start_rx(struct uart_port *port)
  */
 static void asm9260_stop_rx(struct uart_port *port)
 {
-	dbg("asm9260_stop_rx");
-
 	/* disable receive */
 	UART_PUT_CTRL2_CLR(port, ASM9260_UART_RXE);
 	asm9260_intr_mask_clr(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
@@ -350,7 +335,6 @@ static void asm9260_stop_rx(struct uart_port *port)
  */
 static void asm9260_enable_ms(struct uart_port *port)
 {
-	dbg("asm9260_enable_ms");
 	/*The driver doesn't support modem control*/
 }
 
@@ -359,7 +343,6 @@ static void asm9260_enable_ms(struct uart_port *port)
  */
 static void asm9260_break_ctl(struct uart_port *port, int break_state)
 {
-	dbg("asm9260_break_ctl");
 	if (break_state != 0)
 		UART_PUT_LINECTRL_SET(port, ASM9260_UART_BREAK);	/* start break */
 	else
@@ -376,8 +359,6 @@ asm9260_buffer_rx_char(struct uart_port *port, unsigned int status,
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	struct circ_buf *ring = &asm9260_port->rx_ring;
 	struct asm9260_uart_char *c;
-
-	dbg("asm9260_buffer_rx_char");
 
 	if (!CIRC_SPACE(ring->head, ring->tail, ASM9260_SERIAL_RINGSIZE))
 		/* Buffer overflow, ignore char */
@@ -400,8 +381,6 @@ static void asm9260_rx_chars(struct uart_port *port)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	unsigned int status, intr, ch;
-
-	dbg("asm9260_rx_chars");
 
 	status = UART_GET_STAT(port);
 	while (!(status & ASM9260_UART_RXEMPTY)) {
@@ -447,8 +426,6 @@ static void asm9260_tx_chars(struct uart_port *port)
 {
 	struct circ_buf *xmit = &port->state->xmit;
 
-	dbg("asm9260_tx_chars");
-
 	if (port->x_char && !(UART_GET_STAT(port) & ASM9260_UART_TXFULL)) {
 		UART_PUT_DATA(port, port->x_char);
 		port->icount.tx++;
@@ -480,8 +457,6 @@ static void
 asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
-	dbg("asm9260_handle_receive");
 
 	/* Interrupt receive */
 	if ((pending & ASM9260_UART_RXIS) || (pending & ASM9260_UART_RTIS)) {
@@ -545,8 +520,6 @@ static void asm9260_rx_from_ring(struct uart_port *port)
 	struct circ_buf *ring = &asm9260_port->rx_ring;
 	unsigned int flg;
 	unsigned int status;
-
-	dbg("asm9260_rx_from_ring");
 
 	while (ring->head != ring->tail) {
 		struct asm9260_uart_char c;
@@ -614,8 +587,6 @@ static void asm9260_tasklet_func(unsigned long data)
 {
 	struct uart_port *port = (struct uart_port *)data;
 
-	dbg("asm9260_tasklet_func");
-
 	/* The interrupt handler does not take the lock */
 	spin_lock(&port->lock);
 
@@ -632,8 +603,6 @@ static int asm9260_startup(struct uart_port *port)
 {
 	struct tty_struct *tty = port->state->port.tty;
 	int retval;
-
-	dbg("asm9260_startup");
 
 	/*
 	 * Ensure that no interrupts are enabled otherwise when
@@ -681,8 +650,6 @@ static void asm9260_shutdown(struct uart_port *port)
 {
 	int timeout = 10000;
 
-	dbg("asm9260_shutdown");
-
 	/*wait for controller finish tx*/
 	while (!(UART_GET_STAT(port) & ASM9260_UART_TXEMPTY)) {
 		if (--timeout < 0)
@@ -704,7 +671,6 @@ static void asm9260_shutdown(struct uart_port *port)
  */
 static void asm9260_flush_buffer(struct uart_port *port)
 {
-	dbg("asm9260_flush_buffer");
 }
 
 /*
@@ -713,7 +679,6 @@ static void asm9260_flush_buffer(struct uart_port *port)
 static void asm9260_serial_pm(struct uart_port *port, unsigned int state,
 			    unsigned int oldstate)
 {
-	dbg("asm9260_serial_pm");
 }
 
 /*
@@ -726,8 +691,6 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	unsigned int mode, baud, rs485_ctrl;
 	unsigned int bauddivint, bauddivfrac;
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
-	dbg("set_termios start");
 
 	/*
 	 * We don't support modem control lines.
@@ -889,7 +852,6 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
  */
 static const char *asm9260_type(struct uart_port *port)
 {
-	dbg("asm9260_type");
 	return (port->type == PORT_ATMEL) ? "ASM9260_SERIAL" : NULL;
 }
 
@@ -898,7 +860,6 @@ static const char *asm9260_type(struct uart_port *port)
  */
 static void asm9260_release_port(struct uart_port *port)
 {
-	dbg("asm9260_release_port");
 }
 
 /*
@@ -906,9 +867,6 @@ static void asm9260_release_port(struct uart_port *port)
  */
 static int asm9260_request_port(struct uart_port *port)
 {
-
-	dbg("asm9260_request_port");
-
 	return 0;
 }
 
@@ -917,9 +875,6 @@ static int asm9260_request_port(struct uart_port *port)
  */
 static void asm9260_config_port(struct uart_port *port, int flags)
 {
-
-	dbg("asm9260_config_port");
-
 	if (flags & UART_CONFIG_TYPE) {
 		port->type = PORT_ATMEL;
 		asm9260_request_port(port);
@@ -932,8 +887,6 @@ static void asm9260_config_port(struct uart_port *port, int flags)
 static int asm9260_verify_port(struct uart_port *port, struct serial_struct *ser)
 {
 	int ret = 0;
-
-	dbg("asm9260_verify_port");
 
 	if (ser->type != PORT_UNKNOWN && ser->type != PORT_ATMEL)
 		ret = -EINVAL;
@@ -1204,7 +1157,6 @@ static struct console asm9260_console = {
 
 #define ASM9260_CONSOLE_DEVICE	(&asm9260_console)
 
-#if 1
 /*
  * Early console initialization (before VM subsystem initialized).
  */
@@ -1215,7 +1167,6 @@ static int __init asm9260_console_init(void)
 }
 
 console_initcall(asm9260_console_init);
-#endif
 
 static inline bool asm9260_is_console_port(struct uart_port *port)
 {
@@ -1380,10 +1331,15 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 {
 	struct uart_port *uport = &asm9260_port->uart;
 	struct device_node *np = pdev->dev.of_node;
+	struct resource res;
 
-	/* TODO: wait for of_io_request_and_map */
 	uport->irq = irq_of_parse_and_map(np, 0);
-	uport->mapbase	= uport->membase;
+
+	of_address_to_resource(np, 0, &res);
+	if (!request_mem_region(res.start, resource_size(&res), np->name))
+		panic("%s: unable to request mem region", np->name);
+
+	uport->mapbase	= res.start;
 
 	asm9260_enable_clks(asm9260_port);
 
@@ -1485,7 +1441,6 @@ static struct platform_driver asm9260_serial_driver = {
 static int __init asm9260_serial_init(void)
 {
 	int ret;
-	dbg("asm9260_serial_init");
 	ret = uart_register_driver(&asm9260_uart);
 	if (ret)
 		return ret;
@@ -1499,7 +1454,6 @@ static int __init asm9260_serial_init(void)
 
 static void __exit asm9260_serial_exit(void)
 {
-	dbg("asm9260_serial_exit");
 	platform_driver_unregister(&asm9260_serial_driver);
 	uart_unregister_driver(&asm9260_uart);
 }

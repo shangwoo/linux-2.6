@@ -1,34 +1,49 @@
-/***********************************************
+/*
+ * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
+ *  Co-author: Du Huanpeng <u74147@gmail.com>
+ * map_desc based on:
  *  linux/arch/arm/mach-asm9260/core.c
  *  Copyright (C) 2011-2014 Alpscale
  *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include <linux/of_platform.h>
 #include <asm/mach/arch.h>
 #include <asm/mach/map.h>
 
-/* we map the io address to virtual address here*/
 static struct map_desc asm9260_io_desc[] __initdata = {
-	{	/* IO space	*/
+	{	/* IO space */
 		.virtual	= (unsigned long)0xf0000000,
 		.pfn		= __phys_to_pfn(0x80000000),
 		.length		= 0x00800000,
 		.type		= MT_DEVICE
 	},
-	{	/*LCD IO space	*/
+	{	/* LCD IO space	*/
 		.virtual	= (unsigned long)0xf0a00000,
 		.pfn		= __phys_to_pfn(0x80800000),
 		.length		= 0x00009000,
 		.type		= MT_DEVICE
 	},
-	{	/*GPIO IO space	*/
+	{	/* GPIO IO space */
 		.virtual	= (unsigned long)0xf0800000,
 		.pfn		= __phys_to_pfn(0x50000000),
 		.length		= 0x00100000,
 		.type		= MT_DEVICE
 	},
-	{	/* SRAM space Cacheable  */
+	{	/* SRAM space Cacheable */
 		.virtual	= (unsigned long)0xd0000000,
 		.pfn		= __phys_to_pfn(0x40000000),
 		.length		= 0x00100000,
@@ -40,10 +55,8 @@ static struct map_desc asm9260_io_desc[] __initdata = {
 	},
 };
 
-
 static void __init asm9260_map_io(void)
 {
-	/* we remap our io to high address 0xe0000000 */
 	iotable_init(asm9260_io_desc, ARRAY_SIZE(asm9260_io_desc));
 }
 
@@ -58,7 +71,7 @@ static const char * const asm9260_dt_board_compat[] __initconst = {
 };
 
 DT_MACHINE_START(ASM9260, "Alpscale ASM9260 (Device Tree Support)")
-	.map_io		= asm9260_map_io,    /*MAP_IO*/
+	.map_io		= asm9260_map_io,
 	.init_machine	= asm9260_init,
 	.dt_compat	= asm9260_dt_board_compat,
 MACHINE_END

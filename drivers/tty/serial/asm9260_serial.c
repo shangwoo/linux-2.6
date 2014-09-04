@@ -267,6 +267,16 @@ static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
 	}
 }
 
+static void asm9260_intr_mask_flip(struct uart_port *uport, int set)
+{
+	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
+
+	if (set)
+		UART_PUT_INTR_SET(uport, port->intmask);
+	else
+		UART_PUT_INTR_CLR(uport, port->intmask);
+}
+
 /*
  * Return TIOCSER_TEMT when transmitter FIFO and Shift register is empty.
  */
@@ -499,19 +509,32 @@ asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
  */
 static irqreturn_t asm9260_interrupt(int irq, void *dev_id)
 {
-	struct uart_port *port = dev_id;
-	unsigned int status, pending, pass_counter = 0;
+	struct uart_port *uport = dev_id;
+	unsigned int status, pending;
 
-	do {
-		status = UART_GET_INTR(port);
-		pending = (status & (status >> 16)) & 0xFFF;
-		if (!pending)
-			break;
-		asm9260_handle_receive(port, pending);
-		asm9260_handle_transmit(port, pending);
-	} while (pass_counter++ < ASM9260_ISR_PASS_LIMIT);
+	/* TODO: need rework */
+	status = UART_GET_INTR(uport);
+	pending = status & 0xFFF;
 
-	return pass_counter ? IRQ_HANDLED : IRQ_NONE;
+	asm9260_handle_receive(uport, pending);
+	asm9260_handle_transmit(uport, pending);
+
+	asm9260_intr_mask_flip(uport, 1);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
+{
+	struct uart_port *uport = dev_id;
+	unsigned int status, pending;
+
+	status = UART_GET_INTR(uport);
+	pending = (status & (status >> 16)) & 0xFFF;
+	if (!pending)
+		return IRQ_NONE;
+
+	asm9260_intr_mask_flip(uport, 0);
+	return IRQ_WAKE_THREAD;
 }
 
 static void asm9260_rx_from_ring(struct uart_port *port)
@@ -614,7 +637,7 @@ static int asm9260_startup(struct uart_port *port)
 	/*
 	 * Allocate the IRQ
 	 */
-	retval = request_irq(port->irq, asm9260_interrupt,
+	retval = request_threaded_irq(port->irq, asm9260_fast_int, asm9260_interrupt,
 			IRQF_SHARED, tty ? tty->name : "asm9260_serial", port);
 	if (retval) {
 		printk("asm9260_serial : asm9260_startup - Can't get irq\n");

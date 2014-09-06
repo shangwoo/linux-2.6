@@ -221,8 +221,6 @@ struct asm9260_uart_port {
 	int			clk_on;
 	int			break_active;	/* break being received */
 
-	struct circ_buf		rx_ring;
-
 	struct serial_rs485	rs485;		/* rs485 settings */
 
 	uint32_t intmask;
@@ -1298,11 +1296,7 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	uport->mapbase	= res.start;
 
 	asm9260_enable_clks(asm9260_port);
-
-	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
 }
-
-
 
 static int asm9260_serial_probe(struct platform_device *pdev)
 {
@@ -1334,15 +1328,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 
 	asm9260_init_port(port, pdev);
 
-	data = devm_kmalloc(&pdev->dev, sizeof(struct asm9260_uart_char)
-			* ASM9260_SERIAL_RINGSIZE, GFP_KERNEL);
-	if (!data) {
-		dev_err(&pdev->dev, "Filed to allocate ring\n");
-		ret = -ENOMEM;
-		goto err_alloc_ring;
-	}
-	port->rx_ring.buf = data;
-
 	ret = uart_add_one_port(&asm9260_uart, &port->uart);
 	if (ret) {
 		dev_err(&pdev->dev, "Filed to add uart port\n");
@@ -1354,8 +1339,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_port:
-//	port->rx_ring.buf = NULL;
-err_alloc_ring:
 	if (!asm9260_is_console_port(&port->uart)) {
 		clk_put(port->clk);
 		port->clk = NULL;

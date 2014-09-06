@@ -221,8 +221,6 @@ struct asm9260_uart_port {
 	int			clk_on;
 	int			break_active;	/* break being received */
 
-	struct tasklet_struct	tasklet;
-
 	struct circ_buf		rx_ring;
 
 	struct serial_rs485	rs485;		/* rs485 settings */
@@ -449,10 +447,6 @@ static void asm9260_rx_chars(struct uart_port *port)
 	tty_flip_buffer_push(&port->state->port);
 }
 
-/*
- * Transmit characters (called from tasklet with TXRDY interrupt
- * disabled)
- */
 static void asm9260_tx_chars(struct uart_port *port)
 {
 	struct circ_buf *xmit = &port->state->xmit;
@@ -521,7 +515,7 @@ asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
 
 	if (pending & ASM9260_UART_TXIS) {
 		UART_PUT_INTR_CLR(port, ASM9260_UART_TXIS);
-		tasklet_schedule(&asm9260_port->tasklet);
+		asm9260_tx_chars(port);
 	}
 }
 
@@ -556,21 +550,6 @@ static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
 
 	asm9260_intr_mask_flip(uport, 0);
 	return IRQ_WAKE_THREAD;
-}
-
-/*
- * tasklet handling tty stuff outside the interrupt handler.
- */
-static void asm9260_tasklet_func(unsigned long data)
-{
-	struct uart_port *port = (struct uart_port *)data;
-
-	/* The interrupt handler does not take the lock */
-	spin_lock(&port->lock);
-
-	asm9260_tx_chars(port);
-
-	spin_unlock(&port->lock);
 }
 
 /*
@@ -1320,9 +1299,6 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 
 	asm9260_enable_clks(asm9260_port);
 
-	tasklet_init(&asm9260_port->tasklet, asm9260_tasklet_func,
-			(unsigned long)uport);/*setp 2*/
-
 	memset(&asm9260_port->rx_ring, 0, sizeof(asm9260_port->rx_ring));
 }
 
@@ -1393,8 +1369,6 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 	struct uart_port *port = platform_get_drvdata(pdev);
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	int ret = 0;
-
-	tasklet_kill(&asm9260_port->tasklet);
 
 	uart_remove_one_port(&asm9260_uart, port);
 	uart_unregister_driver(&asm9260_uart);

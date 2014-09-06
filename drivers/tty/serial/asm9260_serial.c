@@ -203,13 +203,6 @@
 #define UART_GET_RS485DLY(port)				ioread32((port)->membase + ASM9260_UART_RS485DLY)
 #define UART_GET_AUTOBAUD(port)				ioread32((port)->membase + ASM9260_UART_AUTOBAUD)
 
-struct asm9260_uart_char {
-	u16		status;
-	u16		ch;
-};
-
-#define ASM9260_SERIAL_RINGSIZE 4096
-
 /*
  * We wrap our port structure around the generic uart_port.
  */
@@ -1281,8 +1274,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	void *data;
 	int ret, line;
-
-	BUILD_BUG_ON(!is_power_of_2(ASM9260_SERIAL_RINGSIZE));
 
 	asm9260_uart_of_enumerate();
 

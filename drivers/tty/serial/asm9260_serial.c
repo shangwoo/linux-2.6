@@ -605,6 +605,53 @@ static void asm9260_serial_pm(struct uart_port *port, unsigned int state,
 {
 }
 
+static void asm9260_set_rs485(struct uart_port *uport)
+{
+	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
+	unsigned int rs485_ctrl;
+	/* set RS485 */
+	rs485_ctrl = UART_GET_RS485CTRL(uport);
+
+	/* Resetting serial mode to RS232 (0x0) */
+	rs485_ctrl &= ~ASM9260_UART_RS485EN;
+
+	if (port->rs485.flags & SER_RS485_ENABLED) {
+		dev_dbg(uport->dev, "Setting UART to RS485\n");
+		if ((port->rs485.delay_rts_after_send) > 0) {
+			/* delay is (rs485conf->delay_rts_after_send * Bit Period * 1/16) */
+			UART_PUT_RS485DLY(uport, port->rs485.delay_rts_after_send);
+		}
+
+		if ((port->rs485.flags & SER_RS485_RTS_ON_SEND) &&
+			!(port->rs485.flags & SER_RS485_RTS_AFTER_SEND)) {
+			/*
+			 * Set logical level for RTS pin equal to 1 when sending,
+			 * and set logical level for RTS pin equal to 0 after sending
+			*/
+			rs485_ctrl |= ASM9260_UART_RS485_ONIV;
+		} else if (!(port->rs485.flags & SER_RS485_RTS_ON_SEND) &&
+			(port->rs485.flags & SER_RS485_RTS_AFTER_SEND)) {
+			/*
+			 * Set logical level for RTS pin equal to 0 when sending,
+			 * and set logical level for RTS pin equal to 1 after sending
+			*/
+			rs485_ctrl &= ~ASM9260_UART_RS485_ONIV;
+		} else{
+			printk("Please view RS485CTRL register in datasheet for more details.\n");
+		}
+
+		/* Enable RS485 and RTS is used to control direction automatically,  */
+		rs485_ctrl |= ASM9260_UART_RS485EN | ASM9260_UART_RS485_DIR_CTRL;
+		rs485_ctrl &= ~ASM9260_UART_RS485_PINSEL;
+
+		if (port->rs485.flags & SER_RS485_RX_DURING_TX)
+			dev_dbg(uport->dev, "hardware should support SER_RS485_RX_DURING_TX.\n");
+	} else {
+		dev_dbg(uport->dev, "Setting UART to RS232\n");
+	}
+
+	UART_PUT_RS485CTRL(uport, rs485_ctrl);
+}
 /*
  * Change the port parameters
  */
@@ -612,9 +659,8 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 			      struct ktermios *old)
 {
 	unsigned long flags;
-	unsigned int mode, baud, rs485_ctrl;
+	unsigned int mode, baud;
 	unsigned int bauddivint, bauddivfrac;
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
 	/*
 	 * We don't support modem control lines.
@@ -709,48 +755,7 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	while (!(UART_GET_STAT(port) & ASM9260_UART_RXEMPTY))
 		UART_GET_DATA(port);
 
-	/* set RS485 */
-	rs485_ctrl = UART_GET_RS485CTRL(port);
-
-	/* Resetting serial mode to RS232 (0x0) */
-	rs485_ctrl &= ~ASM9260_UART_RS485EN;
-
-	if (asm9260_port->rs485.flags & SER_RS485_ENABLED) {
-		dev_dbg(port->dev, "Setting UART to RS485\n");
-		if ((asm9260_port->rs485.delay_rts_after_send) > 0) {
-			/* delay is (rs485conf->delay_rts_after_send * Bit Period * 1/16) */
-			UART_PUT_RS485DLY(port, asm9260_port->rs485.delay_rts_after_send);
-		}
-
-		if ((asm9260_port->rs485.flags & SER_RS485_RTS_ON_SEND) &&
-			!(asm9260_port->rs485.flags & SER_RS485_RTS_AFTER_SEND)) {
-			/*
-			 * Set logical level for RTS pin equal to 1 when sending,
-			 * and set logical level for RTS pin equal to 0 after sending
-			*/
-			rs485_ctrl |= ASM9260_UART_RS485_ONIV;
-		} else if (!(asm9260_port->rs485.flags & SER_RS485_RTS_ON_SEND) &&
-			(asm9260_port->rs485.flags & SER_RS485_RTS_AFTER_SEND)) {
-			/*
-			 * Set logical level for RTS pin equal to 0 when sending,
-			 * and set logical level for RTS pin equal to 1 after sending
-			*/
-			rs485_ctrl &= ~ASM9260_UART_RS485_ONIV;
-		} else{
-			printk("Please view RS485CTRL register in datasheet for more details.\n");
-		}
-
-		/* Enable RS485 and RTS is used to control direction automatically,  */
-		rs485_ctrl |= ASM9260_UART_RS485EN | ASM9260_UART_RS485_DIR_CTRL;
-		rs485_ctrl &= ~ASM9260_UART_RS485_PINSEL;
-
-		if (asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX)
-			dev_dbg(port->dev, "hardware should support SER_RS485_RX_DURING_TX.\n");
-	} else {
-		dev_dbg(port->dev, "Setting UART to RS232\n");
-	}
-
-	UART_PUT_RS485CTRL(port, rs485_ctrl);
+	asm9260_set_rs485(port);
 
 	/* set hardware flow control */
 	if (termios->c_cflag & CRTSCTS)
@@ -830,64 +835,24 @@ static int asm9260_verify_port(struct uart_port *port, struct serial_struct *ser
 }
 
 /* Enable or disable the rs485 support */
-void asm9260_config_rs485(struct uart_port *port, struct serial_rs485 *rs485conf)
+void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485conf)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-	unsigned int rs485_ctrl;
+	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
 	unsigned long flags;
 
-	spin_lock_irqsave(&port->lock, flags);
+	spin_lock_irqsave(&uport->lock, flags);
 
 	/* Disable interrupts */
-	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(uport, ASM9260_UART_TXIEN);
 
-	rs485_ctrl = UART_GET_RS485CTRL(port);
+	port->rs485 = *rs485conf;
 
-	/* Resetting serial mode to RS232 (0x0) */
-	rs485_ctrl &= ~ASM9260_UART_RS485EN;
-
-	asm9260_port->rs485 = *rs485conf;
-
-	if (rs485conf->flags & SER_RS485_ENABLED) {
-		dev_dbg(port->dev, "Setting UART to RS485\n");
-		if ((rs485conf->delay_rts_after_send) > 0) {
-			/* delay is (rs485conf->delay_rts_after_send * Bit Period * 1/16) */
-			UART_PUT_RS485DLY(port, rs485conf->delay_rts_after_send);
-		}
-
-		if ((rs485conf->flags & SER_RS485_RTS_ON_SEND) &&
-				!(rs485conf->flags & SER_RS485_RTS_AFTER_SEND)) {
-			/*
-			 * Set logical level for RTS pin equal to 1 when sending,
-			 * and set logical level for RTS pin equal to 0 after sending
-			*/
-			rs485_ctrl |= ASM9260_UART_RS485_ONIV;
-		} else if (!(rs485conf->flags & SER_RS485_RTS_ON_SEND) &&
-			(rs485conf->flags & SER_RS485_RTS_AFTER_SEND)) {
-			/*
-			 * Set logical level for RTS pin equal to 0 when sending,
-			 * and set logical level for RTS pin equal to 1 after sending
-			 */
-			rs485_ctrl &= ~ASM9260_UART_RS485_ONIV;
-		} else{
-			printk(KERN_INFO "Please view RS485CTRL register in datasheet for more details.\n");
-		}
-		/* Enable RS485 and RTS is used to control direction automatically,  */
-		rs485_ctrl |= ASM9260_UART_RS485EN | ASM9260_UART_RS485_DIR_CTRL;
-		rs485_ctrl &= ~ASM9260_UART_RS485_PINSEL;
-
-		if (rs485conf->flags & SER_RS485_RX_DURING_TX)
-			printk(KERN_INFO "Hardware should support SER_RS485_RX_DURING_TX.\n");
-	} else {
-		dev_dbg(port->dev, "Setting UART to RS232\n");
-	}
-
-	UART_PUT_RS485CTRL(port, rs485_ctrl);
+	asm9260_set_rs485(uport);
 
 	/* Enable tx interrupts */
-	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_set(uport, ASM9260_UART_TXIEN);
 
-	spin_unlock_irqrestore(&port->lock, flags);
+	spin_unlock_irqrestore(&uport->lock, flags);
 
 }
 
@@ -1272,7 +1237,6 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 {
 	struct asm9260_uart_port *port;
 	struct device_node *np = pdev->dev.of_node;
-	void *data;
 	int ret, line;
 
 	asm9260_uart_of_enumerate();

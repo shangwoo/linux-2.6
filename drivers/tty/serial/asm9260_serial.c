@@ -367,21 +367,45 @@ asm9260_buffer_rx_char(struct uart_port *port, unsigned int status,
 		     unsigned int ch)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-	struct circ_buf *ring = &asm9260_port->rx_ring;
-	struct asm9260_uart_char *c;
+	unsigned int flg;
 
-	if (!CIRC_SPACE(ring->head, ring->tail, ASM9260_SERIAL_RINGSIZE))
-		/* Buffer overflow, ignore char */
+	port->icount.rx++;
+	flg = TTY_NORMAL;
+
+	/*
+	 * note that the error handling code is
+	 * out of the main execution path
+	 */
+	if (unlikely(status & (ASM9260_UART_PEIS | ASM9260_UART_FEIS
+			       | ASM9260_UART_OEIS | ASM9260_UART_BEIS))) {
+		if (status & ASM9260_UART_BEIS) {
+			status &= ~(ASM9260_UART_PEIS | ASM9260_UART_FEIS);
+
+			port->icount.brk++;
+			if (uart_handle_break(port))
+				return;
+		}
+		if (status & ASM9260_UART_PEIS)
+			port->icount.parity++;
+		if (status & ASM9260_UART_FEIS)
+			port->icount.frame++;
+		if (status & ASM9260_UART_OEIS)
+			port->icount.overrun++;
+
+		status &= port->read_status_mask;
+
+		if (status & ASM9260_UART_BEIS)
+			flg = TTY_BREAK;
+		else if (status & ASM9260_UART_PEIS)
+			flg = TTY_PARITY;
+		else if (status & ASM9260_UART_FEIS)
+			flg = TTY_FRAME;
+	}
+
+	if (uart_handle_sysrq_char(port, ch))
 		return;
 
-	c = &((struct asm9260_uart_char *)ring->buf)[ring->head];
-	c->status	= status;
-	c->ch		= ch;
-
-	/* Make sure the character is stored before we update head. */
-	smp_wmb();
-
-	ring->head = (ring->head + 1) & (ASM9260_SERIAL_RINGSIZE - 1);
+	uart_insert_char(port, status, ASM9260_UART_OEIS, ch, flg);
 }
 
 /*
@@ -396,10 +420,7 @@ static void asm9260_rx_chars(struct uart_port *port)
 	while (!(status & ASM9260_UART_RXEMPTY)) {
 		ch = UART_GET_DATA(port);
 		intr = UART_GET_INTR(port);
-		/*
-		 * note that the error handling code is
-		 * out of the main execution path
-		 */
+
 		if (unlikely(intr & (ASM9260_UART_PEIS | ASM9260_UART_FEIS
 				       | ASM9260_UART_OEIS | ASM9260_UART_BEIS)
 			     || asm9260_port->break_active)) {
@@ -425,7 +446,7 @@ static void asm9260_rx_chars(struct uart_port *port)
 		status = UART_GET_STAT(port);
 	}
 
-	tasklet_schedule(&asm9260_port->tasklet);
+	tty_flip_buffer_push(&port->state->port);
 }
 
 /*
@@ -537,72 +558,6 @@ static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
 	return IRQ_WAKE_THREAD;
 }
 
-static void asm9260_rx_from_ring(struct uart_port *port)
-{
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-	struct circ_buf *ring = &asm9260_port->rx_ring;
-	unsigned int flg;
-	unsigned int status;
-
-	while (ring->head != ring->tail) {
-		struct asm9260_uart_char c;
-
-		/* Make sure c is loaded after head. */
-		smp_rmb();
-
-		c = ((struct asm9260_uart_char *)ring->buf)[ring->tail];
-
-		ring->tail = (ring->tail + 1) & (ASM9260_SERIAL_RINGSIZE - 1);
-
-		port->icount.rx++;
-		status = c.status;
-		flg = TTY_NORMAL;
-
-		/*
-		 * note that the error handling code is
-		 * out of the main execution path
-		 */
-		if (unlikely(status & (ASM9260_UART_PEIS | ASM9260_UART_FEIS
-				       | ASM9260_UART_OEIS | ASM9260_UART_BEIS))) {
-			if (status & ASM9260_UART_BEIS) {
-				status &= ~(ASM9260_UART_PEIS | ASM9260_UART_FEIS);
-
-				port->icount.brk++;
-				if (uart_handle_break(port))
-					continue;
-			}
-			if (status & ASM9260_UART_PEIS)
-				port->icount.parity++;
-			if (status & ASM9260_UART_FEIS)
-				port->icount.frame++;
-			if (status & ASM9260_UART_OEIS)
-				port->icount.overrun++;
-
-			status &= port->read_status_mask;
-
-			if (status & ASM9260_UART_BEIS)
-				flg = TTY_BREAK;
-			else if (status & ASM9260_UART_PEIS)
-				flg = TTY_PARITY;
-			else if (status & ASM9260_UART_FEIS)
-				flg = TTY_FRAME;
-		}
-
-		if (uart_handle_sysrq_char(port, c.ch))
-			continue;
-
-		uart_insert_char(port, status, ASM9260_UART_OEIS, c.ch, flg);
-	}
-
-	/*
-	 * Drop the lock here since it might end up calling
-	 * uart_start(), which takes the lock.
-	 */
-	spin_unlock(&port->lock);
-	tty_flip_buffer_push(&port->state->port);
-	spin_lock(&port->lock);
-}
-
 /*
  * tasklet handling tty stuff outside the interrupt handler.
  */
@@ -614,7 +569,6 @@ static void asm9260_tasklet_func(unsigned long data)
 	spin_lock(&port->lock);
 
 	asm9260_tx_chars(port);
-	asm9260_rx_from_ring(port);
 
 	spin_unlock(&port->lock);
 }

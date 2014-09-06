@@ -356,55 +356,6 @@ static void asm9260_break_ctl(struct uart_port *port, int break_state)
 }
 
 /*
- * Stores the incoming character in the ring buffer
- */
-static void
-asm9260_buffer_rx_char(struct uart_port *port, unsigned int status,
-		     unsigned int ch)
-{
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-	unsigned int flg;
-
-	port->icount.rx++;
-	flg = TTY_NORMAL;
-
-	/*
-	 * note that the error handling code is
-	 * out of the main execution path
-	 */
-	if (unlikely(status & (ASM9260_UART_PEIS | ASM9260_UART_FEIS
-			       | ASM9260_UART_OEIS | ASM9260_UART_BEIS))) {
-		if (status & ASM9260_UART_BEIS) {
-			status &= ~(ASM9260_UART_PEIS | ASM9260_UART_FEIS);
-
-			port->icount.brk++;
-			if (uart_handle_break(port))
-				return;
-		}
-		if (status & ASM9260_UART_PEIS)
-			port->icount.parity++;
-		if (status & ASM9260_UART_FEIS)
-			port->icount.frame++;
-		if (status & ASM9260_UART_OEIS)
-			port->icount.overrun++;
-
-		status &= port->read_status_mask;
-
-		if (status & ASM9260_UART_BEIS)
-			flg = TTY_BREAK;
-		else if (status & ASM9260_UART_PEIS)
-			flg = TTY_PARITY;
-		else if (status & ASM9260_UART_FEIS)
-			flg = TTY_FRAME;
-	}
-
-	if (uart_handle_sysrq_char(port, ch))
-		return;
-
-	uart_insert_char(port, status, ASM9260_UART_OEIS, ch, flg);
-}
-
-/*
  * Characters received (called from interrupt handler)
  */
 static void asm9260_rx_chars(struct uart_port *port)
@@ -414,6 +365,7 @@ static void asm9260_rx_chars(struct uart_port *port)
 
 	status = UART_GET_STAT(port);
 	while (!(status & ASM9260_UART_RXEMPTY)) {
+		unsigned int flg;
 		ch = UART_GET_DATA(port);
 		intr = UART_GET_INTR(port);
 
@@ -431,14 +383,43 @@ static void asm9260_rx_chars(struct uart_port *port)
 			    && !asm9260_port->break_active) {
 				asm9260_port->break_active = 1;
 				asm9260_intr_mask_set(port, ASM9260_UART_BEIEN);
+				intr &= ~(ASM9260_UART_PEIS | ASM9260_UART_FEIS);
+
+				port->icount.brk++;
+				if (uart_handle_break(port))
+					continue;
+
 			} else {
 				asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
 				intr &= ~ASM9260_UART_BEIS;
 				asm9260_port->break_active = 0;
 			}
+
+			if (intr & ASM9260_UART_PEIS)
+				port->icount.parity++;
+			if (intr & ASM9260_UART_FEIS)
+				port->icount.frame++;
+			if (intr & ASM9260_UART_OEIS)
+				port->icount.overrun++;
+
+			intr &= port->read_status_mask;
+
+			if (intr & ASM9260_UART_BEIS)
+				flg = TTY_BREAK;
+			else if (intr & ASM9260_UART_PEIS)
+				flg = TTY_PARITY;
+			else if (intr & ASM9260_UART_FEIS)
+				flg = TTY_FRAME;
+
 		}
 
-		asm9260_buffer_rx_char(port, intr, ch);
+		port->icount.rx++;
+		flg = TTY_NORMAL;
+
+		if (uart_handle_sysrq_char(port, ch))
+			continue;
+
+		uart_insert_char(port, intr, ASM9260_UART_OEIS, ch, flg);
 		status = UART_GET_STAT(port);
 	}
 
@@ -507,10 +488,6 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 static void
 asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
-    /* Interrupt transmit */
-
 	if (pending & ASM9260_UART_TXIS) {
 		UART_PUT_INTR_CLR(port, ASM9260_UART_TXIS);
 		asm9260_tx_chars(port);

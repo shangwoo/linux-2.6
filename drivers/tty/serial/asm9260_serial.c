@@ -114,7 +114,9 @@
 #define BM_INTR_PEIEN		BIT(24)
 /* Framing Error Interrupt Enable. */
 #define BM_INTR_FEIEN		BIT(23)
-/* Receive Timeout Interrupt Enable */
+/* Receive Timeout Interrupt Enable.
+ * If not set and FIFO is enabled, then RX will be triggered only
+ * if FIFO is full. */
 #define BM_INTR_RTIEN		BIT(22)
 /* Transmit Interrupt Enable. */
 #define BM_INTR_TXIEN		BIT(21)

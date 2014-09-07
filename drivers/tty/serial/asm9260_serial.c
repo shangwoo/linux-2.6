@@ -44,8 +44,8 @@
 #define	PLL_POWER_DOWN					(1<<2)
 #define	SYSPLL_MASK						0x1FF
 
-#define SET_OFFSET 0x4
-#define CLR_OFFSET 0x8
+#define SET_REG 0x4
+#define CLR_REG 0x8
 #define ASM9260_MAX_UART 10
 
 #define UART_BAUD_DIVINT_MASK			((unsigned int)0x003FFFC0)
@@ -151,57 +151,33 @@
 #define	ASM9260_UART_RS485_DIR_CTRL			0x10
 #define	ASM9260_UART_RS485_ONIV				0x20
 
-#define UART_PUT_CTRL0(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL0)
-#define UART_PUT_CTRL0_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + SET_OFFSET)
-#define UART_PUT_CTRL0_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + CLR_OFFSET)
-
-#define UART_PUT_CTRL1(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL1)
-#define UART_PUT_CTRL1_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL1 + SET_OFFSET)
-#define UART_PUT_CTRL1_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL1 + CLR_OFFSET)
+#define UART_PUT_CTRL0_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + SET_REG)
+#define UART_PUT_CTRL0_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL0 + CLR_REG)
 
 #define UART_PUT_CTRL2(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL2)
-#define UART_PUT_CTRL2_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + SET_OFFSET)
-#define UART_PUT_CTRL2_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + CLR_OFFSET)
-
-#define UART_PUT_CTRL3(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_CTRL3)
-#define UART_PUT_CTRL3_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL3 + SET_OFFSET)
-#define UART_PUT_CTRL3_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL3 + CLR_OFFSET)
+#define UART_PUT_CTRL2_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + SET_REG)
+#define UART_PUT_CTRL2_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_CTRL2 + CLR_REG)
 
 #define UART_PUT_LINECTRL(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL)
-#define UART_PUT_LINECTRL_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + SET_OFFSET)
-#define UART_PUT_LINECTRL_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + CLR_OFFSET)
+#define UART_PUT_LINECTRL_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + SET_REG)
+#define UART_PUT_LINECTRL_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_LINECTRL + CLR_REG)
 
 #define UART_PUT_INTR(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_INTR)
-#define UART_PUT_INTR_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + SET_OFFSET)
-#define UART_PUT_INTR_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + CLR_OFFSET)
+#define UART_PUT_INTR_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + SET_REG)
+#define UART_PUT_INTR_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_INTR + CLR_REG)
 
 #define UART_PUT_DATA(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_DATA)
 
 #define UART_PUT_STAT(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_STAT)
-#define UART_PUT_STAT_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_STAT + SET_OFFSET)
-#define UART_PUT_STAT_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_STAT + CLR_OFFSET)
-
-#define UART_PUT_ILPR(port, v)				iowrite32(v, (port)->membase + ASM9260_UART_ILPR)
-#define UART_PUT_ILPR_SET(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_ILPR + SET_OFFSET)
-#define UART_PUT_ILPR_CLR(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_ILPR + CLR_OFFSET)
 
 #define UART_PUT_RS485CTRL(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485CTRL)
-#define UART_PUT_RS485ADRMATCH(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485ADRMATCH)
 #define UART_PUT_RS485DLY(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_RS485DLY)
-#define UART_PUT_AUTOBAUD(port, v)			iowrite32(v, (port)->membase + ASM9260_UART_AUTOBAUD)
-#define UART_GET_CTRL0(port)				ioread32((port)->membase + ASM9260_UART_CTRL0)
-#define UART_GET_CTRL1(port)				ioread32((port)->membase + ASM9260_UART_CTRL1)
 #define UART_GET_CTRL2(port)				ioread32((port)->membase + ASM9260_UART_CTRL2)
-#define UART_GET_CTRL3(port)				ioread32((port)->membase + ASM9260_UART_CTRL3)
 #define UART_GET_LINECTRL(port)				ioread32((port)->membase + ASM9260_UART_LINECTRL)
 #define UART_GET_INTR(port)				ioread32((port)->membase + ASM9260_UART_INTR)
 #define UART_GET_DATA(port)				ioread32((port)->membase + ASM9260_UART_DATA)
 #define UART_GET_STAT(port)				ioread32((port)->membase + ASM9260_UART_STAT)
-#define UART_GET_ILPR(port)				ioread32((port)->membase + ASM9260_UART_ILPR)
 #define UART_GET_RS485CTRL(port)			ioread32((port)->membase + ASM9260_UART_RS485CTRL)
-#define UART_GET_RS485ADRMATCH(port)			ioread32((port)->membase + ASM9260_UART_RS485ADRMATCH)
-#define UART_GET_RS485DLY(port)				ioread32((port)->membase + ASM9260_UART_RS485DLY)
-#define UART_GET_AUTOBAUD(port)				ioread32((port)->membase + ASM9260_UART_AUTOBAUD)
 
 /*
  * We wrap our port structure around the generic uart_port.
@@ -696,7 +672,7 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 		break;
 	}
 
-	/* disable fifo */
+	/* enable fifo */
 	mode |= ASM9260_UART_FEN;
 
 	/* stop bits */

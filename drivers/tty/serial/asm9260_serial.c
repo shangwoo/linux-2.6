@@ -95,41 +95,67 @@
 #define ASM9260_US_PAR_EVEN				((3<<1) | (0<<7))
 #define ASM9260_US_PAR_NONE				(0<<1)
 
-#define ASM9260_UART_RIMIS				BIT(0)
-#define ASM9260_UART_CTSMIS				BIT(1)
-#define ASM9260_UART_DCDMIS				BIT(2)
-#define ASM9260_UART_DSRMIS				BIT(3)
-#define ASM9260_UART_RXIS				BIT(4)
-#define ASM9260_UART_TXIS				BIT(5)
-#define ASM9260_UART_RTIS				BIT(6)
-#define ASM9260_UART_FEIS				BIT(7)
-#define ASM9260_UART_PEIS				BIT(8)
-#define ASM9260_UART_BEIS				BIT(9)
-#define ASM9260_UART_OEIS				BIT(10)
-#define ASM9260_UART_TFEIS				BIT(11)
-#define ASM9260_UART_ABEO				BIT(12)
-#define ASM9260_UART_ABTO				BIT(13)
-#define ASM9260_UART_RIMIEN				BIT(16)
-#define ASM9260_UART_CTSMIEN				BIT(17)
-#define ASM9260_UART_DCDMIEN				BIT(18)
-#define ASM9260_UART_DSRMIEN				BIT(19)
-#define ASM9260_UART_RXIEN				BIT(20)
-#define ASM9260_UART_TXIEN				BIT(21)
-#define ASM9260_UART_RTIEN				BIT(22)
-#define ASM9260_UART_FEIEN				BIT(23)
-#define ASM9260_UART_PEIEN				BIT(24)
-#define ASM9260_UART_BEIEN				BIT(25)
-#define ASM9260_UART_OEIEN				BIT(26)
-#define ASM9260_UART_TFEIEN				BIT(27)
-#define HW_INTREN				(0x3fff0000)
-#define HW_INTRIS				(0x00003fff)
-
 #define HW_CTRL0				0x00
 #define HW_CTRL1				0x10
 #define HW_CTRL2				0x20
 #define HW_CTRL3				0xD0
 #define HW_LINECTRL				0x30
-#define HW_INTR					0x40
+
+/* Interrupt register.
+ * contains the interrupt enables and the interrupt status bits */
+#define HW_INTR			0x40
+/* Tx FIFO EMPTY Raw Interrupt enable */
+#define BM_INTR_TFEIEN		BIT(27)
+/* Overrun Error Interrupt Enable. */
+#define BM_INTR_OEIEN		BIT(26)
+/* Break Error Interrupt Enable. */
+#define BM_INTR_BEIEN		BIT(25)
+/* Parity Error Interrupt Enable. */
+#define BM_INTR_PEIEN		BIT(24)
+/* Framing Error Interrupt Enable. */
+#define BM_INTR_FEIEN		BIT(23)
+/* Receive Timeout Interrupt Enable */
+#define BM_INTR_RTIEN		BIT(22)
+/* Transmit Interrupt Enable. */
+#define BM_INTR_TXIEN		BIT(21)
+/* Receive Interrupt Enable. */
+#define BM_INTR_RXIEN		BIT(20)
+/* nUARTDSR Modem Interrupt Enable. */
+#define BM_INTR_DSRMIEN		BIT(19)
+/* nUARTDCD Modem Interrupt Enable. */
+#define BM_INTR_DCDMIEN		BIT(18)
+/* nUARTCTS Modem Interrupt Enable. */
+#define BM_INTR_CTSMIEN		BIT(17)
+/* nUARTRI Modem Interrupt Enable. */
+#define BM_INTR_RIMIEN		BIT(16)
+/* Auto-Boud Timeout */
+#define BM_INTR_ABTO		BIT(13)
+#define BM_INTR_ABEO		BIT(12)
+/* Tx FIFO EMPTY Raw Interrupt state */
+#define BM_INTR_TFEIS		BIT(11)
+/* Overrun Error */
+#define BM_INTR_OEIS		BIT(10)
+/* Break Error */
+#define BM_INTR_BEIS		BIT(9)
+/* Parity Error */
+#define BM_INTR_PEIS		BIT(8)
+/* Framing Error */
+#define BM_INTR_FEIS		BIT(7)
+/* Receive Timeout */
+#define BM_INTR_RTIS		BIT(6)
+/* Transmit done */
+#define BM_INTR_TXIS		BIT(5)
+/* Receive done */
+#define BM_INTR_RXIS		BIT(4)
+#define BM_INTR_DSRMIS		BIT(3)
+#define BM_INTR_DCDMIS		BIT(2)
+#define BM_INTR_CTSMIS		BIT(1)
+#define BM_INTR_RIMIS		BIT(0)
+
+#define BM_INTR_EN_MASK		(0x3fff0000)
+#define BM_INTR_IS_MASK		(0x00003fff)
+
+
 #define HW_DATA					0x50
 #define HW_STAT					0x60
 #define HW_ILPR					0x80
@@ -178,7 +204,7 @@ static void asm9260_intr_mask_set(struct uart_port *port, uint32_t val)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
-	WARN_ON(val & ~HW_INTREN);
+	WARN_ON(val & ~BM_INTR_EN_MASK);
 
 	if (val && (asm9260_port->intmask & val) != val) {
 		iowrite32(val, port->membase + HW_INTR + SET_REG);
@@ -190,7 +216,7 @@ static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
-	WARN_ON(val & ~HW_INTREN);
+	WARN_ON(val & ~BM_INTR_EN_MASK);
 
 	if (val && (asm9260_port->intmask & val) != 0) {
 		iowrite32(val, port->membase + HW_INTR + CLR_REG);
@@ -235,7 +261,7 @@ static void asm9260_stop_tx(struct uart_port *port)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
-	asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(port, BM_INTR_TXIEN);
 
 	if ((asm9260_port->rs485.flags & SER_RS485_ENABLED) &&
 	    !(asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX))
@@ -248,7 +274,7 @@ static void asm9260_tx_chars(struct uart_port *port);
  */
 static void asm9260_start_tx(struct uart_port *port)
 {
-	asm9260_intr_mask_set(port, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_set(port, BM_INTR_TXIEN);
 	asm9260_tx_chars(port);
 }
 
@@ -257,13 +283,13 @@ static void asm9260_start_tx(struct uart_port *port)
  */
 static void asm9260_start_rx(struct uart_port *port)
 {
-	iowrite32(ASM9260_UART_RXIS | ASM9260_UART_RTIS,
+	iowrite32(BM_INTR_RXIS | BM_INTR_RTIS,
 			port->membase + HW_INTR + CLR_REG);
 
 	/* enable receive */
 	iowrite32(ASM9260_UART_RXE,
 			port->membase + HW_CTRL2 + SET_REG);
-	iowrite32(ASM9260_UART_RXIEN | ASM9260_UART_RTIEN,
+	iowrite32(BM_INTR_RXIEN | BM_INTR_RTIEN,
 			port->membase + HW_INTR + SET_REG);
 }
 
@@ -274,7 +300,7 @@ static void asm9260_stop_rx(struct uart_port *port)
 {
 	/* disable receive */
 	iowrite32(ASM9260_UART_RXE, port->membase + HW_CTRL2 + CLR_REG);
-	asm9260_intr_mask_clr(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	asm9260_intr_mask_clr(port, BM_INTR_RXIEN | BM_INTR_RTIEN);
 }
 
 /*
@@ -312,47 +338,47 @@ static void asm9260_rx_chars(struct uart_port *port)
 		ch = ioread32(port->membase + HW_DATA);
 		intr = ioread32(port->membase + HW_INTR);
 
-		if (unlikely(intr & (ASM9260_UART_PEIS | ASM9260_UART_FEIS
-				       | ASM9260_UART_OEIS | ASM9260_UART_BEIS)
+		if (unlikely(intr & (BM_INTR_PEIS | BM_INTR_FEIS
+				       | BM_INTR_OEIS | BM_INTR_BEIS)
 			     || asm9260_port->break_active)) {
 
 			/* clear error */
 			iowrite32(0, port->membase + HW_STAT);
-			iowrite32(ASM9260_UART_PEIS | ASM9260_UART_FEIS  |
-					ASM9260_UART_OEIS | ASM9260_UART_BEIS,
+			iowrite32(BM_INTR_PEIS | BM_INTR_FEIS  |
+					BM_INTR_OEIS | BM_INTR_BEIS,
 					port->membase + HW_INTR
 					+ CLR_REG);
 
-			if (intr & ASM9260_UART_BEIS
+			if (intr & BM_INTR_BEIS
 			    && !asm9260_port->break_active) {
 				asm9260_port->break_active = 1;
-				asm9260_intr_mask_set(port, ASM9260_UART_BEIEN);
-				intr &= ~(ASM9260_UART_PEIS | ASM9260_UART_FEIS);
+				asm9260_intr_mask_set(port, BM_INTR_BEIEN);
+				intr &= ~(BM_INTR_PEIS | BM_INTR_FEIS);
 
 				port->icount.brk++;
 				if (uart_handle_break(port))
 					continue;
 
 			} else {
-				asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
-				intr &= ~ASM9260_UART_BEIS;
+				asm9260_intr_mask_clr(port, BM_INTR_BEIEN);
+				intr &= ~BM_INTR_BEIS;
 				asm9260_port->break_active = 0;
 			}
 
-			if (intr & ASM9260_UART_PEIS)
+			if (intr & BM_INTR_PEIS)
 				port->icount.parity++;
-			if (intr & ASM9260_UART_FEIS)
+			if (intr & BM_INTR_FEIS)
 				port->icount.frame++;
-			if (intr & ASM9260_UART_OEIS)
+			if (intr & BM_INTR_OEIS)
 				port->icount.overrun++;
 
 			intr &= port->read_status_mask;
 
-			if (intr & ASM9260_UART_BEIS)
+			if (intr & BM_INTR_BEIS)
 				flg = TTY_BREAK;
-			else if (intr & ASM9260_UART_PEIS)
+			else if (intr & BM_INTR_PEIS)
 				flg = TTY_PARITY;
-			else if (intr & ASM9260_UART_FEIS)
+			else if (intr & BM_INTR_FEIS)
 				flg = TTY_FRAME;
 
 		}
@@ -363,7 +389,7 @@ static void asm9260_rx_chars(struct uart_port *port)
 		if (uart_handle_sysrq_char(port, ch))
 			continue;
 
-		uart_insert_char(port, intr, ASM9260_UART_OEIS, ch, flg);
+		uart_insert_char(port, intr, BM_INTR_OEIS, ch, flg);
 		status = ioread32(port->membase + HW_STAT);
 	}
 
@@ -398,7 +424,7 @@ static void asm9260_tx_chars(struct uart_port *port)
 		uart_write_wakeup(port);
 
 	if (uart_circ_empty(xmit))
-		asm9260_intr_mask_clr(port, ASM9260_UART_TXIEN);
+		asm9260_intr_mask_clr(port, BM_INTR_TXIEN);
 }
 
 /*
@@ -410,25 +436,23 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 
 	/* Interrupt receive */
-	if ((pending & ASM9260_UART_RXIS) || (pending & ASM9260_UART_RTIS)) {
+	if ((pending & BM_INTR_RXIS) || (pending & BM_INTR_RTIS)) {
 
-		if (pending & ASM9260_UART_RXIS)
-			iowrite32(ASM9260_UART_RXIS,
-					port->membase + HW_INTR
-					+ CLR_REG);
-		if (pending & ASM9260_UART_RTIS)
-			iowrite32(ASM9260_UART_RTIS,
-					port->membase + HW_INTR
-					+ CLR_REG);
+		if (pending & BM_INTR_RXIS)
+			iowrite32(BM_INTR_RXIS,
+					port->membase + HW_INTR + CLR_REG);
+		if (pending & BM_INTR_RTIS)
+			iowrite32(BM_INTR_RTIS,
+					port->membase + HW_INTR + CLR_REG);
 
 		asm9260_rx_chars(port);
-	} else if (pending & ASM9260_UART_BEIS) {
+	} else if (pending & BM_INTR_BEIS) {
 		/*
 		 * End of break detected. If it came along with a
 		 * character, asm9260_rx_chars will handle it.
 		 */
 		iowrite32(0, port->membase + HW_STAT);
-		asm9260_intr_mask_clr(port, ASM9260_UART_BEIEN);
+		asm9260_intr_mask_clr(port, BM_INTR_BEIEN);
 		asm9260_port->break_active = 0;
 	}
 }
@@ -439,8 +463,8 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 static void
 asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
 {
-	if (pending & ASM9260_UART_TXIS) {
-		iowrite32(ASM9260_UART_TXIS,
+	if (pending & BM_INTR_TXIS) {
+		iowrite32(BM_INTR_TXIS,
 				port->membase + HW_INTR + CLR_REG);
 		asm9260_tx_chars(port);
 	}
@@ -511,8 +535,8 @@ static int asm9260_startup(struct uart_port *port)
 			port->membase + HW_CTRL0 + SET_REG);
 
 	/* disable txfifo empty interrupt, enable rx and rxto interrupt */
-	asm9260_intr_mask_clr(port, ASM9260_UART_TFEIEN);
-	asm9260_intr_mask_set(port, ASM9260_UART_RXIEN | ASM9260_UART_RTIEN);
+	asm9260_intr_mask_clr(port, BM_INTR_TFEIEN);
+	asm9260_intr_mask_set(port, BM_INTR_RXIEN | BM_INTR_RTIEN);
 
 	/*
 	 * Finally, enable the serial port
@@ -686,11 +710,11 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 
 	spin_lock_irqsave(&port->lock, flags);
 
-	port->read_status_mask = ASM9260_UART_OEIS;
+	port->read_status_mask = BM_INTR_OEIS;
 	if (termios->c_iflag & INPCK)
-		port->read_status_mask |= (ASM9260_UART_FEIS | ASM9260_UART_PEIS);
+		port->read_status_mask |= (BM_INTR_FEIS | BM_INTR_PEIS);
 	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
-		port->read_status_mask |= ASM9260_UART_BEIS;
+		port->read_status_mask |= BM_INTR_BEIS;
 
 	/*
 	 * Characters to ignore
@@ -698,15 +722,15 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	port->ignore_status_mask = 0;
 	if (termios->c_iflag & IGNPAR)
 		port->ignore_status_mask |=
-			(ASM9260_UART_FEIS  | ASM9260_UART_PEIS);
+			(BM_INTR_FEIS  | BM_INTR_PEIS);
 	if (termios->c_iflag & IGNBRK) {
-		port->ignore_status_mask |= ASM9260_UART_BEIS;
+		port->ignore_status_mask |= BM_INTR_BEIS;
 		/*
 		 * If we're ignoring parity and break indicators,
 		 * ignore overruns too (for real raw support).
 		 */
 		if (termios->c_iflag & IGNPAR)
-			port->ignore_status_mask |= ASM9260_UART_OEIS;
+			port->ignore_status_mask |= BM_INTR_OEIS;
 	}
 
 	/* update the per-port timeout */
@@ -813,14 +837,14 @@ void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485con
 	spin_lock_irqsave(&uport->lock, flags);
 
 	/* Disable interrupts */
-	asm9260_intr_mask_clr(uport, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_clr(uport, BM_INTR_TXIEN);
 
 	port->rs485 = *rs485conf;
 
 	asm9260_set_rs485(uport);
 
 	/* Enable tx interrupts */
-	asm9260_intr_mask_set(uport, ASM9260_UART_TXIEN);
+	asm9260_intr_mask_set(uport, BM_INTR_TXIEN);
 
 	spin_unlock_irqrestore(&uport->lock, flags);
 
@@ -911,7 +935,7 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	 * First, save IMR and then disable interrupts
 	 */
 	intr = ioread32(uport->membase + HW_INTR)
-		& (ASM9260_UART_RXIEN | ASM9260_UART_TXIEN);
+		& (BM_INTR_RXIEN | BM_INTR_TXIEN);
 	asm9260_intr_mask_clr(uport, intr);
 
 	uart_console_write(uport, s, count, asm9260_console_putchar);

@@ -182,7 +182,6 @@ struct asm9260_uart_port {
 	struct clk		*clk;		/* uart clock */
 	struct clk		*clk_ahb;
 	int			clk_on;
-	int			break_active;	/* break being received */
 
 	struct serial_rs485	rs485;		/* rs485 settings */
 
@@ -340,9 +339,11 @@ static void asm9260_rx_chars(struct uart_port *port)
 		ch = ioread32(port->membase + HW_DATA);
 		intr = ioread32(port->membase + HW_INTR);
 
+		port->icount.rx++;
+		flg = TTY_NORMAL;
+
 		if (unlikely(intr & (BM_INTR_PEIS | BM_INTR_FEIS
-				       | BM_INTR_OEIS | BM_INTR_BEIS)
-			     || asm9260_port->break_active)) {
+				       | BM_INTR_OEIS | BM_INTR_BEIS))) {
 
 			/* clear error */
 			iowrite32(0, port->membase + HW_STAT);
@@ -351,26 +352,15 @@ static void asm9260_rx_chars(struct uart_port *port)
 					port->membase + HW_INTR
 					+ CLR_REG);
 
-			if (intr & BM_INTR_BEIS
-			    && !asm9260_port->break_active) {
-				asm9260_port->break_active = 1;
-				asm9260_intr_mask_set(port, BM_INTR_BEIEN);
-				intr &= ~(BM_INTR_PEIS | BM_INTR_FEIS);
-
+			if (intr & BM_INTR_BEIS) {
 				port->icount.brk++;
 				if (uart_handle_break(port))
 					continue;
-
-			} else {
-				asm9260_intr_mask_clr(port, BM_INTR_BEIEN);
-				intr &= ~BM_INTR_BEIS;
-				asm9260_port->break_active = 0;
-			}
-
-			if (intr & BM_INTR_PEIS)
+			} else if (intr & BM_INTR_PEIS)
 				port->icount.parity++;
-			if (intr & BM_INTR_FEIS)
+			else if (intr & BM_INTR_FEIS)
 				port->icount.frame++;
+
 			if (intr & BM_INTR_OEIS)
 				port->icount.overrun++;
 
@@ -384,9 +374,6 @@ static void asm9260_rx_chars(struct uart_port *port)
 				flg = TTY_FRAME;
 
 		}
-
-		port->icount.rx++;
-		flg = TTY_NORMAL;
 
 		if (uart_handle_sysrq_char(port, ch))
 			continue;
@@ -454,8 +441,6 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 		 * character, asm9260_rx_chars will handle it.
 		 */
 		iowrite32(0, port->membase + HW_STAT);
-		asm9260_intr_mask_clr(port, BM_INTR_BEIEN);
-		asm9260_port->break_active = 0;
 	}
 }
 
@@ -537,7 +522,6 @@ static int asm9260_startup(struct uart_port *port)
 			port->membase + HW_CTRL0 + SET_REG);
 
 	/* disable txfifo empty interrupt, enable rx and rxto interrupt */
-	asm9260_intr_mask_clr(port, BM_INTR_TFEIEN);
 	asm9260_intr_mask_set(port, BM_INTR_RXIEN | BM_INTR_RTIEN);
 
 	/*

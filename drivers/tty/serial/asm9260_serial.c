@@ -290,8 +290,6 @@ static void asm9260_start_rx(struct uart_port *port)
 	/* enable receive */
 	iowrite32(ASM9260_UART_RXE,
 			port->membase + HW_CTRL2 + SET_REG);
-	iowrite32(BM_INTR_RXIEN | BM_INTR_RTIEN,
-			port->membase + HW_INTR + SET_REG);
 }
 
 /*
@@ -301,7 +299,6 @@ static void asm9260_stop_rx(struct uart_port *port)
 {
 	/* disable receive */
 	iowrite32(ASM9260_UART_RXE, port->membase + HW_CTRL2 + CLR_REG);
-	asm9260_intr_mask_clr(port, BM_INTR_RXIEN | BM_INTR_RTIEN);
 }
 
 /*
@@ -330,7 +327,6 @@ static void asm9260_break_ctl(struct uart_port *port, int break_state)
  */
 static void asm9260_rx_chars(struct uart_port *port)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
 	unsigned int status, intr, ch;
 
 	status = ioread32(port->membase + HW_STAT);
@@ -422,8 +418,6 @@ static void asm9260_tx_chars(struct uart_port *port)
 static void
 asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
-
 	/* Interrupt receive */
 	if ((pending & BM_INTR_RXIS) || (pending & BM_INTR_RTIS)) {
 

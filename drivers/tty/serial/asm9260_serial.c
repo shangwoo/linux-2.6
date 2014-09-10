@@ -342,10 +342,6 @@ static void asm9260_rx_chars(struct uart_port *port, unsigned int intr)
 
 			/* clear error */
 			iowrite32(0, port->membase + HW_STAT);
-			iowrite32(BM_INTR_PEIS | BM_INTR_FEIS  |
-					BM_INTR_OEIS | BM_INTR_BEIS,
-					port->membase + HW_INTR
-					+ CLR_REG);
 
 			if (intr & BM_INTR_BEIS) {
 				port->icount.brk++;
@@ -418,17 +414,9 @@ static void
 asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 {
 	/* Interrupt receive */
-	if ((pending & BM_INTR_RXIS) || (pending & BM_INTR_RTIS)) {
-
-		if (pending & BM_INTR_RXIS)
-			iowrite32(BM_INTR_RXIS,
-					port->membase + HW_INTR + CLR_REG);
-		if (pending & BM_INTR_RTIS)
-			iowrite32(BM_INTR_RTIS,
-					port->membase + HW_INTR + CLR_REG);
-
+	if ((pending & BM_INTR_RXIS) || (pending & BM_INTR_RTIS))
 		asm9260_rx_chars(port, pending);
-	} else if (pending & BM_INTR_BEIS) {
+	else if (pending & BM_INTR_BEIS) {
 		/*
 		 * End of break detected. If it came along with a
 		 * character, asm9260_rx_chars will handle it.
@@ -443,11 +431,8 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 static void
 asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
 {
-	if (pending & BM_INTR_TXIS) {
-		iowrite32(BM_INTR_TXIS,
-				port->membase + HW_INTR + CLR_REG);
+	if (pending & BM_INTR_TXIS)
 		asm9260_tx_chars(port);
-	}
 }
 
 /*
@@ -464,6 +449,9 @@ static irqreturn_t asm9260_interrupt(int irq, void *dev_id)
 
 	asm9260_handle_receive(uport, pending);
 	asm9260_handle_transmit(uport, pending);
+
+	iowrite32(pending,
+			uport->membase + HW_INTR + CLR_REG);
 
 	asm9260_intr_mask_flip(uport, 1);
 	return IRQ_HANDLED;

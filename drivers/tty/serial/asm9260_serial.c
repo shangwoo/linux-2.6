@@ -264,7 +264,7 @@ static void asm9260_tx_chars(struct uart_port *port);
 static void asm9260_start_tx(struct uart_port *port)
 {
 	/* TODO we should use hear TXE on line ctrl */
-	asm9260_intr_mask(port);
+	asm9260_intr_unmask(port);
 	asm9260_tx_chars(port);
 }
 

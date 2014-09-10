@@ -205,11 +205,11 @@ to_asm9260_uart_port(struct uart_port *uart)
 	return container_of(uart, struct asm9260_uart_port, uart);
 }
 
-static void asm9260_intr_mask_clr(struct uart_port *port, uint32_t val)
+static void asm9260_intr_mask_clr(struct uart_port *uport, uint32_t val)
 {
 	WARN_ON(val & ~BM_INTR_EN_MASK);
 
-	iowrite32(val, port->membase + HW_INTR + CLR_REG);
+	iowrite32(val, uport->membase + HW_INTR + CLR_REG);
 }
 
 static inline void asm9260_intr_mask(struct uart_port *uport)
@@ -227,17 +227,17 @@ static inline void asm9260_intr_unmask(struct uart_port *uport)
 /*
  * Return TIOCSER_TEMT when transmitter FIFO and Shift register is empty.
  */
-static u_int asm9260_tx_empty(struct uart_port *port)
+static u_int asm9260_tx_empty(struct uart_port *uport)
 {
-	return (ioread32(port->membase + HW_STAT)
+	return (ioread32(uport->membase + HW_STAT)
 			& ASM9260_UART_TXEMPTY) ? TIOCSER_TEMT : 0;
 }
 
-static void asm9260_set_mctrl(struct uart_port *port, u_int mctrl)
+static void asm9260_set_mctrl(struct uart_port *uport, u_int mctrl)
 {
 }
 
-static u_int asm9260_get_mctrl(struct uart_port *port)
+static u_int asm9260_get_mctrl(struct uart_port *uport)
 {
 	return 0;
 }
@@ -245,52 +245,53 @@ static u_int asm9260_get_mctrl(struct uart_port *port)
 /*
  * Stop transmitting.
  */
-static void asm9260_stop_tx(struct uart_port *port)
+static void asm9260_stop_tx(struct uart_port *uport)
 {
-	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(port);
+	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(uport);
 
 	/* TODO we should use here TXE on line ctrl */
-	asm9260_intr_mask_clr(port, BM_INTR_TXIEN);
+	asm9260_intr_mask_clr(uport, BM_INTR_TXIEN);
 
 	if ((asm9260_port->rs485.flags & SER_RS485_ENABLED) &&
 	    !(asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX))
-		asm9260_start_rx(port);
+		asm9260_start_rx(uport);
 }
 
-static void asm9260_tx_chars(struct uart_port *port);
+static void asm9260_tx_chars(struct uart_port *uport);
 /*
  * Start transmitting.
  */
-static void asm9260_start_tx(struct uart_port *port)
+static void asm9260_start_tx(struct uart_port *uport)
 {
 	/* TODO we should use hear TXE on line ctrl */
-	asm9260_intr_unmask(port);
-	asm9260_tx_chars(port);
+	asm9260_intr_unmask(uport);
+	asm9260_tx_chars(uport);
 }
 
 /*
  * start receiving - port is in process of being opened.
  */
-static void asm9260_start_rx(struct uart_port *port)
+static void asm9260_start_rx(struct uart_port *uport)
 {
 	/* enable receive */
 	iowrite32(ASM9260_UART_RXE,
-			port->membase + HW_CTRL2 + SET_REG);
+			uport->membase + HW_CTRL2 + SET_REG);
 }
 
 /*
  * Stop receiving - port is in process of being closed.
  */
-static void asm9260_stop_rx(struct uart_port *port)
+static void asm9260_stop_rx(struct uart_port *uport)
 {
 	/* disable receive */
-	iowrite32(ASM9260_UART_RXE, port->membase + HW_CTRL2 + CLR_REG);
+	iowrite32(ASM9260_UART_RXE,
+			uport->membase + HW_CTRL2 + CLR_REG);
 }
 
 /*
  * Enable modem status interrupts
  */
-static void asm9260_enable_ms(struct uart_port *port)
+static void asm9260_enable_ms(struct uart_port *uport)
 {
 	/*The driver doesn't support modem control*/
 }
@@ -298,50 +299,50 @@ static void asm9260_enable_ms(struct uart_port *port)
 /*
  * Control the transmission of a break signal
  */
-static void asm9260_break_ctl(struct uart_port *port, int break_state)
+static void asm9260_break_ctl(struct uart_port *uport, int break_state)
 {
 	if (break_state != 0)
 		iowrite32(ASM9260_UART_BREAK,
-				port->membase + HW_LINECTRL + SET_REG);
+				uport->membase + HW_LINECTRL + SET_REG);
 	else
 		iowrite32(ASM9260_UART_BREAK,
-				port->membase + HW_LINECTRL + CLR_REG);
+				uport->membase + HW_LINECTRL + CLR_REG);
 }
 
 /*
  * Characters received (called from interrupt handler)
  */
-static void asm9260_rx_chars(struct uart_port *port, unsigned int intr)
+static void asm9260_rx_chars(struct uart_port *uport, unsigned int intr)
 {
 	unsigned int status, ch;
 
-	status = ioread32(port->membase + HW_STAT);
+	status = ioread32(uport->membase + HW_STAT);
 	while (!(status & ASM9260_UART_RXEMPTY)) {
 		unsigned int flg;
-		ch = ioread32(port->membase + HW_DATA);
+		ch = ioread32(uport->membase + HW_DATA);
 
-		port->icount.rx++;
+		uport->icount.rx++;
 		flg = TTY_NORMAL;
 
 		if (unlikely(intr & (BM_INTR_PEIS | BM_INTR_FEIS
 				       | BM_INTR_OEIS | BM_INTR_BEIS))) {
 
 			/* clear error */
-			iowrite32(0, port->membase + HW_STAT);
+			iowrite32(0, uport->membase + HW_STAT);
 
 			if (intr & BM_INTR_BEIS) {
-				port->icount.brk++;
-				if (uart_handle_break(port))
+				uport->icount.brk++;
+				if (uart_handle_break(uport))
 					continue;
 			} else if (intr & BM_INTR_PEIS)
-				port->icount.parity++;
+				uport->icount.parity++;
 			else if (intr & BM_INTR_FEIS)
-				port->icount.frame++;
+				uport->icount.frame++;
 
 			if (intr & BM_INTR_OEIS)
-				port->icount.overrun++;
+				uport->icount.overrun++;
 
-			intr &= port->read_status_mask;
+			intr &= uport->read_status_mask;
 
 			if (intr & BM_INTR_BEIS)
 				flg = TTY_BREAK;
@@ -352,62 +353,62 @@ static void asm9260_rx_chars(struct uart_port *port, unsigned int intr)
 
 		}
 
-		if (uart_handle_sysrq_char(port, ch))
+		if (uart_handle_sysrq_char(uport, ch))
 			continue;
 
-		uart_insert_char(port, intr, BM_INTR_OEIS, ch, flg);
-		status = ioread32(port->membase + HW_STAT);
+		uart_insert_char(uport, intr, BM_INTR_OEIS, ch, flg);
+		status = ioread32(uport->membase + HW_STAT);
 	}
 
-	tty_flip_buffer_push(&port->state->port);
+	tty_flip_buffer_push(&uport->state->port);
 }
 
-static void asm9260_tx_chars(struct uart_port *port)
+static void asm9260_tx_chars(struct uart_port *uport)
 {
-	struct circ_buf *xmit = &port->state->xmit;
+	struct circ_buf *xmit = &uport->state->xmit;
 
-	if (port->x_char && !(ioread32(port->membase + HW_STAT)
+	if (uport->x_char && !(ioread32(uport->membase + HW_STAT)
 				& ASM9260_UART_TXFULL)) {
-		iowrite32(port->x_char, port->membase + HW_DATA);
-		port->icount.tx++;
-		port->x_char = 0;
+		iowrite32(uport->x_char, uport->membase + HW_DATA);
+		uport->icount.tx++;
+		uport->x_char = 0;
 	}
-	if (uart_circ_empty(xmit) || uart_tx_stopped(port))
+	if (uart_circ_empty(xmit) || uart_tx_stopped(uport))
 		return;
 
 	while (!uart_circ_empty(xmit)) {
-		if (ioread32(port->membase + HW_STAT)
+		if (ioread32(uport->membase + HW_STAT)
 				& ASM9260_UART_TXFULL) {
 			break;;
 		}
 		iowrite32(xmit->buf[xmit->tail],
-				port->membase + HW_DATA);
+				uport->membase + HW_DATA);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
-		port->icount.tx++;
+		uport->icount.tx++;
 	}
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
-		uart_write_wakeup(port);
+		uart_write_wakeup(uport);
 
 	if (uart_circ_empty(xmit))
-		asm9260_intr_mask_clr(port, BM_INTR_TXIEN);
+		asm9260_intr_mask_clr(uport, BM_INTR_TXIEN);
 }
 
 /*
  * receive interrupt handler.
  */
 static void
-asm9260_handle_receive(struct uart_port *port, unsigned int pending)
+asm9260_handle_receive(struct uart_port *uport, unsigned int pending)
 {
 	/* Interrupt receive */
 	if ((pending & BM_INTR_RXIS) || (pending & BM_INTR_RTIS))
-		asm9260_rx_chars(port, pending);
+		asm9260_rx_chars(uport, pending);
 	else if (pending & BM_INTR_BEIS) {
 		/*
 		 * End of break detected. If it came along with a
 		 * character, asm9260_rx_chars will handle it.
 		 */
-		iowrite32(0, port->membase + HW_STAT);
+		iowrite32(0, uport->membase + HW_STAT);
 	}
 }
 
@@ -415,10 +416,10 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
  * transmit interrupt handler. (Transmit is IRQF_NODELAY safe)
  */
 static void
-asm9260_handle_transmit(struct uart_port *port, unsigned int pending)
+asm9260_handle_transmit(struct uart_port *uport, unsigned int pending)
 {
 	if (pending & BM_INTR_TXIS)
-		asm9260_tx_chars(port);
+		asm9260_tx_chars(uport);
 }
 
 /*
@@ -460,9 +461,9 @@ static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
 /*
  * Perform initialization and enable port for reception
  */
-static int asm9260_startup(struct uart_port *port)
+static int asm9260_startup(struct uart_port *uport)
 {
-	struct tty_struct *tty = port->state->port.tty;
+	struct tty_struct *tty = uport->state->port.tty;
 	int retval;
 
 	/*
@@ -470,13 +471,13 @@ static int asm9260_startup(struct uart_port *port)
 	 * request_irq() is called we could get stuck trying to
 	 * handle an unexpected interrupt
 	 */
-	iowrite32(0, port->membase + HW_INTR);
+	iowrite32(0, uport->membase + HW_INTR);
 
 	/*
 	 * Allocate the IRQ
 	 */
-	retval = request_threaded_irq(port->irq, asm9260_fast_int, asm9260_interrupt,
-			IRQF_SHARED, tty ? tty->name : "asm9260_serial", port);
+	retval = request_threaded_irq(uport->irq, asm9260_fast_int, asm9260_interrupt,
+			IRQF_SHARED, tty ? tty->name : "asm9260_serial", uport);
 	if (retval) {
 		printk("asm9260_serial : asm9260_startup - Can't get irq\n");
 		return retval;
@@ -484,9 +485,9 @@ static int asm9260_startup(struct uart_port *port)
 
 	/* enable rx timeout */
 	iowrite32(ASM9260_UART_RXTIMEOUT | ASM9260_UART_RXTO_SOURCE_STATUS,
-			port->membase + HW_CTRL0 + CLR_REG);
+			uport->membase + HW_CTRL0 + CLR_REG);
 	iowrite32(ASM9260_UART_DEFAULT_RXTIMEOUT | ASM9260_UART_RXTO_ENABLE,
-			port->membase + HW_CTRL0 + SET_REG);
+			uport->membase + HW_CTRL0 + SET_REG);
 
 
 	/*
@@ -494,25 +495,25 @@ static int asm9260_startup(struct uart_port *port)
 	 * enable tx & rx
 	 */
 	iowrite32(ASM9260_UART_RXIFLSEL | ASM9260_UART_TXIFLSEL,
-			port->membase + HW_CTRL2 + CLR_REG);
+			uport->membase + HW_CTRL2 + CLR_REG);
 	iowrite32(ASM9260_UART_ENABLE | ASM9260_UART_TXE | ASM9260_UART_RXE |
 			ASM9260_UART_DEFAULT_TXIFLSEL |
 			ASM9260_UART_DEFAULT_RXIFLSEL,
-			port->membase + HW_CTRL2);
+			uport->membase + HW_CTRL2);
 
-	asm9260_intr_unmask(port);
+	asm9260_intr_unmask(uport);
 	return 0;
 }
 
 /*
  * Disable the port
  */
-static void asm9260_shutdown(struct uart_port *port)
+static void asm9260_shutdown(struct uart_port *uport)
 {
 	int timeout = 10000;
 
 	/*wait for controller finish tx*/
-	while (!(ioread32(port->membase + HW_STAT)
+	while (!(ioread32(uport->membase + HW_STAT)
 				& ASM9260_UART_TXEMPTY)) {
 		if (--timeout < 0)
 			break;
@@ -521,24 +522,24 @@ static void asm9260_shutdown(struct uart_port *port)
 	/*
 	 * Ensure everything is stopped.
 	 */
-	asm9260_stop_tx(port);
-	asm9260_stop_rx(port);
+	asm9260_stop_tx(uport);
+	asm9260_stop_rx(uport);
 
-	free_irq(port->irq, port);
+	free_irq(uport->irq, uport);
 }
 
 /*
  * Flush any TX data submitted for DMA. Called when the TX circular
  * buffer is reset.
  */
-static void asm9260_flush_buffer(struct uart_port *port)
+static void asm9260_flush_buffer(struct uart_port *uport)
 {
 }
 
 /*
  * Power / Clock management.
  */
-static void asm9260_serial_pm(struct uart_port *port, unsigned int state,
+static void asm9260_serial_pm(struct uart_port *uport, unsigned int state,
 			    unsigned int oldstate)
 {
 }
@@ -594,14 +595,14 @@ static void asm9260_set_rs485(struct uart_port *uport)
 /*
  * Change the port parameters
  */
-static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios,
+static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termios,
 			      struct ktermios *old)
 {
 	unsigned int mode, baud;
 	unsigned int bauddivint, bauddivfrac;
 
 
-	asm9260_intr_mask(port);
+	asm9260_intr_mask(uport);
 
 	/*
 	 * We don't support modem control lines.
@@ -610,18 +611,18 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	termios->c_cflag |= CLOCAL;
 
 	/* Get current mode register */
-	mode = ioread32(port->membase + HW_LINECTRL);
+	mode = ioread32(uport->membase + HW_LINECTRL);
 	mode &= ~(ASM9260_UART_PEN | ASM9260_UART_EPS
 			| ASM9260_UART_STP2 | ASM9260_UART_FEN
 			| ASM9260_UART_WLEN | ASM9260_UART_SPS
 			| ASM9260_UART_BAUD_DIVFRA | ASM9260_UART_BAUD_DIVINT);
 
-	baud = uart_get_baud_rate(port, termios, old,
-			port->uartclk * 4 / UART_BAUD_DIV_MAX, port->uartclk / 16);
+	baud = uart_get_baud_rate(uport, termios, old,
+			uport->uartclk * 4 / UART_BAUD_DIV_MAX, uport->uartclk / 16);
 	bauddivint =
-		(((port->uartclk << 2) / baud) & UART_BAUD_DIVINT_MASK) << 10;
+		(((uport->uartclk << 2) / baud) & UART_BAUD_DIVINT_MASK) << 10;
 	bauddivfrac =
-		(((port->uartclk << 2) / baud) & UART_BAUD_DIVFRAC_MASK) << 8;
+		(((uport->uartclk << 2) / baud) & UART_BAUD_DIVFRAC_MASK) << 8;
 	/* byte size */
 	switch (termios->c_cflag & CSIZE) {
 	case CS5:
@@ -662,89 +663,89 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	} else
 		mode |= ASM9260_US_PAR_NONE;
 
-	spin_lock(&port->lock);
+	spin_lock(&uport->lock);
 
-	port->read_status_mask = BM_INTR_OEIS;
+	uport->read_status_mask = BM_INTR_OEIS;
 	if (termios->c_iflag & INPCK)
-		port->read_status_mask |= (BM_INTR_FEIS | BM_INTR_PEIS);
+		uport->read_status_mask |= (BM_INTR_FEIS | BM_INTR_PEIS);
 	if (termios->c_iflag & (IGNBRK | BRKINT | PARMRK))
-		port->read_status_mask |= BM_INTR_BEIS;
+		uport->read_status_mask |= BM_INTR_BEIS;
 
 	/*
 	 * Characters to ignore
 	 */
-	port->ignore_status_mask = 0;
+	uport->ignore_status_mask = 0;
 	if (termios->c_iflag & IGNPAR)
-		port->ignore_status_mask |=
+		uport->ignore_status_mask |=
 			(BM_INTR_FEIS  | BM_INTR_PEIS);
 	if (termios->c_iflag & IGNBRK) {
-		port->ignore_status_mask |= BM_INTR_BEIS;
+		uport->ignore_status_mask |= BM_INTR_BEIS;
 		/*
 		 * If we're ignoring parity and break indicators,
 		 * ignore overruns too (for real raw support).
 		 */
 		if (termios->c_iflag & IGNPAR)
-			port->ignore_status_mask |= BM_INTR_OEIS;
+			uport->ignore_status_mask |= BM_INTR_OEIS;
 	}
 
 	/* update the per-port timeout */
-	uart_update_timeout(port, termios->c_cflag, baud);
+	uart_update_timeout(uport, termios->c_cflag, baud);
 
 	/* drain transmitter */
-	while (!(ioread32(port->membase + HW_STAT)
+	while (!(ioread32(uport->membase + HW_STAT)
 				& ASM9260_UART_TXEMPTY))
 		cpu_relax();
 
-	while (!(ioread32(port->membase + HW_STAT)
+	while (!(ioread32(uport->membase + HW_STAT)
 				& ASM9260_UART_RXEMPTY))
-		ioread32(port->membase + HW_DATA);
+		ioread32(uport->membase + HW_DATA);
 
-	asm9260_set_rs485(port);
+	asm9260_set_rs485(uport);
 
 	/* set hardware flow control */
 	if (termios->c_cflag & CRTSCTS)
 		iowrite32(ASM9260_UART_CTSE | ASM9260_UART_RTSE,
-				port->membase + HW_CTRL2 + SET_REG);
+				uport->membase + HW_CTRL2 + SET_REG);
 	else
 		iowrite32(ASM9260_UART_CTSE | ASM9260_UART_RTSE,
-				port->membase + HW_CTRL2 + CLR_REG);
+				uport->membase + HW_CTRL2 + CLR_REG);
 
 	/* set the parity, stop bits, data size and baud rate*/
 	iowrite32(mode | bauddivint | bauddivfrac,
-			port->membase + HW_LINECTRL);
+			uport->membase + HW_LINECTRL);
 
 	/* CTS flow-control and modem-status interrupts */
-	if (UART_ENABLE_MS(port, termios->c_cflag))
-		port->ops->enable_ms(port);
+	if (UART_ENABLE_MS(uport, termios->c_cflag))
+		uport->ops->enable_ms(uport);
 
-	spin_unlock(&port->lock);
+	spin_unlock(&uport->lock);
 
 	dbg("mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
 			mode, baud, bauddivint, bauddivfrac,
-			ioread32(port->membase + HW_CTRL2));
+			ioread32(uport->membase + HW_CTRL2));
 
-	asm9260_intr_unmask(port);
+	asm9260_intr_unmask(uport);
 }
 
 /*
  * Return string describing the specified port
  */
-static const char *asm9260_type(struct uart_port *port)
+static const char *asm9260_type(struct uart_port *uport)
 {
-	return (port->type == PORT_ATMEL) ? "ASM9260_SERIAL" : NULL;
+	return (uport->type == PORT_ATMEL) ? "ASM9260_SERIAL" : NULL;
 }
 
 /*
  * Release the memory region(s) being used by 'port'.
  */
-static void asm9260_release_port(struct uart_port *port)
+static void asm9260_release_port(struct uart_port *uport)
 {
 }
 
 /*
  * Request the memory region(s) being used by 'port'.
  */
-static int asm9260_request_port(struct uart_port *port)
+static int asm9260_request_port(struct uart_port *uport)
 {
 	return 0;
 }
@@ -752,32 +753,32 @@ static int asm9260_request_port(struct uart_port *port)
 /*
  * Configure/autoconfigure the port.
  */
-static void asm9260_config_port(struct uart_port *port, int flags)
+static void asm9260_config_port(struct uart_port *uport, int flags)
 {
 	if (flags & UART_CONFIG_TYPE) {
-		port->type = PORT_ATMEL;
-		asm9260_request_port(port);
+		uport->type = PORT_ATMEL;
+		asm9260_request_port(uport);
 	}
 }
 
 /*
  * Verify the new serial_struct (for TIOCSSERIAL).
  */
-static int asm9260_verify_port(struct uart_port *port, struct serial_struct *ser)
+static int asm9260_verify_port(struct uart_port *uport, struct serial_struct *ser)
 {
 	int ret = 0;
 
 	if (ser->type != PORT_UNKNOWN && ser->type != PORT_ATMEL)
 		ret = -EINVAL;
-	if (port->irq != ser->irq)
+	if (uport->irq != ser->irq)
 		ret = -EINVAL;
 	if (ser->io_type != SERIAL_IO_MEM)
 		ret = -EINVAL;
-	if (port->uartclk / 16 != ser->baud_base)
+	if (uport->uartclk / 16 != ser->baud_base)
 		ret = -EINVAL;
-	if ((void *)port->mapbase != ser->iomem_base)
+	if ((void *)uport->mapbase != ser->iomem_base)
 		ret = -EINVAL;
-	if (port->iobase != ser->port)
+	if (uport->iobase != ser->port)
 		ret = -EINVAL;
 	if (ser->hub6 != 0)
 		ret = -EINVAL;
@@ -804,7 +805,7 @@ void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485con
 
 }
 
-static int asm9260_ioctl(struct uart_port *port,
+static int asm9260_ioctl(struct uart_port *uport,
 		unsigned int cmd, unsigned long arg)
 {
 	struct serial_rs485 rs485conf;
@@ -815,12 +816,12 @@ static int asm9260_ioctl(struct uart_port *port,
 					sizeof(rs485conf)))
 			return -EFAULT;
 
-		asm9260_config_rs485(port, &rs485conf);
+		asm9260_config_rs485(uport, &rs485conf);
 		break;
 
 	case TIOCGRS485:
 		if (copy_to_user((struct serial_rs485 *) arg,
-					&(to_asm9260_uart_port(port)->rs485),
+					&(to_asm9260_uart_port(uport)->rs485),
 					sizeof(rs485conf)))
 			return -EFAULT;
 		break;

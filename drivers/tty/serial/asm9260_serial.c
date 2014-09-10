@@ -154,6 +154,10 @@
 #define BM_INTR_CTSMIS		BIT(1)
 #define BM_INTR_RIMIS		BIT(0)
 
+
+#define BM_INTR_DEF_MASK	(BM_INTR_RXIEN | BM_INTR_TXIEN | BM_INTR_RTIEN \
+		| BM_INTR_FEIEN | BM_INTR_PEIEN | BM_INTR_BEIEN | BM_INTR_OEIEN)
+
 #define BM_INTR_EN_MASK		(0x3fff0000)
 #define BM_INTR_IS_MASK		(0x00003fff)
 
@@ -235,6 +239,18 @@ static void asm9260_intr_mask_flip(struct uart_port *uport, int set)
 	else
 		iowrite32(port->intmask,
 				uport->membase + HW_INTR + CLR_REG);
+}
+
+static inline void asm9260_intr_mask(struct uart_port *uport)
+{
+	iowrite32(BM_INTR_DEF_MASK,
+			uport->membase + HW_INTR + SET_REG);
+}
+
+static inline void asm9260_intr_unmask(struct uart_port *uport)
+{
+	iowrite32(BM_INTR_DEF_MASK,
+			uport->membase + HW_INTR + CLR_REG);
 }
 
 /*

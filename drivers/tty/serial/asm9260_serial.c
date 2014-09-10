@@ -597,9 +597,11 @@ static void asm9260_set_rs485(struct uart_port *uport)
 static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios,
 			      struct ktermios *old)
 {
-	unsigned long flags;
 	unsigned int mode, baud;
 	unsigned int bauddivint, bauddivfrac;
+
+
+	asm9260_intr_mask(port);
 
 	/*
 	 * We don't support modem control lines.
@@ -660,7 +662,7 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	} else
 		mode |= ASM9260_US_PAR_NONE;
 
-	spin_lock_irqsave(&port->lock, flags);
+	spin_lock(&port->lock);
 
 	port->read_status_mask = BM_INTR_OEIS;
 	if (termios->c_iflag & INPCK)
@@ -715,11 +717,13 @@ static void asm9260_set_termios(struct uart_port *port, struct ktermios *termios
 	if (UART_ENABLE_MS(port, termios->c_cflag))
 		port->ops->enable_ms(port);
 
-	spin_unlock_irqrestore(&port->lock, flags);
+	spin_unlock(&port->lock);
 
 	dbg("mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
 			mode, baud, bauddivint, bauddivfrac,
 			ioread32(port->membase + HW_CTRL2));
+
+	asm9260_intr_unmask(port);
 }
 
 /*
@@ -784,10 +788,9 @@ static int asm9260_verify_port(struct uart_port *port, struct serial_struct *ser
 void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485conf)
 {
 	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
-	unsigned long flags;
 
 	asm9260_intr_mask(uport);
-	spin_lock_irqsave(&uport->lock, flags);
+	spin_lock(&uport->lock);
 
 	/* Disable interrupts */
 
@@ -796,7 +799,7 @@ void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485con
 	asm9260_set_rs485(uport);
 
 	/* Enable tx interrupts */
-	spin_unlock_irqrestore(&uport->lock, flags);
+	spin_unlock(&uport->lock);
 	asm9260_intr_unmask(uport);
 
 }
@@ -871,7 +874,6 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	struct uart_port *uport;
 	struct asm9260_uart_port *port;
 	unsigned int status;
-	unsigned long flags;
 	int locked = 1;
 
 	port = get_asm9260_uart_port(co->index);
@@ -880,9 +882,9 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	asm9260_intr_mask(uport);
 
 	if (oops_in_progress)
-		locked = spin_trylock_irqsave(&uport->lock, flags);
+		locked = spin_trylock(&uport->lock);
 	else
-		spin_lock_irqsave(&uport->lock, flags);
+		spin_lock(&uport->lock);
 
 
 	uart_console_write(uport, s, count, asm9260_console_putchar);
@@ -896,7 +898,7 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	} while (!(status & ASM9260_UART_TXEMPTY));
 
 	if (locked)
-		spin_unlock_irqrestore(&uport->lock, flags);
+		spin_unlock(&uport->lock);
 
 	asm9260_intr_unmask(uport);
 }

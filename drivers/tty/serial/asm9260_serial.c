@@ -325,15 +325,14 @@ static void asm9260_break_ctl(struct uart_port *port, int break_state)
 /*
  * Characters received (called from interrupt handler)
  */
-static void asm9260_rx_chars(struct uart_port *port)
+static void asm9260_rx_chars(struct uart_port *port, unsigned int intr)
 {
-	unsigned int status, intr, ch;
+	unsigned int status, ch;
 
 	status = ioread32(port->membase + HW_STAT);
 	while (!(status & ASM9260_UART_RXEMPTY)) {
 		unsigned int flg;
 		ch = ioread32(port->membase + HW_DATA);
-		intr = ioread32(port->membase + HW_INTR);
 
 		port->icount.rx++;
 		flg = TTY_NORMAL;
@@ -428,7 +427,7 @@ asm9260_handle_receive(struct uart_port *port, unsigned int pending)
 			iowrite32(BM_INTR_RTIS,
 					port->membase + HW_INTR + CLR_REG);
 
-		asm9260_rx_chars(port);
+		asm9260_rx_chars(port, pending);
 	} else if (pending & BM_INTR_BEIS) {
 		/*
 		 * End of break detected. If it came along with a

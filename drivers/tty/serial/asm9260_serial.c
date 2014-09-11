@@ -1002,19 +1002,8 @@ static int __init asm9260_console_init(void)
 }
 
 console_initcall(asm9260_console_init);
-
-static inline bool asm9260_is_console_port(struct uart_port *port)
-{
-	return port->cons && port->cons->index == port->line;
-}
-
 #else
 #define ASM9260_CONSOLE_DEVICE	NULL
-
-static inline bool asm9260_is_console_port(struct uart_port *port)
-{
-	return false;
-}
 #endif
 
 static struct uart_driver asm9260_uart = {
@@ -1217,7 +1206,7 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 	return 0;
 
 err_add_port:
-	if (!asm9260_is_console_port(&port->uart)) {
+	if (!uart_console(&port->uart)) {
 		clk_put(port->clk);
 		port->clk = NULL;
 	}

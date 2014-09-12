@@ -59,26 +59,26 @@
 #define BM_CTRL2_DEFAULT_RXIFLSEL	(3<<20)
 
 #define HW_LINECTRL			0x30
-#define ASM9260_UART_BREAK		BIT(0)
-#define ASM9260_UART_PEN		BIT(1)
-#define ASM9260_UART_EPS		BIT(2)
-#define ASM9260_UART_STP2		BIT(3)
-#define ASM9260_UART_FEN		BIT(4)
-#define ASM9260_UART_WLEN		(3<<5)
-#define ASM9260_UART_SPS		BIT(7)
-#define ASM9260_UART_BAUD_DIVFRA	(0x3F<<8)
-#define ASM9260_UART_BAUD_DIVINT	(0xFFFF<<16)
-#define ASM9260_US_CHRL_5		(0<<5)
-#define ASM9260_US_CHRL_6		(1<<5)
-#define ASM9260_US_CHRL_7		(2<<5)
-#define ASM9260_US_CHRL_8		(3<<5)
-#define ASM9260_US_NBSTOP_1		(0<<3)
-#define ASM9260_US_NBSTOP_2		(1<<3)
-#define ASM9260_US_PAR_MARK		((3<<1) | (1<<7))
-#define ASM9260_US_PAR_SPACE		((1<<1) | (1<<7))
-#define ASM9260_US_PAR_ODD		((1<<1) | (0<<7))
-#define ASM9260_US_PAR_EVEN		((3<<1) | (0<<7))
-#define ASM9260_US_PAR_NONE		(0<<1)
+#define BM_LCTRL_BAUD_DIVINT		(0xFFFF<<16)
+#define BM_LCTRL_BAUD_DIVFRA		(0x3F<<8)
+#define BM_LCTRL_SPS			BIT(7)
+#define BM_LCTRL_WLEN			(3<<5)
+#define BM_LCTRL_FEN			BIT(4)
+#define BM_LCTRL_STP2			BIT(3)
+#define BM_LCTRL_EPS			BIT(2)
+#define BM_LCTRL_PEN			BIT(1)
+#define BM_LCTRL_BREAK			BIT(0)
+#define BM_LCTRL_CHRL_5			(0<<5)
+#define BM_LCTRL_CHRL_6			(1<<5)
+#define BM_LCTRL_CHRL_7			(2<<5)
+#define BM_LCTRL_CHRL_8			(3<<5)
+#define BM_LCTRL_NBSTOP_1		(0<<3)
+#define BM_LCTRL_NBSTOP_2		(1<<3)
+#define BM_LCTRL_PAR_MARK		((3<<1) | (1<<7))
+#define BM_LCTRL_PAR_SPACE		((1<<1) | (1<<7))
+#define BM_LCTRL_PAR_ODD		((1<<1) | (0<<7))
+#define BM_LCTRL_PAR_EVEN		((3<<1) | (0<<7))
+#define BM_LCTRL_PAR_NONE		(0<<1)
 
 /* Interrupt register.
  * contains the interrupt enables and the interrupt status bits */
@@ -293,10 +293,10 @@ static void asm9260_enable_ms(struct uart_port *uport)
 static void asm9260_break_ctl(struct uart_port *uport, int break_state)
 {
 	if (break_state != 0)
-		iowrite32(ASM9260_UART_BREAK,
+		iowrite32(BM_LCTRL_BREAK,
 				uport->membase + HW_LINECTRL + SET_REG);
 	else
-		iowrite32(ASM9260_UART_BREAK,
+		iowrite32(BM_LCTRL_BREAK,
 				uport->membase + HW_LINECTRL + CLR_REG);
 }
 
@@ -598,10 +598,10 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
 
 	/* Get current mode register */
 	mode = ioread32(uport->membase + HW_LINECTRL);
-	mode &= ~(ASM9260_UART_PEN | ASM9260_UART_EPS
-			| ASM9260_UART_STP2 | ASM9260_UART_FEN
-			| ASM9260_UART_WLEN | ASM9260_UART_SPS
-			| ASM9260_UART_BAUD_DIVFRA | ASM9260_UART_BAUD_DIVINT);
+	mode &= ~(BM_LCTRL_PEN | BM_LCTRL_EPS
+			| BM_LCTRL_STP2 | BM_LCTRL_FEN
+			| BM_LCTRL_WLEN | BM_LCTRL_SPS
+			| BM_LCTRL_BAUD_DIVFRA | BM_LCTRL_BAUD_DIVINT);
 
 	baud = uart_get_baud_rate(uport, termios, old,
 			uport->uartclk * 4 / UART_BAUD_DIV_MAX, uport->uartclk / 16);
@@ -612,42 +612,42 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
 	/* byte size */
 	switch (termios->c_cflag & CSIZE) {
 	case CS5:
-		mode |= ASM9260_US_CHRL_5;
+		mode |= BM_LCTRL_CHRL_5;
 		break;
 	case CS6:
-		mode |= ASM9260_US_CHRL_6;
+		mode |= BM_LCTRL_CHRL_6;
 		break;
 	case CS7:
-		mode |= ASM9260_US_CHRL_7;
+		mode |= BM_LCTRL_CHRL_7;
 		break;
 	default:
-		mode |= ASM9260_US_CHRL_8;
+		mode |= BM_LCTRL_CHRL_8;
 		break;
 	}
 
 	/* enable fifo */
-	mode |= ASM9260_UART_FEN;
+	mode |= BM_LCTRL_FEN;
 
 	/* stop bits */
 	if (termios->c_cflag & CSTOPB)
-		mode |= ASM9260_US_NBSTOP_2;
+		mode |= BM_LCTRL_NBSTOP_2;
 	else
-		mode |= ASM9260_US_NBSTOP_1;
+		mode |= BM_LCTRL_NBSTOP_1;
 
 	/* parity */
 	if (termios->c_cflag & PARENB) {
 		/* Mark or Space parity */
 		if (termios->c_cflag & CMSPAR) {
 			if (termios->c_cflag & PARODD)
-				mode |= ASM9260_US_PAR_MARK;
+				mode |= BM_LCTRL_PAR_MARK;
 			else
-				mode |= ASM9260_US_PAR_SPACE;
+				mode |= BM_LCTRL_PAR_SPACE;
 		} else if (termios->c_cflag & PARODD)
-			mode |= ASM9260_US_PAR_ODD;
+			mode |= BM_LCTRL_PAR_ODD;
 		else
-			mode |= ASM9260_US_PAR_EVEN;
+			mode |= BM_LCTRL_PAR_EVEN;
 	} else
-		mode |= ASM9260_US_PAR_NONE;
+		mode |= BM_LCTRL_PAR_NONE;
 
 	spin_lock(&uport->lock);
 
@@ -904,24 +904,24 @@ static void __init asm9260_console_get_options(struct uart_port *port, int *baud
 	 * initialized by the boot loader.
 	 */
 	linectrl = ioread32(port->membase + HW_LINECTRL);
-	bauddivint = (linectrl & ASM9260_UART_BAUD_DIVINT) >> 16;
-	bauddivfrc = (linectrl & ASM9260_UART_BAUD_DIVFRA) >> 8;
+	bauddivint = (linectrl & BM_LCTRL_BAUD_DIVINT) >> 16;
+	bauddivfrc = (linectrl & BM_LCTRL_BAUD_DIVFRA) >> 8;
 	quot = (bauddivint << 6) | bauddivfrc;
 
 	if (!quot)
 		return;
 
-	mr = linectrl & ASM9260_UART_WLEN;
-	if (mr == ASM9260_US_CHRL_8)
+	mr = linectrl & BM_LCTRL_WLEN;
+	if (mr == BM_LCTRL_CHRL_8)
 		*bits = 8;
 	else
 		*bits = 7;
 
 	mr = linectrl &
-		(ASM9260_UART_PEN | ASM9260_UART_EPS | ASM9260_UART_SPS);
-	if (mr == ASM9260_US_PAR_EVEN)
+		(BM_LCTRL_PEN | BM_LCTRL_EPS | BM_LCTRL_SPS);
+	if (mr == BM_LCTRL_PAR_EVEN)
 		*parity = 'e';
-	else if (mr == ASM9260_US_PAR_ODD)
+	else if (mr == BM_LCTRL_PAR_ODD)
 		*parity = 'o';
 
 	/*

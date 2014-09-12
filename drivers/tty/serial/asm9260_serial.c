@@ -60,20 +60,6 @@
 #define BM_CTRL2_DEFAULT_TXIFLSEL	(2<<16)
 #define BM_CTRL2_DEFAULT_RXIFLSEL	(3<<20)
 
-#define HW_DATA				0x50
-
-#define HW_STAT				0x60
-#define BM_STAT_BUSY			BIT(29)
-#define BM_STAT_CTS			BIT(28)
-#define BM_STAT_TXEMPTY			BIT(27)
-#define BM_STAT_RXFULL			BIT(26)
-#define BM_STAT_TXFULL			BIT(25)
-#define BM_STAT_RXEMPTY			BIT(24)
-#define BM_STAT_OVERRUNERR		BIT(19)
-#define BM_STAT_BREAKERR		BIT(18)
-#define BM_STAT_PARITYERR		BIT(17)
-#define BM_STAT_FRAMEERR		BIT(16)
-
 #define HW_LINECTRL				0x30
 #define ASM9260_UART_BREAK				BIT(0)
 #define ASM9260_UART_PEN				BIT(1)
@@ -95,7 +81,6 @@
 #define ASM9260_US_PAR_ODD				((1<<1) | (0<<7))
 #define ASM9260_US_PAR_EVEN				((3<<1) | (0<<7))
 #define ASM9260_US_PAR_NONE				(0<<1)
-
 
 /* Interrupt register.
  * contains the interrupt enables and the interrupt status bits */
@@ -156,6 +141,20 @@
 
 #define BM_INTR_EN_MASK		(0x3fff0000)
 #define BM_INTR_IS_MASK		(0x00003fff)
+
+#define HW_DATA				0x50
+
+#define HW_STAT				0x60
+#define BM_STAT_BUSY			BIT(29)
+#define BM_STAT_CTS			BIT(28)
+#define BM_STAT_TXEMPTY			BIT(27)
+#define BM_STAT_RXFULL			BIT(26)
+#define BM_STAT_TXFULL			BIT(25)
+#define BM_STAT_RXEMPTY			BIT(24)
+#define BM_STAT_OVERRUNERR		BIT(19)
+#define BM_STAT_BREAKERR		BIT(18)
+#define BM_STAT_PARITYERR		BIT(17)
+#define BM_STAT_FRAMEERR		BIT(16)
 
 
 #define HW_ILPR					0x80

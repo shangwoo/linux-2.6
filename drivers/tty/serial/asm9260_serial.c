@@ -47,13 +47,14 @@
 #define BM_CTRL0_DEFAULT_RXTIMEOUT	(20<<16) /* TIMEOUT = (100*7+1)*(1/BAUD) */
 
 #define HW_CTRL1			0x10
+
 #define HW_CTRL2			0x20
-#define BM_CTRL2_PORT_ENABLE		BIT(0)
-#define BM_CTRL2_LBE			BIT(7)
-#define BM_CTRL2_TXE			BIT(8)
-#define BM_CTRL2_RXE			BIT(9)
-#define BM_CTRL2_RTSE			BIT(14)
 #define BM_CTRL2_CTSE			BIT(15)
+#define BM_CTRL2_RTSE			BIT(14)
+#define BM_CTRL2_RXE			BIT(9)
+#define BM_CTRL2_TXE			BIT(8)
+#define BM_CTRL2_LBE			BIT(7)
+#define BM_CTRL2_PORT_ENABLE		BIT(0)
 #define BM_CTRL2_TXIFLSEL		(7<<16)
 #define BM_CTRL2_RXIFLSEL		(7<<20)
 #define BM_CTRL2_DEFAULT_TXIFLSEL	(2<<16)
@@ -61,17 +62,17 @@
 
 #define HW_DATA				0x50
 
-#define HW_STAT					0x60
-#define ASM9260_UART_FRAMEERR				BIT(16)
-#define ASM9260_UART_PARITYERR				BIT(17)
-#define ASM9260_UART_BREAKERR				BIT(18)
-#define ASM9260_UART_OVERRUNERR				BIT(19)
-#define BM_CTRL2_RXEMPTY				BIT(24)
-#define ASM9260_UART_TXFULL				BIT(25)
-#define ASM9260_UART_RXFULL				BIT(26)
-#define BM_CTRL2_TXEMPTY				BIT(27)
-#define ASM9260_UART_CTS				BIT(28)
-#define ASM9260_UART_BUSY				BIT(29)
+#define HW_STAT				0x60
+#define BM_STAT_BUSY			BIT(29)
+#define BM_STAT_CTS			BIT(28)
+#define BM_STAT_TXEMPTY			BIT(27)
+#define BM_STAT_RXFULL			BIT(26)
+#define BM_STAT_TXFULL			BIT(25)
+#define BM_STAT_RXEMPTY			BIT(24)
+#define BM_STAT_OVERRUNERR		BIT(19)
+#define BM_STAT_BREAKERR		BIT(18)
+#define BM_STAT_PARITYERR		BIT(17)
+#define BM_STAT_FRAMEERR		BIT(16)
 
 #define HW_LINECTRL				0x30
 #define ASM9260_UART_BREAK				BIT(0)
@@ -223,7 +224,7 @@ static inline void asm9260_intr_unmask(struct uart_port *uport)
 static u_int asm9260_tx_empty(struct uart_port *uport)
 {
 	return (ioread32(uport->membase + HW_STAT)
-			& BM_CTRL2_TXEMPTY) ? TIOCSER_TEMT : 0;
+			& BM_STAT_TXEMPTY) ? TIOCSER_TEMT : 0;
 }
 
 static void asm9260_set_mctrl(struct uart_port *uport, u_int mctrl)
@@ -310,7 +311,7 @@ static void asm9260_rx_chars(struct uart_port *uport, unsigned int intr)
 	unsigned int status, ch;
 
 	status = ioread32(uport->membase + HW_STAT);
-	while (!(status & BM_CTRL2_RXEMPTY)) {
+	while (!(status & BM_STAT_RXEMPTY)) {
 		unsigned int flg;
 		ch = ioread32(uport->membase + HW_DATA);
 
@@ -361,7 +362,7 @@ static void asm9260_tx_chars(struct uart_port *uport)
 	struct circ_buf *xmit = &uport->state->xmit;
 
 	if (uport->x_char && !(ioread32(uport->membase + HW_STAT)
-				& ASM9260_UART_TXFULL)) {
+				& BM_STAT_TXFULL)) {
 		iowrite32(uport->x_char, uport->membase + HW_DATA);
 		uport->icount.tx++;
 		uport->x_char = 0;
@@ -371,7 +372,7 @@ static void asm9260_tx_chars(struct uart_port *uport)
 
 	while (!uart_circ_empty(xmit)) {
 		if (ioread32(uport->membase + HW_STAT)
-				& ASM9260_UART_TXFULL) {
+				& BM_STAT_TXFULL) {
 			break;;
 		}
 		iowrite32(xmit->buf[xmit->tail],
@@ -504,7 +505,7 @@ static void asm9260_shutdown(struct uart_port *uport)
 
 	/*wait for controller finish tx*/
 	while (!(ioread32(uport->membase + HW_STAT)
-				& BM_CTRL2_TXEMPTY)) {
+				& BM_STAT_TXEMPTY)) {
 		if (--timeout < 0)
 			break;
 	}
@@ -681,11 +682,11 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
 
 	/* drain transmitter */
 	while (!(ioread32(uport->membase + HW_STAT)
-				& BM_CTRL2_TXEMPTY))
+				& BM_STAT_TXEMPTY))
 		cpu_relax();
 
 	while (!(ioread32(uport->membase + HW_STAT)
-				& BM_CTRL2_RXEMPTY))
+				& BM_STAT_RXEMPTY))
 		ioread32(uport->membase + HW_DATA);
 
 	asm9260_set_rs485(uport);
@@ -850,7 +851,7 @@ static struct console asm9260_console;
 static void asm9260_console_putchar(struct uart_port *uport, int ch)
 {
 	while (ioread32(uport->membase + HW_STAT)
-			& ASM9260_UART_TXFULL)
+			& BM_STAT_TXFULL)
 		cpu_relax();
 	iowrite32(ch, uport->membase + HW_DATA);
 }
@@ -884,7 +885,7 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
 	 */
 	do {
 		status = ioread32(uport->membase + HW_STAT);
-	} while (!(status & BM_CTRL2_TXEMPTY));
+	} while (!(status & BM_STAT_TXEMPTY));
 
 	if (locked)
 		spin_unlock(&uport->lock);

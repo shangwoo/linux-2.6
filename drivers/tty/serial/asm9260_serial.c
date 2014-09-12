@@ -26,7 +26,7 @@
 #define SERIAL_ASM9260_MAJOR	204
 #define MINOR_START		64
 #define ASM9260_DEVICENAME	"ttyS"
-
+#define DRIVER_NAME		"asm9260_uart"
 
 #ifdef CONFIG_ASM9260_UART_DEBUG
 #define dbg(format, arg...) printk("ASM9260_UART_DBG: " format "\n" , ## arg)
@@ -477,9 +477,9 @@ static int asm9260_startup(struct uart_port *uport)
 	 * Allocate the IRQ
 	 */
 	retval = request_threaded_irq(uport->irq, asm9260_fast_int, asm9260_interrupt,
-			IRQF_SHARED, tty ? tty->name : "asm9260_serial", uport);
+			IRQF_SHARED, tty ? tty->name : DRIVER_NAME, uport);
 	if (retval) {
-		printk("asm9260_serial : asm9260_startup - Can't get irq\n");
+		dev_err(uport->dev, "Can't get irq\n");
 		return retval;
 	}
 
@@ -720,7 +720,7 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
 
 	spin_unlock(&uport->lock);
 
-	dbg("mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
+	dev_dbg(uport->dev, "mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
 			mode, baud, bauddivint, bauddivfrac,
 			ioread32(uport->membase + HW_CTRL2));
 
@@ -732,7 +732,7 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
  */
 static const char *asm9260_type(struct uart_port *uport)
 {
-	return (uport->type == PORT_ATMEL) ? "ASM9260_SERIAL" : NULL;
+	return (uport->type == PORT_ASM9260) ? "ASM9260_SERIAL" : NULL;
 }
 
 /*
@@ -756,7 +756,7 @@ static int asm9260_request_port(struct uart_port *uport)
 static void asm9260_config_port(struct uart_port *uport, int flags)
 {
 	if (flags & UART_CONFIG_TYPE) {
-		uport->type = PORT_ATMEL;
+		uport->type = PORT_ASM9260;
 		asm9260_request_port(uport);
 	}
 }
@@ -768,7 +768,7 @@ static int asm9260_verify_port(struct uart_port *uport, struct serial_struct *se
 {
 	int ret = 0;
 
-	if (ser->type != PORT_UNKNOWN && ser->type != PORT_ATMEL)
+	if (ser->type != PORT_UNKNOWN && ser->type != PORT_ASM9260)
 		ret = -EINVAL;
 	if (uport->irq != ser->irq)
 		ret = -EINVAL;
@@ -1008,21 +1008,18 @@ console_initcall(asm9260_console_init);
 
 static struct uart_driver asm9260_uart = {
 	.owner			= THIS_MODULE,
-	.driver_name		= "asm9260_serial",
+	.driver_name		= DRIVER_NAME,
 	.dev_name		= ASM9260_DEVICENAME,
 	.nr			= ASM9260_MAX_UART,
 	.cons			= ASM9260_CONSOLE_DEVICE,
 };
 
-#if defined(CONFIG_OF)
 /* Match table for of_platform binding */
 static struct of_device_id asm9260_of_match[] = {
 	{ .compatible = "alpscale,asm9260-uart", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, asm9260_of_match);
-#endif /* CONFIG_OF */
-
 
 static void asm9260_enable_clks(struct asm9260_uart_port *port)
 {
@@ -1183,7 +1180,8 @@ static int asm9260_serial_probe(struct platform_device *pdev)
 
 	line = of_alias_get_id(np, "serial");
 	if (line < 0) {
-		dev_err(&pdev->dev, "Error! Devicetree has no \"serial\" aliases\n");
+		dev_err(&pdev->dev,
+				"Error! Devicetree has no \"serial\" aliases\n");
 		return -EPERM;
 	}
 
@@ -1231,7 +1229,7 @@ static int asm9260_serial_remove(struct platform_device *pdev)
 
 static struct platform_driver asm9260_serial_driver = {
 	.driver		= {
-		.name	= "asm9260_uart",
+		.name	= DRIVER_NAME,
 		.owner	= THIS_MODULE,
 		.of_match_table = of_match_ptr(asm9260_of_match),
 	},
@@ -1262,7 +1260,6 @@ static void __exit asm9260_serial_exit(void)
 module_init(asm9260_serial_init);
 module_exit(asm9260_serial_exit);
 
-MODULE_AUTHOR("Chen Dongdong");
 MODULE_DESCRIPTION("ASM9260 serial port driver");
-MODULE_LICENSE("GPL");
-MODULE_ALIAS("platform:asm9260_uart");
+MODULE_LICENSE("GPL v2");
+MODULE_ALIAS("platform:" DRIVER_NAME);

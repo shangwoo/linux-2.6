@@ -27,18 +27,16 @@
 #define MINOR_START		64
 #define ASM9260_DEVICENAME	"ttyS"
 #define DRIVER_NAME		"asm9260_uart"
-
 #define ASM9260_UART_FIFOSIZE	16
-
 #define ASM9260_BUS_RATE	100000000
+#define ASM9260_MAX_UART	10
+
+#define UART_BAUD_DIVINT_MASK		((unsigned int)0x003FFFC0)
+#define UART_BAUD_DIVFRAC_MASK		((unsigned int)0x0000003F)
+#define	UART_BAUD_DIV_MAX		0x3FFFFF
 
 #define SET_REG 0x4
 #define CLR_REG 0x8
-#define ASM9260_MAX_UART 10
-
-#define UART_BAUD_DIVINT_MASK			((unsigned int)0x003FFFC0)
-#define UART_BAUD_DIVFRAC_MASK			((unsigned int)0x0000003F)
-#define	UART_BAUD_DIV_MAX				0x3FFFFF
 
 #define HW_CTRL0			0x00
 #define BM_CTRL0_RXTO_SOURCE_STATUS	BIT(25)
@@ -60,27 +58,27 @@
 #define BM_CTRL2_DEFAULT_TXIFLSEL	(2<<16)
 #define BM_CTRL2_DEFAULT_RXIFLSEL	(3<<20)
 
-#define HW_LINECTRL				0x30
-#define ASM9260_UART_BREAK				BIT(0)
-#define ASM9260_UART_PEN				BIT(1)
-#define ASM9260_UART_EPS				BIT(2)
-#define ASM9260_UART_STP2				BIT(3)
-#define ASM9260_UART_FEN				BIT(4)
-#define ASM9260_UART_WLEN				(3<<5)
-#define ASM9260_UART_SPS				BIT(7)
-#define ASM9260_UART_BAUD_DIVFRA			(0x3F<<8)
-#define ASM9260_UART_BAUD_DIVINT			(0xFFFF<<16)
-#define ASM9260_US_CHRL_5				(0<<5)
-#define ASM9260_US_CHRL_6				(1<<5)
-#define ASM9260_US_CHRL_7				(2<<5)
-#define ASM9260_US_CHRL_8				(3<<5)
-#define ASM9260_US_NBSTOP_1				(0<<3)
-#define ASM9260_US_NBSTOP_2				(1<<3)
-#define ASM9260_US_PAR_MARK				((3<<1) | (1<<7))
-#define ASM9260_US_PAR_SPACE				((1<<1) | (1<<7))
-#define ASM9260_US_PAR_ODD				((1<<1) | (0<<7))
-#define ASM9260_US_PAR_EVEN				((3<<1) | (0<<7))
-#define ASM9260_US_PAR_NONE				(0<<1)
+#define HW_LINECTRL			0x30
+#define ASM9260_UART_BREAK		BIT(0)
+#define ASM9260_UART_PEN		BIT(1)
+#define ASM9260_UART_EPS		BIT(2)
+#define ASM9260_UART_STP2		BIT(3)
+#define ASM9260_UART_FEN		BIT(4)
+#define ASM9260_UART_WLEN		(3<<5)
+#define ASM9260_UART_SPS		BIT(7)
+#define ASM9260_UART_BAUD_DIVFRA	(0x3F<<8)
+#define ASM9260_UART_BAUD_DIVINT	(0xFFFF<<16)
+#define ASM9260_US_CHRL_5		(0<<5)
+#define ASM9260_US_CHRL_6		(1<<5)
+#define ASM9260_US_CHRL_7		(2<<5)
+#define ASM9260_US_CHRL_8		(3<<5)
+#define ASM9260_US_NBSTOP_1		(0<<3)
+#define ASM9260_US_NBSTOP_2		(1<<3)
+#define ASM9260_US_PAR_MARK		((3<<1) | (1<<7))
+#define ASM9260_US_PAR_SPACE		((1<<1) | (1<<7))
+#define ASM9260_US_PAR_ODD		((1<<1) | (0<<7))
+#define ASM9260_US_PAR_EVEN		((3<<1) | (0<<7))
+#define ASM9260_US_PAR_NONE		(0<<1)
 
 /* Interrupt register.
  * contains the interrupt enables and the interrupt status bits */

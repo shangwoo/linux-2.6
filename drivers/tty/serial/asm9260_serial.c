@@ -39,12 +39,16 @@
 #define UART_BAUD_DIVINT_MASK			((unsigned int)0x003FFFC0)
 #define UART_BAUD_DIVFRAC_MASK			((unsigned int)0x0000003F)
 #define	UART_BAUD_DIV_MAX				0x3FFFFF
+
+#define HW_CTRL0				0x00
 #define ASM9260_UART_RXTIMEOUT			(0xFF<<16)
 #define ASM9260_UART_RXTO_ENABLE		(1<<24)
 #define ASM9260_UART_RXTO_SOURCE_DATA	(0<<25)
 #define ASM9260_UART_RXTO_SOURCE_STATUS	(1<<25)
 #define ASM9260_UART_DEFAULT_RXTIMEOUT	(20<<16) /* TIMEOUT = (100*7+1)*(1/BAUD) */
 
+#define HW_CTRL1				0x10
+#define HW_CTRL2				0x20
 #define ASM9260_UART_ENABLE				BIT(0)
 #define ASM9260_UART_LBE				BIT(7)
 #define ASM9260_UART_TXE				BIT(8)
@@ -56,7 +60,9 @@
 #define ASM9260_UART_DEFAULT_TXIFLSEL			(2<<16)
 #define ASM9260_UART_DEFAULT_RXIFLSEL			(3<<20)
 
+#define HW_DATA					0x50
 
+#define HW_STAT					0x60
 #define ASM9260_UART_FRAMEERR				BIT(16)
 #define ASM9260_UART_PARITYERR				BIT(17)
 #define ASM9260_UART_BREAKERR				BIT(18)
@@ -68,6 +74,7 @@
 #define ASM9260_UART_CTS				BIT(28)
 #define ASM9260_UART_BUSY				BIT(29)
 
+#define HW_LINECTRL				0x30
 #define ASM9260_UART_BREAK				BIT(0)
 #define ASM9260_UART_PEN				BIT(1)
 #define ASM9260_UART_EPS				BIT(2)
@@ -89,11 +96,6 @@
 #define ASM9260_US_PAR_EVEN				((3<<1) | (0<<7))
 #define ASM9260_US_PAR_NONE				(0<<1)
 
-#define HW_CTRL0				0x00
-#define HW_CTRL1				0x10
-#define HW_CTRL2				0x20
-#define HW_CTRL3				0xD0
-#define HW_LINECTRL				0x30
 
 /* Interrupt register.
  * contains the interrupt enables and the interrupt status bits */
@@ -156,13 +158,12 @@
 #define BM_INTR_IS_MASK		(0x00003fff)
 
 
-#define HW_DATA					0x50
-#define HW_STAT					0x60
 #define HW_ILPR					0x80
 #define HW_RS485CTRL				0x90
 #define HW_RS485ADRMATCH			0xA0
 #define HW_RS485DLY				0xB0
 #define HW_AUTOBAUD				0xC0
+#define HW_CTRL3				0xD0
 
 #define	ASM9260_UART_RS485EN			BIT(0)
 #define	ASM9260_UART_RS485_RXDIS		BIT(1)

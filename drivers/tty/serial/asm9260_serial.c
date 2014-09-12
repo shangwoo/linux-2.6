@@ -28,12 +28,6 @@
 #define ASM9260_DEVICENAME	"ttyS"
 #define DRIVER_NAME		"asm9260_uart"
 
-#ifdef CONFIG_ASM9260_UART_DEBUG
-#define dbg(format, arg...) printk("ASM9260_UART_DBG: " format "\n" , ## arg)
-#else
-#define dbg(format, arg...) do {} while (0)
-#endif
-
 #define ASM9260_UART_FIFOSIZE	16
 
 #define ASM9260_BUS_RATE	100000000
@@ -193,7 +187,6 @@ struct asm9260_uart_port {
 	int init_ok;
 };
 
-//static struct asm9260_uart_port asm9260_ports[ASM9260_MAX_UART];
 static void asm9260_start_rx(struct uart_port *port);
 static struct asm9260_uart_port *asm9260_ports;
 static int asm9260_ports_num;
@@ -463,7 +456,6 @@ static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
  */
 static int asm9260_startup(struct uart_port *uport)
 {
-	struct tty_struct *tty = uport->state->port.tty;
 	int retval;
 
 	/*
@@ -473,11 +465,9 @@ static int asm9260_startup(struct uart_port *uport)
 	 */
 	iowrite32(0, uport->membase + HW_INTR);
 
-	/*
-	 * Allocate the IRQ
-	 */
-	retval = request_threaded_irq(uport->irq, asm9260_fast_int, asm9260_interrupt,
-			IRQF_SHARED, tty ? tty->name : DRIVER_NAME, uport);
+	retval = devm_request_threaded_irq(uport->dev, uport->irq,
+			asm9260_fast_int, asm9260_interrupt, IRQF_SHARED,
+			dev_name(uport->dev), uport);
 	if (retval) {
 		dev_err(uport->dev, "Can't get irq\n");
 		return retval;
@@ -524,8 +514,6 @@ static void asm9260_shutdown(struct uart_port *uport)
 	 */
 	asm9260_stop_tx(uport);
 	asm9260_stop_rx(uport);
-
-	free_irq(uport->irq, uport);
 }
 
 /*
@@ -732,7 +720,7 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
  */
 static const char *asm9260_type(struct uart_port *uport)
 {
-	return (uport->type == PORT_ASM9260) ? "ASM9260_SERIAL" : NULL;
+	return (uport->type == PORT_ASM9260) ? DRIVER_NAME : NULL;
 }
 
 /*
@@ -1154,11 +1142,14 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	struct device_node *np = pdev->dev.of_node;
 	struct resource res;
 
+	uport->dev = &pdev->dev;
+
 	uport->irq = irq_of_parse_and_map(np, 0);
 
 	of_address_to_resource(np, 0, &res);
-	if (!request_mem_region(res.start, resource_size(&res), np->name))
-		panic("%s: unable to request mem region", np->name);
+	if (!devm_request_mem_region(uport->dev, res.start,
+				resource_size(&res), dev_name(uport->dev)))
+		panic("%s: unable to request mem region", dev_name(uport->dev));
 
 	uport->mapbase	= res.start;
 

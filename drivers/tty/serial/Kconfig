@@ -1554,6 +1554,7 @@ config SERIAL_MEN_Z135
 
 config SERIAL_ASM9260
 	tristate "ASM9260 controller serial support"
+	depends on MACH_ASM9260
 	select SERIAL_CORE
 	help
 		If you have an asm9260 based Base IO card
@@ -1567,12 +1568,6 @@ config SERIAL_ASM9260_CONSOLE
 	help
 		If you want to support serial console on borad asm9260
 		say Y. Otherwise, say N.
-
-config ASM9260_UART_DEBUG
-	bool "ASM9260 uart debug"
-	depends on SERIAL_ASM9260
-	help
-		Add support for debugging the serial driver.
 
 source "arch/arm/mach-asm9260/Kconfig"
 

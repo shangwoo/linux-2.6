@@ -42,13 +42,13 @@
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
 
-#define SERIAL_ASM9260_MAJOR	204
-#define MINOR_START		64
-#define ASM9260_DEVICENAME	"ttyS"
-#define DRIVER_NAME		"asm9260_uart"
-#define ASM9260_UART_FIFOSIZE	16
-#define ASM9260_BUS_RATE	100000000
-#define ASM9260_MAX_UART	10
+#define SERIAL_ASM9260_MAJOR		204
+#define MINOR_START			64
+#define ASM9260_DEVICENAME		"ttyS"
+#define DRIVER_NAME			"asm9260_uart"
+#define ASM9260_UART_FIFOSIZE		16
+#define ASM9260_BUS_RATE		100000000
+#define ASM9260_MAX_UART		10
 
 #define UART_BAUD_DIVINT_MASK		((unsigned int)0x003FFFC0)
 #define UART_BAUD_DIVFRAC_MASK		((unsigned int)0x0000003F)
@@ -101,63 +101,63 @@
 
 /* Interrupt register.
  * contains the interrupt enables and the interrupt status bits */
-#define HW_INTR			0x40
+#define HW_INTR				0x40
 /* Tx FIFO EMPTY Raw Interrupt enable */
-#define BM_INTR_TFEIEN		BIT(27)
+#define BM_INTR_TFEIEN			BIT(27)
 /* Overrun Error Interrupt Enable. */
-#define BM_INTR_OEIEN		BIT(26)
+#define BM_INTR_OEIEN			BIT(26)
 /* Break Error Interrupt Enable. */
-#define BM_INTR_BEIEN		BIT(25)
+#define BM_INTR_BEIEN			BIT(25)
 /* Parity Error Interrupt Enable. */
-#define BM_INTR_PEIEN		BIT(24)
+#define BM_INTR_PEIEN			BIT(24)
 /* Framing Error Interrupt Enable. */
-#define BM_INTR_FEIEN		BIT(23)
+#define BM_INTR_FEIEN			BIT(23)
 /* Receive Timeout Interrupt Enable.
  * If not set and FIFO is enabled, then RX will be triggered only
  * if FIFO is full. */
-#define BM_INTR_RTIEN		BIT(22)
+#define BM_INTR_RTIEN			BIT(22)
 /* Transmit Interrupt Enable. */
-#define BM_INTR_TXIEN		BIT(21)
+#define BM_INTR_TXIEN			BIT(21)
 /* Receive Interrupt Enable. */
-#define BM_INTR_RXIEN		BIT(20)
+#define BM_INTR_RXIEN			BIT(20)
 /* nUARTDSR Modem Interrupt Enable. */
-#define BM_INTR_DSRMIEN		BIT(19)
+#define BM_INTR_DSRMIEN			BIT(19)
 /* nUARTDCD Modem Interrupt Enable. */
-#define BM_INTR_DCDMIEN		BIT(18)
+#define BM_INTR_DCDMIEN			BIT(18)
 /* nUARTCTS Modem Interrupt Enable. */
-#define BM_INTR_CTSMIEN		BIT(17)
+#define BM_INTR_CTSMIEN			BIT(17)
 /* nUARTRI Modem Interrupt Enable. */
-#define BM_INTR_RIMIEN		BIT(16)
+#define BM_INTR_RIMIEN			BIT(16)
 /* Auto-Boud Timeout */
-#define BM_INTR_ABTO		BIT(13)
-#define BM_INTR_ABEO		BIT(12)
+#define BM_INTR_ABTO			BIT(13)
+#define BM_INTR_ABEO			BIT(12)
 /* Tx FIFO EMPTY Raw Interrupt state */
-#define BM_INTR_TFEIS		BIT(11)
+#define BM_INTR_TFEIS			BIT(11)
 /* Overrun Error */
-#define BM_INTR_OEIS		BIT(10)
+#define BM_INTR_OEIS			BIT(10)
 /* Break Error */
-#define BM_INTR_BEIS		BIT(9)
+#define BM_INTR_BEIS			BIT(9)
 /* Parity Error */
-#define BM_INTR_PEIS		BIT(8)
+#define BM_INTR_PEIS			BIT(8)
 /* Framing Error */
-#define BM_INTR_FEIS		BIT(7)
+#define BM_INTR_FEIS			BIT(7)
 /* Receive Timeout */
-#define BM_INTR_RTIS		BIT(6)
+#define BM_INTR_RTIS			BIT(6)
 /* Transmit done */
-#define BM_INTR_TXIS		BIT(5)
+#define BM_INTR_TXIS			BIT(5)
 /* Receive done */
-#define BM_INTR_RXIS		BIT(4)
-#define BM_INTR_DSRMIS		BIT(3)
-#define BM_INTR_DCDMIS		BIT(2)
-#define BM_INTR_CTSMIS		BIT(1)
-#define BM_INTR_RIMIS		BIT(0)
+#define BM_INTR_RXIS			BIT(4)
+#define BM_INTR_DSRMIS			BIT(3)
+#define BM_INTR_DCDMIS			BIT(2)
+#define BM_INTR_CTSMIS			BIT(1)
+#define BM_INTR_RIMIS			BIT(0)
 
 
 #define BM_INTR_DEF_MASK	(BM_INTR_RXIEN | BM_INTR_TXIEN | BM_INTR_RTIEN \
 		| BM_INTR_FEIEN | BM_INTR_PEIEN | BM_INTR_BEIEN | BM_INTR_OEIEN)
 
-#define BM_INTR_EN_MASK		(0x3fff0000)
-#define BM_INTR_IS_MASK		(0x00003fff)
+#define BM_INTR_EN_MASK			(0x3fff0000)
+#define BM_INTR_IS_MASK			(0x00003fff)
 
 #define HW_DATA				0x50
 
@@ -173,20 +173,21 @@
 #define BM_STAT_PARITYERR		BIT(17)
 #define BM_STAT_FRAMEERR		BIT(16)
 
+#define HW_ILPR				0x80
 
-#define HW_ILPR					0x80
-#define HW_RS485CTRL				0x90
-#define HW_RS485ADRMATCH			0xA0
-#define HW_RS485DLY				0xB0
-#define HW_AUTOBAUD				0xC0
-#define HW_CTRL3				0xD0
+#define HW_RS485CTRL			0x90
+#define	BM_RS485CTRL_RS485EN		BIT(0)
+#define	BM_RS485CTRL_RXDIS		BIT(1)
+#define	BM_RS485CTRL_AADEN		BIT(2)
+#define	BM_RS485CTRL_PINSEL		BIT(3)
+#define	BM_RS485CTRL_DIR_CTRL		BIT(4)
+#define	BM_RS485CTRL_ONIV		BIT(5)
 
-#define	ASM9260_UART_RS485EN			BIT(0)
-#define	ASM9260_UART_RS485_RXDIS		BIT(1)
-#define	ASM9260_UART_RS485_AADEN		BIT(2)
-#define	ASM9260_UART_RS485_PINSEL		BIT(3)
-#define	ASM9260_UART_RS485_DIR_CTRL		BIT(4)
-#define	ASM9260_UART_RS485_ONIV			BIT(5)
+#define HW_RS485ADRMATCH		0xA0
+#define HW_RS485DLY			0xB0
+#define HW_AUTOBAUD			0xC0
+#define HW_CTRL3			0xD0
+
 
 /*
  * We wrap our port structure around the generic uart_port.
@@ -557,7 +558,7 @@ static void asm9260_set_rs485(struct uart_port *uport)
 	rs485_ctrl = ioread32(uport->membase + HW_RS485CTRL);
 
 	/* Resetting serial mode to RS232 (0x0) */
-	rs485_ctrl &= ~ASM9260_UART_RS485EN;
+	rs485_ctrl &= ~BM_RS485CTRL_RS485EN;
 
 	if (port->rs485.flags & SER_RS485_ENABLED) {
 		dev_dbg(uport->dev, "Setting UART to RS485\n");
@@ -573,21 +574,21 @@ static void asm9260_set_rs485(struct uart_port *uport)
 			 * Set logical level for RTS pin equal to 1 when sending,
 			 * and set logical level for RTS pin equal to 0 after sending
 			*/
-			rs485_ctrl |= ASM9260_UART_RS485_ONIV;
+			rs485_ctrl |= BM_RS485CTRL_ONIV;
 		} else if (!(port->rs485.flags & SER_RS485_RTS_ON_SEND) &&
 			(port->rs485.flags & SER_RS485_RTS_AFTER_SEND)) {
 			/*
 			 * Set logical level for RTS pin equal to 0 when sending,
 			 * and set logical level for RTS pin equal to 1 after sending
 			*/
-			rs485_ctrl &= ~ASM9260_UART_RS485_ONIV;
+			rs485_ctrl &= ~BM_RS485CTRL_ONIV;
 		} else{
 			printk("Please view RS485CTRL register in datasheet for more details.\n");
 		}
 
 		/* Enable RS485 and RTS is used to control direction automatically,  */
-		rs485_ctrl |= ASM9260_UART_RS485EN | ASM9260_UART_RS485_DIR_CTRL;
-		rs485_ctrl &= ~ASM9260_UART_RS485_PINSEL;
+		rs485_ctrl |= BM_RS485CTRL_RS485EN | BM_RS485CTRL_DIR_CTRL;
+		rs485_ctrl &= ~BM_RS485CTRL_PINSEL;
 
 		if (port->rs485.flags & SER_RS485_RX_DURING_TX)
 			dev_dbg(uport->dev, "hardware should support SER_RS485_RX_DURING_TX.\n");

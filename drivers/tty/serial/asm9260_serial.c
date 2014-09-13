@@ -215,13 +215,6 @@ to_asm9260_uart_port(struct uart_port *uart)
 	return container_of(uart, struct asm9260_uart_port, uart);
 }
 
-static void asm9260_intr_mask_clr(struct uart_port *uport, uint32_t val)
-{
-	WARN_ON(val & ~BM_INTR_EN_MASK);
-
-	iowrite32(val, uport->membase + HW_INTR + CLR_REG);
-}
-
 static inline void asm9260_intr_mask(struct uart_port *uport)
 {
 	iowrite32(BM_INTR_DEF_MASK,
@@ -266,19 +259,11 @@ static void asm9260_stop_tx(struct uart_port *uport)
 		asm9260_start_rx(uport);
 }
 
-/*
- * Start transmitting.
- */
 static void asm9260_start_tx(struct uart_port *uport)
 {
-	/* TODO we should use hear TXE on line ctrl */
-	asm9260_intr_unmask(uport);
 	asm9260_tx_chars(uport);
 }
 
-/*
- * start receiving - port is in process of being opened.
- */
 static void asm9260_start_rx(struct uart_port *uport)
 {
 	/* enable receive */
@@ -286,9 +271,6 @@ static void asm9260_start_rx(struct uart_port *uport)
 			uport->membase + HW_CTRL2 + SET_REG);
 }
 
-/*
- * Stop receiving - port is in process of being closed.
- */
 static void asm9260_stop_rx(struct uart_port *uport)
 {
 	/* disable receive */
@@ -296,12 +278,8 @@ static void asm9260_stop_rx(struct uart_port *uport)
 			uport->membase + HW_CTRL2 + CLR_REG);
 }
 
-/*
- * Enable modem status interrupts
- */
 static void asm9260_enable_ms(struct uart_port *uport)
 {
-	/*The driver doesn't support modem control*/
 }
 
 /*
@@ -317,9 +295,6 @@ static void asm9260_break_ctl(struct uart_port *uport, int break_state)
 				uport->membase + HW_LINECTRL + CLR_REG);
 }
 
-/*
- * Characters received (called from interrupt handler)
- */
 static void asm9260_rx_chars(struct uart_port *uport, unsigned int intr)
 {
 	unsigned int status, ch;
@@ -399,9 +374,6 @@ static void asm9260_tx_chars(struct uart_port *uport)
 		uart_write_wakeup(uport);
 }
 
-/*
- * receive interrupt handler.
- */
 static void
 asm9260_handle_receive(struct uart_port *uport, unsigned int pending)
 {
@@ -417,9 +389,6 @@ asm9260_handle_receive(struct uart_port *uport, unsigned int pending)
 	}
 }
 
-/*
- * transmit interrupt handler. (Transmit is IRQF_NODELAY safe)
- */
 static void
 asm9260_handle_transmit(struct uart_port *uport, unsigned int pending)
 {

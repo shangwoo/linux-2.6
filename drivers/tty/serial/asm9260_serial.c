@@ -156,6 +156,7 @@
 #define BM_INTR_DEF_MASK	(BM_INTR_RXIEN | BM_INTR_TXIEN | BM_INTR_RTIEN \
 		| BM_INTR_FEIEN | BM_INTR_PEIEN | BM_INTR_BEIEN | BM_INTR_OEIEN)
 
+#define BM_INTR_DEF_IS_MASK		(BM_INTR_DEF_MASK >> 16)
 #define BM_INTR_EN_MASK			(0x3fff0000)
 #define BM_INTR_IS_MASK			(0x00003fff)
 
@@ -204,10 +205,15 @@ struct asm9260_uart_port {
 	int init_ok;
 };
 
-static void asm9260_start_rx(struct uart_port *uport);
-static void asm9260_tx_chars(struct uart_port *uport);
 static struct asm9260_uart_port *asm9260_ports;
 static int asm9260_ports_num;
+
+static void asm9260_start_rx(struct uart_port *uport);
+static void asm9260_tx_chars(struct uart_port *uport);
+static int asm9260_get_of_clks(struct asm9260_uart_port *port,
+		struct device_node *np);
+static void asm9260_enable_clks(struct asm9260_uart_port *port);
+static void asm9260_uart_of_enumerate(void);
 
 static inline struct asm9260_uart_port *
 to_asm9260_uart_port(struct uart_port *uart)
@@ -402,16 +408,15 @@ asm9260_handle_transmit(struct uart_port *uport, unsigned int pending)
 static irqreturn_t asm9260_interrupt(int irq, void *dev_id)
 {
 	struct uart_port *uport = dev_id;
-	unsigned int status, pending;
+	unsigned int status;
 
-	/* TODO: need rework */
 	status = ioread32(uport->membase + HW_INTR);
-	pending = status & 0xFFF;
+	status &= BM_INTR_DEF_IS_MASK;
 
-	asm9260_handle_receive(uport, pending);
-	asm9260_handle_transmit(uport, pending);
+	asm9260_handle_receive(uport, status);
+	asm9260_handle_transmit(uport, status);
 
-	iowrite32(pending,
+	iowrite32(status,
 			uport->membase + HW_INTR + CLR_REG);
 
 	asm9260_intr_unmask(uport);
@@ -421,11 +426,10 @@ static irqreturn_t asm9260_interrupt(int irq, void *dev_id)
 static irqreturn_t asm9260_fast_int(int irq, void *dev_id)
 {
 	struct uart_port *uport = dev_id;
-	unsigned int status, pending;
+	unsigned int status;
 
 	status = ioread32(uport->membase + HW_INTR);
-	pending = (status & (status >> 16)) & 0xFFF;
-	if (!pending)
+	if (!(status & BM_INTR_DEF_IS_MASK))
 		return IRQ_NONE;
 
 	asm9260_intr_mask(uport);
@@ -545,9 +549,9 @@ static void asm9260_set_rs485(struct uart_port *uport)
 			 * and set logical level for RTS pin equal to 1 after sending
 			*/
 			rs485_ctrl &= ~BM_RS485CTRL_ONIV;
-		} else{
-			printk("Please view RS485CTRL register in datasheet for more details.\n");
-		}
+		} else
+			dev_info(uport->dev,
+					"Please view RS485CTRL register in datasheet for more details.\n");
 
 		/* Enable RS485 and RTS is used to control direction automatically,  */
 		rs485_ctrl |= BM_RS485CTRL_RS485EN | BM_RS485CTRL_DIR_CTRL;
@@ -555,9 +559,8 @@ static void asm9260_set_rs485(struct uart_port *uport)
 
 		if (port->rs485.flags & SER_RS485_RX_DURING_TX)
 			dev_dbg(uport->dev, "hardware should support SER_RS485_RX_DURING_TX.\n");
-	} else {
+	} else
 		dev_dbg(uport->dev, "Setting UART to RS232\n");
-	}
 
 	iowrite32(rs485_ctrl, uport->membase + HW_RS485CTRL);
 }
@@ -689,7 +692,8 @@ static void asm9260_set_termios(struct uart_port *uport, struct ktermios *termio
 
 	spin_unlock(&uport->lock);
 
-	dev_dbg(uport->dev, "mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
+	dev_dbg(uport->dev,
+			"mode:0x%x, baud:%d, bauddivint:0x%x, bauddivfrac:0x%x, ctrl2:0x%x\n",
 			mode, baud, bauddivint, bauddivfrac,
 			ioread32(uport->membase + HW_CTRL2));
 
@@ -733,7 +737,8 @@ static void asm9260_config_port(struct uart_port *uport, int flags)
 /*
  * Verify the new serial_struct (for TIOCSSERIAL).
  */
-static int asm9260_verify_port(struct uart_port *uport, struct serial_struct *ser)
+static int asm9260_verify_port(struct uart_port *uport,
+		struct serial_struct *ser)
 {
 	int ret = 0;
 
@@ -755,7 +760,8 @@ static int asm9260_verify_port(struct uart_port *uport, struct serial_struct *se
 }
 
 /* Enable or disable the rs485 support */
-void asm9260_config_rs485(struct uart_port *uport, struct serial_rs485 *rs485conf)
+void asm9260_config_rs485(struct uart_port *uport,
+		struct serial_rs485 *rs485conf)
 {
 	struct asm9260_uart_port *port = to_asm9260_uart_port(uport);
 
@@ -839,7 +845,8 @@ static void asm9260_console_putchar(struct uart_port *uport, int ch)
 /*
  * Interrupts are disabled on entering
  */
-static void asm9260_console_write(struct console *co, const char *s, u_int count)
+static void asm9260_console_write(struct console *co, const char *s,
+		u_int count)
 {
 	struct uart_port *uport;
 	struct asm9260_uart_port *port;
@@ -877,8 +884,8 @@ static void asm9260_console_write(struct console *co, const char *s, u_int count
  * If the port was already initialised (eg, by a boot loader),
  * try to determine the current setup.
  */
-static void __init asm9260_console_get_options(struct uart_port *port, int *baud,
-					     int *parity, int *bits)
+static void __init asm9260_console_get_options(struct uart_port *port,
+		int *baud, int *parity, int *bits)
 {
 	unsigned int mr, quot, linectrl, bauddivint, bauddivfrc;
 
@@ -916,10 +923,6 @@ static void __init asm9260_console_get_options(struct uart_port *port, int *baud
 	*baud = (port->uartclk * 4) / quot;
 }
 
-static int asm9260_get_of_clks(struct asm9260_uart_port *port,
-		struct device_node *np);
-static void asm9260_enable_clks(struct asm9260_uart_port *port);
-static void asm9260_uart_of_enumerate(void);
 static int __init asm9260_console_setup(struct console *co, char *options)
 {
 	struct uart_port *uport;
@@ -999,19 +1002,16 @@ static void asm9260_enable_clks(struct asm9260_uart_port *port)
 		return;
 
 	err = clk_set_rate(port->clk, ASM9260_BUS_RATE);
-	if (err) {
+	if (err)
 		dev_err(uport->dev, "Failed to set rate!\n");
-	}
 
 	err = clk_prepare_enable(port->clk);
-	if (err) {
+	if (err)
 		dev_err(uport->dev, "Failed to enable clk!\n");
-	}
 
 	err = clk_prepare_enable(port->clk_ahb);
-	if (err) {
+	if (err)
 		dev_err(uport->dev, "Failed to enable ahb_clk!\n");
-	}
 
 	uport->uartclk = clk_get_rate(port->clk);
 	port->clk_on = 1;
@@ -1129,7 +1129,7 @@ static void asm9260_init_port(struct asm9260_uart_port *asm9260_port,
 	of_address_to_resource(np, 0, &res);
 	if (!devm_request_mem_region(uport->dev, res.start,
 				resource_size(&res), dev_name(uport->dev)))
-		panic("%s: unable to request mem region", dev_name(uport->dev));
+		dev_err(uport->dev, "unable to request mem region\n");
 
 	uport->mapbase	= res.start;
 

@@ -1,10 +1,29 @@
 /*
- *  linux/drivers/char/asm9260_serial.c
+ * asm9260_serial.c Alpscale ASM9260 UART driver
  *
- *  Driver for ALPSCALE ASM9260 Serial ports
- *  Copyright (C) 2013
+ * Mostly rewritten with irq_thread, clk and DT suppor:
+ * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
+ * 		 2014 Cleaned by Du Huanpeng <u74147@gmail.com>
+ *
+ * Copyright (C) 2013, Alpscale Tech. Co., Ltd.
+ * Initial code has been inspired/copied from atmel_serial.c (kernel v2.4) and
+ * adopted for asm9260 (kernel v2.4) by Chen Dongdong.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/clk.h>

@@ -204,10 +204,10 @@ struct asm9260_uart_port {
 	int init_ok;
 };
 
-static void asm9260_start_rx(struct uart_port *port);
+static void asm9260_start_rx(struct uart_port *uport);
+static void asm9260_tx_chars(struct uart_port *uport);
 static struct asm9260_uart_port *asm9260_ports;
 static int asm9260_ports_num;
-
 
 static inline struct asm9260_uart_port *
 to_asm9260_uart_port(struct uart_port *uart)
@@ -259,15 +259,13 @@ static void asm9260_stop_tx(struct uart_port *uport)
 {
 	struct asm9260_uart_port *asm9260_port = to_asm9260_uart_port(uport);
 
-	/* TODO we should use here TXE on line ctrl */
-	asm9260_intr_mask_clr(uport, BM_INTR_TXIEN);
-
+	/* seems like it was take over from atmel_serial.c
+	 * do we need it too? */
 	if ((asm9260_port->rs485.flags & SER_RS485_ENABLED) &&
 	    !(asm9260_port->rs485.flags & SER_RS485_RX_DURING_TX))
 		asm9260_start_rx(uport);
 }
 
-static void asm9260_tx_chars(struct uart_port *uport);
 /*
  * Start transmitting.
  */
@@ -399,9 +397,6 @@ static void asm9260_tx_chars(struct uart_port *uport)
 
 	if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(uport);
-
-	if (uart_circ_empty(xmit))
-		asm9260_intr_mask_clr(uport, BM_INTR_TXIEN);
 }
 
 /*

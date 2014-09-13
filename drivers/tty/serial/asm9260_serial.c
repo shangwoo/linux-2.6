@@ -194,7 +194,6 @@
  */
 struct asm9260_uart_port {
 	struct uart_port	uart;		/* uart */
-	struct device_node	*np;
 	struct clk		*clk;		/* uart clock */
 	struct clk		*clk_ahb;
 	int			clk_on;
@@ -1143,7 +1142,6 @@ static void asm9260_uart_of_enumerate(void)
 			pr_err("Unable to map registers\n");
 			continue;
 		}
-		port->np = np;
 		port->init_ok = 1;
 	}
 

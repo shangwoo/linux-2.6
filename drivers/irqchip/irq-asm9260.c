@@ -190,15 +190,11 @@ static struct irq_chip asm9260_icoll_chip = {
 
 asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 {
-	u32 irqnr, hwirq;
+	u32 hwirq;
 
 	hwirq = readl_relaxed(icoll_base + HW_ICOLL_STAT_OFFSET);
-	irqnr = irq_find_mapping(icoll_domain, hwirq);
 
-	if (unlikely(!irqnr))
-		panic("Can't find irqnr for hwirq %i", hwirq);
-
-	handle_IRQ(irqnr, regs);
+	handle_domain_irq(icoll_domain, hwirq, regs);
 }
 
 static int icoll_irq_domain_map(struct irq_domain *d, unsigned int virq,

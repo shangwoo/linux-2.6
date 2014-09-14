@@ -202,7 +202,7 @@ static void au6601_send_cmd(struct au6601_host *host,
 static void au6601_prepare_data(struct au6601_host *host,
 				struct mmc_command *cmd);
 static void au6601_finish_data(struct au6601_host *host);
-static void au6601_tasklet_finish(struct au6601_host *host);
+static void au6601_request_complete(struct au6601_host *host);
 
 static const struct pci_device_id pci_ids[] = {
 	{
@@ -477,7 +477,7 @@ static void au6601_finish_command(struct au6601_host *host)
 	} else {
 		/* Processed actual command. */
 		if (!host->data)
-			au6601_tasklet_finish(host);
+			au6601_request_complete(host);
 		else if (host->data_early)
 			au6601_finish_data(host);
 		else if (host->trigger_dma_dac) {
@@ -529,7 +529,7 @@ static void au6601_finish_data(struct au6601_host *host)
 		}
 		au6601_send_cmd(host, data->stop);
 	} else
-		au6601_tasklet_finish(host);
+		au6601_request_complete(host);
 }
 
 static void au6601_prepare_sg_miter(struct au6601_host *host)
@@ -650,7 +650,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		host->cmd->error = -EILSEQ;
 
 	if (host->cmd->error) {
-		au6601_tasklet_finish(host);
+		au6601_request_complete(host);
 		return;
 	}
 
@@ -696,7 +696,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 
 		if (intmask & AU6601_INT_ERROR_MASK) {
 			host->cmd->error = -ETIMEDOUT;
-			au6601_tasklet_finish(host);
+			au6601_request_complete(host);
 		}
 		return;
 	}
@@ -812,7 +812,7 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		au6601_send_cmd(host, mrq->cmd);
 	else {
 		mrq->cmd->error = -ENOMEDIUM;
-		au6601_tasklet_finish(host);
+		au6601_request_complete(host);
 	}
 
 	mutex_unlock(&host->cmd_mutex);
@@ -953,7 +953,7 @@ static const struct mmc_host_ops au6601_sdc_ops = {
 	.card_busy	= au6601_ops_card_busy,
 };
 
-static void au6601_tasklet_finish(struct au6601_host *host)
+static void au6601_request_complete(struct au6601_host *host)
 {
 	struct mmc_request *mrq;
 
@@ -1011,7 +1011,7 @@ static void au6601_timeout_timer(unsigned long data)
 			else
 				host->mrq->cmd->error = -ETIMEDOUT;
 
-			au6601_tasklet_finish(host);
+			au6601_request_complete(host);
 		}
 	}
 

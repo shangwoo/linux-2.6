@@ -227,9 +227,17 @@ static inline void au6601_rmw(void __iomem *reg, u32 clear, u32 set)
 	iowrite32(var, reg);
 }
 
-static void au6601_clear_set_irqs(struct au6601_host *host, u32 clear, u32 set)
+static inline void au6601_mask_irqs(struct au6601_host *host)
 {
-	au6601_rmw(host->iobase + AU6601_REG_INT_ENABLE, clear, set);
+	iowrite32(0, host->iobase + AU6601_REG_INT_ENABLE);
+}
+
+static inline void au6601_unmask_irqs(struct au6601_host *host)
+{
+	iowrite32(AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
+		  AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
+		  AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER,
+		  host->iobase + AU6601_REG_INT_ENABLE);
 }
 
 static void au6601_clear_set_reg86(struct au6601_host *host, u32 clear, u32 set)
@@ -826,14 +834,14 @@ static void au6601_pre_req(struct mmc_host *mmc,
 			   struct mmc_request *mrq,
 			   bool is_first_req)
 {
-	printk("pre %p\n", mrq);
+	//printk("pre %p\n", mrq);
 }
 
 static void au6601_post_req(struct mmc_host *mmc,
 			    struct mmc_request *mrq,
 			    int err)
 {
-	printk("post %p\n", mrq);
+	//printk("post %p\n", mrq);
 }
 
 static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
@@ -1082,10 +1090,9 @@ static void au6601_hw_init(struct au6601_host *host)
 
 	iowrite8(0x0, host->iobase + REG_05);
 	iowrite8(0x1, host->iobase + REG_75);
-	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK,
-		AU6601_INT_CMD_MASK | AU6601_INT_DATA_MASK |
-		AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE |
-		AU6601_INT_CARD_INT | AU6601_INT_BUS_POWER);
+
+	au6601_unmask_irqs(host);
+
 	iowrite32(0x0, host->iobase + AU6601_REG_BUS_CTRL);
 
 	au6601_reset(host, AU6601_RESET_DATA);
@@ -1201,7 +1208,7 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 static void au6601_hw_uninit(struct au6601_host *host)
 {
 	iowrite8(0x0, host->iobase + REG_76);
-	au6601_clear_set_irqs(host, AU6601_INT_ALL_MASK, 0);
+	au6601_mask_irqs(host);
 
 	au6601_set_power(host, 0x1, 0);
 

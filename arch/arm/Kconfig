@@ -968,6 +968,8 @@ source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
 
+source "arch/arm/mach-asm9260/Kconfig"
+
 # Definitions to make life easier
 config ARCH_ACORN
 	bool

@@ -1172,8 +1172,8 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 	if (!host->iobase)
 		return -ENOMEM;
 
-	ret = devm_request_threaded_irq(&pdev->dev, pdev->irq, au6601_irq,
-			NULL, IRQF_TRIGGER_FALLING, "au6601 host",
+	ret = devm_request_threaded_irq(&pdev->dev, pdev->irq, NULL, au6601_irq,
+			IRQF_ONESHOT, "au6601 host",
 			host);
 
 	if (ret) {

@@ -189,7 +189,6 @@ struct au6601_host {
 	spinlock_t lock;
 
 	struct tasklet_struct card_tasklet;
-	struct tasklet_struct finish_tasklet;
 
 	struct timer_list timer;
 
@@ -205,6 +204,7 @@ static void au6601_send_cmd(struct au6601_host *host,
 static void au6601_prepare_data(struct au6601_host *host,
 				struct mmc_command *cmd);
 static void au6601_finish_data(struct au6601_host *host);
+static void au6601_tasklet_finish(struct au6601_host *host);
 
 static const struct pci_device_id pci_ids[] = {
 	{
@@ -488,7 +488,7 @@ static void au6601_finish_command(struct au6601_host *host)
 	} else {
 		/* Processed actual command. */
 		if (!host->data)
-			tasklet_schedule(&host->finish_tasklet);
+			au6601_tasklet_finish(host);
 		else if (host->data_early)
 			au6601_finish_data(host);
 		else if (host->trigger_dma_dac) {
@@ -540,7 +540,7 @@ static void au6601_finish_data(struct au6601_host *host)
 		}
 		au6601_send_cmd(host, data->stop);
 	} else
-		tasklet_schedule(&host->finish_tasklet);
+		au6601_tasklet_finish(host);
 }
 
 static void au6601_prepare_sg_miter(struct au6601_host *host)
@@ -661,7 +661,7 @@ static void au6601_cmd_irq(struct au6601_host *host, u32 intmask)
 		host->cmd->error = -EILSEQ;
 
 	if (host->cmd->error) {
-		tasklet_schedule(&host->finish_tasklet);
+		au6601_tasklet_finish(host);
 		return;
 	}
 
@@ -707,7 +707,7 @@ static void au6601_data_irq(struct au6601_host *host, u32 intmask)
 
 		if (intmask & AU6601_INT_ERROR_MASK) {
 			host->cmd->error = -ETIMEDOUT;
-			tasklet_schedule(&host->finish_tasklet);
+			au6601_tasklet_finish(host);
 		}
 		return;
 	}
@@ -824,7 +824,7 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		au6601_send_cmd(host, mrq->cmd);
 	else {
 		mrq->cmd->error = -ENOMEDIUM;
-		tasklet_schedule(&host->finish_tasklet);
+		au6601_tasklet_finish(host);
 	}
 
 	spin_unlock_irqrestore(&host->lock, flags);
@@ -979,22 +979,15 @@ static void au6601_tasklet_card(unsigned long param)
 	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
 }
 
-static void au6601_tasklet_finish(unsigned long param)
+static void au6601_tasklet_finish(struct au6601_host *host)
 {
-	struct au6601_host *host;
-	unsigned long flags;
 	struct mmc_request *mrq;
-
-	host = (struct au6601_host *)param;
-
-	spin_lock_irqsave(&host->lock, flags);
 
 	/*
 	 * If this tasklet gets rescheduled while running, it will
 	 * be run again afterwards but without any active request.
 	 */
 	if (!host->mrq) {
-		spin_unlock_irqrestore(&host->lock, flags);
 		return;
 	}
 
@@ -1019,8 +1012,6 @@ static void au6601_tasklet_finish(unsigned long param)
 	host->data = NULL;
 	host->dma_on = 0;
 	host->trigger_dma_dac = 0;
-
-	spin_unlock_irqrestore(&host->lock, flags);
 
 	mmc_request_done(host->mmc, mrq);
 }
@@ -1047,7 +1038,7 @@ static void au6601_timeout_timer(unsigned long data)
 			else
 				host->mrq->cmd->error = -ETIMEDOUT;
 
-			tasklet_schedule(&host->finish_tasklet);
+			au6601_tasklet_finish(host);
 		}
 	}
 
@@ -1194,8 +1185,6 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 	 */
 	tasklet_init(&host->card_tasklet,
 		au6601_tasklet_card, (unsigned long)host);
-	tasklet_init(&host->finish_tasklet,
-		au6601_tasklet_finish, (unsigned long)host);
 	setup_timer(&host->timer, au6601_timeout_timer, (unsigned long)host);
 
 	au6601_init_mmc(host);
@@ -1228,7 +1217,6 @@ static void __exit au6601_pci_remove(struct pci_dev *pdev)
 
 	del_timer_sync(&host->timer);
 	tasklet_kill(&host->card_tasklet);
-	tasklet_kill(&host->finish_tasklet);
 
 	mmc_remove_host(host->mmc);
 	mmc_free_host(host->mmc);

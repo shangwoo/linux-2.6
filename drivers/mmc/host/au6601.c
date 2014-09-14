@@ -186,7 +186,7 @@ struct au6601_host {
 					 * should be triggered after
 					 * command was done */
 
-	spinlock_t lock;
+	struct mutex cmd_mutex;
 
 	struct tasklet_struct card_tasklet;
 
@@ -334,7 +334,6 @@ done:
 
 static void au6601_read_block(struct au6601_host *host)
 {
-	unsigned long flags;
 	size_t blksize, len, chunk;
 	u32 uninitialized_var(scratch);
 	void __iomem *virt_base = host->virt_base;
@@ -344,8 +343,6 @@ static void au6601_read_block(struct au6601_host *host)
 
 	blksize = host->data->blksz * host->requested_blocks;
 	chunk = 0;
-
-	local_irq_save(flags);
 
 	while (blksize) {
 		if (!sg_miter_next(&host->sg_miter))
@@ -381,12 +378,10 @@ static void au6601_read_block(struct au6601_host *host)
 	}
 
 	sg_miter_stop(&host->sg_miter);
-	local_irq_restore(flags);
 }
 
 static void au6601_write_block(struct au6601_host *host)
 {
-	unsigned long flags;
 	size_t blksize, len, chunk;
 	void __iomem *virt_base = host->virt_base;
 	u32 scratch;
@@ -397,8 +392,6 @@ static void au6601_write_block(struct au6601_host *host)
 	blksize = host->data->blksz * host->requested_blocks;
 	chunk = 0;
 	scratch = 0;
-
-	local_irq_save(flags);
 
 	while (blksize) {
 		if (!sg_miter_next(&host->sg_miter))
@@ -435,8 +428,6 @@ static void au6601_write_block(struct au6601_host *host)
 	}
 
 	sg_miter_stop(&host->sg_miter);
-
-	local_irq_restore(flags);
 }
 
 static void au6601_transfer_data(struct au6601_host *host)
@@ -756,7 +747,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	irqreturn_t ret = IRQ_HANDLED;
 	u32 intmask;
 
-	spin_lock(&host->lock);
+	mutex_lock(&host->cmd_mutex);
 
 	intmask = ioread32(host->iobase + AU6601_REG_INT_STATUS);
 	iowrite32(intmask, host->iobase + AU6601_REG_INT_STATUS);
@@ -805,17 +796,16 @@ static irqreturn_t au6601_irq(int irq, void *d)
 	}
 
 exit:
-	spin_unlock(&host->lock);
+	mutex_unlock(&host->cmd_mutex);
 	return ret;
 }
 
 static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct au6601_host *host;
-	unsigned long flags;
 
 	host = mmc_priv(mmc);
-	spin_lock_irqsave(&host->lock, flags);
+	mutex_lock(&host->cmd_mutex);
 
 	host->mrq = mrq;
 
@@ -827,7 +817,7 @@ static void au6601_sdc_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		au6601_tasklet_finish(host);
 	}
 
-	spin_unlock_irqrestore(&host->lock, flags);
+	mutex_unlock(&host->cmd_mutex);
 }
 
 static void au6601_pre_req(struct mmc_host *mmc,
@@ -904,10 +894,9 @@ static void au6601_set_clock(struct au6601_host *host, unsigned int clock)
 static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 {
 	struct au6601_host *host;
-	unsigned long flags;
 
 	host = mmc_priv(mmc);
-	spin_lock_irqsave(&host->lock, flags);
+	mutex_lock(&host->cmd_mutex);
 
 	iowrite8(0, host->iobase + REG_85);
 	iowrite8(0x31, host->iobase + REG_7B);
@@ -946,7 +935,7 @@ static void au6601_sdc_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
 	iowrite8(0x80, host->iobase + REG_83);
 	iowrite8(0x7d, host->iobase + REG_69);
 	ioread8(host->iobase + REG_74);
-	spin_unlock_irqrestore(&host->lock, flags);
+	mutex_unlock(&host->cmd_mutex);
 }
 
 static int au6601_ops_card_busy(struct mmc_host *mmc)
@@ -1019,11 +1008,10 @@ static void au6601_tasklet_finish(struct au6601_host *host)
 static void au6601_timeout_timer(unsigned long data)
 {
 	struct au6601_host *host;
-	unsigned long flags;
 
 	host = (struct au6601_host *)data;
 
-	spin_lock_irqsave(&host->lock, flags);
+	mutex_lock(&host->cmd_mutex);
 
 	if (host->mrq) {
 		dev_err(host->dev,
@@ -1043,7 +1031,7 @@ static void au6601_timeout_timer(unsigned long data)
 	}
 
 	mmiowb();
-	spin_unlock_irqrestore(&host->lock, flags);
+	mutex_unlock(&host->cmd_mutex);
 }
 
 
@@ -1179,7 +1167,7 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 	pci_set_master(pdev);
 	pci_set_drvdata(pdev, host);
 
-	spin_lock_init(&host->lock);
+	mutex_init(&host->cmd_mutex);
 	/*
 	 * Init tasklets.
 	 */

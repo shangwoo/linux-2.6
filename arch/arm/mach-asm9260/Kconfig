@@ -1,0 +1,8 @@
+config MACH_ASM9260
+	bool "Alphascale ASM9260"
+	depends on ARCH_MULTI_V5
+	select IRQ_MXS
+	select ASM9260_TIMER
+	select CPU_ARM926T
+	help
+	  Support for Alpascale ASM9260 based platform.

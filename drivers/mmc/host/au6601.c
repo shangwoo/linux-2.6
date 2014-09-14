@@ -188,8 +188,6 @@ struct au6601_host {
 
 	struct mutex cmd_mutex;
 
-	struct tasklet_struct card_tasklet;
-
 	struct timer_list timer;
 
 	struct sg_mapping_iter sg_miter;	/* SG state for PIO */
@@ -780,7 +778,7 @@ static irqreturn_t au6601_irq(int irq, void *d)
 			dev_dbg(host->dev, "card inserted\n");
 
 		intmask &= ~(AU6601_INT_CARD_INSERT | AU6601_INT_CARD_REMOVE);
-		tasklet_schedule(&host->card_tasklet);
+		mmc_detect_change(host->mmc, msecs_to_jiffies(200));
 	}
 
 	if (intmask & 0x100) {
@@ -954,19 +952,6 @@ static const struct mmc_host_ops au6601_sdc_ops = {
 
 	.card_busy	= au6601_ops_card_busy,
 };
-
-/*****************************************************************************\
- *									     *
- * Tasklets								     *
- *									     *
-\*****************************************************************************/
-
-static void au6601_tasklet_card(unsigned long param)
-{
-	struct au6601_host *host = (struct au6601_host *)param;
-
-	mmc_detect_change(host->mmc, msecs_to_jiffies(200));
-}
 
 static void au6601_tasklet_finish(struct au6601_host *host)
 {
@@ -1171,8 +1156,6 @@ static int __init au6601_pci_probe(struct pci_dev *pdev,
 	/*
 	 * Init tasklets.
 	 */
-	tasklet_init(&host->card_tasklet,
-		au6601_tasklet_card, (unsigned long)host);
 	setup_timer(&host->timer, au6601_timeout_timer, (unsigned long)host);
 
 	au6601_init_mmc(host);
@@ -1204,7 +1187,6 @@ static void __exit au6601_pci_remove(struct pci_dev *pdev)
 	au6601_hw_uninit(host);
 
 	del_timer_sync(&host->timer);
-	tasklet_kill(&host->card_tasklet);
 
 	mmc_remove_host(host->mmc);
 	mmc_free_host(host->mmc);

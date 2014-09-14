@@ -4,7 +4,7 @@
  * Mostly rewritten with irq_thread, clk and DT suppor:
  * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
- * 		 2014 Cleaned by Du Huanpeng <u74147@gmail.com>
+ * 		 2014 Cleaned up by Du Huanpeng <u74147@gmail.com>
  *
  * Copyright (C) 2013, Alpscale Tech. Co., Ltd.
  * Initial code has been inspired/copied from atmel_serial.c (kernel v2.4) and

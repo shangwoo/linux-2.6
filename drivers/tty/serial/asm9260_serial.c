@@ -54,16 +54,64 @@
 #define UART_BAUD_DIVFRAC_MASK		((unsigned int)0x0000003F)
 #define	UART_BAUD_DIV_MAX		0x3FFFFF
 
-#define SET_REG 0x4
-#define CLR_REG 0x8
+/*
+ * this device provide 4 offsets for each register:
+ * 0x0 - plain read write mode
+ * 0x4 - set mode, OR logic.
+ * 0x8 - clr mode, XOR logic.
+ * 0xc - togle mode.
+ */
+#define SET_REG				0x4
+#define CLR_REG				0x8
 
+/* RX ctrl register */
 #define HW_CTRL0			0x00
+/* RW. Set to zero for normal operation. */
+#define BM_CTRL0_SFTRST			BIT(31)
+/* 
+ * RW. 0 for normal operation; 1 gates all of the block level clocks off for
+ * miniminizing AC energy consumption.
+ */
+#define BM_CTRL0_CLKGATE		BIT(30)
+/*
+ * RW. Tell the UART to execute the RX DMA Command. The
+ * UART will clear this bit at the end of receive execution.
+ */
+#define BM_CTRL0_RXDMA_RUN		BIT(28)
+/* RW. 0 use FIFO for status register; 1 use DMA */
 #define BM_CTRL0_RXTO_SOURCE_STATUS	BIT(25)
+/*
+ * RW. RX TIMEOUT Enable. Valid for FIFO and DMA.
+ * Warning: If this bit is set to 0, the RX timeout will not affect receive DMA
+ * operation. If this bit is set to 1, a receive timeout will cause the receive DMA
+ * logic to terminate by filling the remaining DMA bytes with garbage data.
+ */
 #define BM_CTRL0_RXTO_ENABLE		BIT(24)
-#define BM_CTRL0_RXTO_MASK		(0xFF<<16)
-#define BM_CTRL0_DEFAULT_RXTIMEOUT	(20<<16) /* TIMEOUT = (100*7+1)*(1/BAUD) */
+/*
+ * RW. Receive Timeout Counter Value: number of 8-bit-time to wait before asserting
+ * timeout on the RX input. If the RXFIFO is not empty and the RX input is idle,
+ * then the watchdog counter will decrement each bit-time. Note 7-bit-time is added
+ * to the programmed value, so a value of zero will set the counter to 7-bit-time,
+ * a value of 0x1 gives 15-bit-time and so on. Also note that the counter is
+ * reloaded at the end of each frame, so if the frame is 10 bits long and the
+ * timeout counter value is zero, then timeout will occur (when FIFO is not empty)
+ * even if the RX input is not idle. The default value is 0x3 (31 bit-time).
+ */
+#define BM_CTRL0_RXTO_MASK		(0xff << 16)
+/* TIMEOUT = (100*7+1)*(1/BAUD) */
+#define BM_CTRL0_DEFAULT_RXTIMEOUT	(20 << 16)
+/* RW. Number of bytes to receive. This must be a multiple of 4 */
+#define BM_CTRL0_RXDMA_COUNT_MASK	(0xffff << 0)
 
+/* TX ctrl register */
 #define HW_CTRL1			0x10
+/*
+ * RW. Tell the UART to execute the TX DMA Command. The
+ * UART will clear this bit at the end of transmit execution.
+ */
+#define BM_CTRL1_TXDMA_RUN		BIT(28)
+/* RW. Number of bytes to transmit. */
+#define BM_CTRL1_TXDMA_COUNT_MASK	(0xffff << 0)
 
 #define HW_CTRL2			0x20
 #define BM_CTRL2_CTSE			BIT(15)

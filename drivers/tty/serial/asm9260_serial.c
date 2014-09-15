@@ -68,7 +68,7 @@
 #define HW_CTRL0			0x00
 /* RW. Set to zero for normal operation. */
 #define BM_CTRL0_SFTRST			BIT(31)
-/* 
+/*
  * RW. 0 for normal operation; 1 gates all of the block level clocks off for
  * miniminizing AC energy consumption.
  */
@@ -114,12 +114,12 @@
 #define BM_CTRL1_TXDMA_COUNT_MASK	(0xffff << 0)
 
 #define HW_CTRL2			0x20
-/* 
+/*
  * RW. Receive dma will terminate on error. (Cmd_end signal may not be asserted
  * when this occurs.)
  */
 #define BM_CTRL2_DMAONERROR		BIT(26)
-/* 
+/*
  * RW. Transmit DMA Enable. Data Register can be loaded with up to 4 bytes per
  * write. TXFIFO must be enabled in TXDMA mode.
  */
@@ -147,7 +147,7 @@
 #define BM_CTRL2_CTSE			BIT(15)
 /* RW. RTS Enable */
 #define BM_CTRL2_RTSE			BIT(14)
-/* 
+/*
  * RW. Manually trigger RTS. Works only if BM_CTRL2_RTSE = 0.
  * When this bit is 1, the output is 0.
  */
@@ -165,27 +165,54 @@
 #define HW_LINECTRL			0x30
 #define BM_LCTRL_BAUD_DIVINT		(0xFFFF<<16)
 #define BM_LCTRL_BAUD_DIVFRA		(0x3F<<8)
+/*
+ * RW. Stick Parity Select. When bits 1, 2, and 7 of this register are set, the
+ * parity bit is transmitted and checked as a 0. When bits 1 and 7 are set,
+ * and bit 2 is 0, the parity bit is transmitted and checked as a 1. When this bit
+ * is cleared stick parity is disabled.
+ */
 #define BM_LCTRL_SPS			BIT(7)
+/* RW. Word length */
 #define BM_LCTRL_WLEN			(3<<5)
-#define BM_LCTRL_FEN			BIT(4)
-#define BM_LCTRL_STP2			BIT(3)
-#define BM_LCTRL_EPS			BIT(2)
-#define BM_LCTRL_PEN			BIT(1)
-#define BM_LCTRL_BREAK			BIT(0)
 #define BM_LCTRL_CHRL_5			(0<<5)
 #define BM_LCTRL_CHRL_6			(1<<5)
 #define BM_LCTRL_CHRL_7			(2<<5)
 #define BM_LCTRL_CHRL_8			(3<<5)
+/*
+ * RW. Enable FIFOs. If this bit is set to 1, transmit and receive FIFO buffers
+ * are enabled (FIFO mode). When cleared to 0, the FIFOs are disabled (character
+ * mode); that is, the FIFOs become 1-byte-deep holding registers.
+ */
+#define BM_LCTRL_FEN			BIT(4)
+/*
+ * RW. Two Stop Bits Select. If this bit is set to 1, two stop bits are transmitted
+ * at the end of the frame. The receive logic does not check for two stop bits
+ * being received.
+ */
+#define BM_LCTRL_STP2			BIT(3)
 #define BM_LCTRL_NBSTOP_1		(0<<3)
 #define BM_LCTRL_NBSTOP_2		(1<<3)
+/* RW. Even Parity Select. If disabled, then odd parity is performed. */
+#define BM_LCTRL_EPS			BIT(2)
+/* Parity Enable. */
+#define BM_LCTRL_PEN			BIT(1)
 #define BM_LCTRL_PAR_MARK		((3<<1) | (1<<7))
 #define BM_LCTRL_PAR_SPACE		((1<<1) | (1<<7))
 #define BM_LCTRL_PAR_ODD		((1<<1) | (0<<7))
 #define BM_LCTRL_PAR_EVEN		((3<<1) | (0<<7))
 #define BM_LCTRL_PAR_NONE		(0<<1)
+/*
+ * RW. Send Break. If this bit is set to 1, a low-level is continually output on
+ * the UARTTXD output, after completing transmission of the current character.
+ * For the proper execution of the break command, the software must set this bit
+ * for at least two complete frames. For normal use, this bit must be cleared to 0.
+ */
+#define BM_LCTRL_BREAK			BIT(0)
 
-/* Interrupt register.
- * contains the interrupt enables and the interrupt status bits */
+/*
+ * Interrupt register.
+ * contains the interrupt enables and the interrupt status bits
+ */
 #define HW_INTR				0x40
 /* Tx FIFO EMPTY Raw Interrupt enable */
 #define BM_INTR_TFEIEN			BIT(27)
@@ -197,9 +224,11 @@
 #define BM_INTR_PEIEN			BIT(24)
 /* Framing Error Interrupt Enable. */
 #define BM_INTR_FEIEN			BIT(23)
-/* Receive Timeout Interrupt Enable.
+/*
+ * RW. Receive Timeout Interrupt Enable.
  * If not set and FIFO is enabled, then RX will be triggered only
- * if FIFO is full. */
+ * if FIFO is full.
+ */
 #define BM_INTR_RTIEN			BIT(22)
 /* Transmit Interrupt Enable. */
 #define BM_INTR_TXIEN			BIT(21)
@@ -236,15 +265,17 @@
 #define BM_INTR_DCDMIS			BIT(2)
 #define BM_INTR_CTSMIS			BIT(1)
 #define BM_INTR_RIMIS			BIT(0)
-
-
 #define BM_INTR_DEF_MASK	(BM_INTR_RXIEN | BM_INTR_TXIEN | BM_INTR_RTIEN \
 		| BM_INTR_FEIEN | BM_INTR_PEIEN | BM_INTR_BEIEN | BM_INTR_OEIEN)
-
 #define BM_INTR_DEF_IS_MASK		(BM_INTR_DEF_MASK >> 16)
 #define BM_INTR_EN_MASK			(0x3fff0000)
 #define BM_INTR_IS_MASK			(0x00003fff)
 
+/*
+ * RW. In DMA mode, up to 4 Received/Transmit characters can be accessed at a time.
+ * In PIO mode, only one character can be accessed at a time. The status register
+ * contains the receive data flags and valid bits.
+ */
 #define HW_DATA				0x50
 
 #define HW_STAT				0x60

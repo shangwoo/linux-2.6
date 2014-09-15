@@ -97,11 +97,11 @@
  * timeout counter value is zero, then timeout will occur (when FIFO is not empty)
  * even if the RX input is not idle. The default value is 0x3 (31 bit-time).
  */
-#define BM_CTRL0_RXTO_MASK		(0xff << 16)
+#define BM_CTRL0_RXTO_MASK		(0xff<<16)
 /* TIMEOUT = (100*7+1)*(1/BAUD) */
-#define BM_CTRL0_DEFAULT_RXTIMEOUT	(20 << 16)
+#define BM_CTRL0_DEFAULT_RXTIMEOUT	(20<<16)
 /* RW. Number of bytes to receive. This must be a multiple of 4 */
-#define BM_CTRL0_RXDMA_COUNT_MASK	(0xffff << 0)
+#define BM_CTRL0_RXDMA_COUNT_MASK	(0xffff<<0)
 
 /* TX ctrl register */
 #define HW_CTRL1			0x10
@@ -114,16 +114,53 @@
 #define BM_CTRL1_TXDMA_COUNT_MASK	(0xffff << 0)
 
 #define HW_CTRL2			0x20
+/* 
+ * RW. Receive dma will terminate on error. (Cmd_end signal may not be asserted
+ * when this occurs.)
+ */
+#define BM_CTRL2_DMAONERROR		BIT(26)
+/* 
+ * RW. Transmit DMA Enable. Data Register can be loaded with up to 4 bytes per
+ * write. TXFIFO must be enabled in TXDMA mode.
+ */
+#define BM_CTRL2_TXDMAE			BIT(25)
+/*
+ * RW. Receive DMA Enable. Data Register can be contain up to 4 bytes per read.
+ * RXFIFO must be enabled in RXDMA mode.
+ */
+#define BM_CTRL2_RXDMAE			BIT(24)
+/*
+ * RW. Receive Interrupt FIFO Level Select.
+ * The trigger points for the receive interrupt are as follows:
+ * ONE_EIGHTHS = 0x0 Trigger on FIFO full to at least 2 of 16 entries.
+ * ONE_QUARTER = 0x1 Trigger on FIFO full to at least 4 of 16 entries.
+ * ONE_HALF = 0x2 Trigger on FIFO full to at least 8 of 16 entries.
+ * THREE_QUARTERS = 0x3 Trigger on FIFO full to at least 12 of 16 entries.
+ * SEVEN_EIGHTHS = 0x4 Trigger on FIFO full to at least 14 of 16 entries.
+ */
+#define BM_CTRL2_RXIFLSEL		(7<<20)
+#define BM_CTRL2_DEFAULT_RXIFLSEL	(3<<20)
+/* RW. Same as RXIFLSEL */
+#define BM_CTRL2_TXIFLSEL		(7<<16)
+#define BM_CTRL2_DEFAULT_TXIFLSEL	(2<<16)
+/* RW. CTS Enable */
 #define BM_CTRL2_CTSE			BIT(15)
+/* RW. RTS Enable */
 #define BM_CTRL2_RTSE			BIT(14)
+/* 
+ * RW. Manually trigger RTS. Works only if BM_CTRL2_RTSE = 0.
+ * When this bit is 1, the output is 0.
+ */
+#define BM_CTRL2_RTS			BIT(11)
+/* RW. Set DTR. When this bit is 1, the output is 0. */
+#define BM_CTRL2_DTR			BIT(10)
+/* RW. RX Enable */
 #define BM_CTRL2_RXE			BIT(9)
+/* RW. TX Enable */
 #define BM_CTRL2_TXE			BIT(8)
+/* RW. Loop Back Enable */
 #define BM_CTRL2_LBE			BIT(7)
 #define BM_CTRL2_PORT_ENABLE		BIT(0)
-#define BM_CTRL2_TXIFLSEL		(7<<16)
-#define BM_CTRL2_RXIFLSEL		(7<<20)
-#define BM_CTRL2_DEFAULT_TXIFLSEL	(2<<16)
-#define BM_CTRL2_DEFAULT_RXIFLSEL	(3<<20)
 
 #define HW_LINECTRL			0x30
 #define BM_LCTRL_BAUD_DIVINT		(0xFFFF<<16)

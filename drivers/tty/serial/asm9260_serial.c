@@ -23,6 +23,14 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+/*
+ * Note: This driver was tested and written for Alpscale ASM9260T. Since
+ * documentation for this SoC currently available only in Chinese, parts of it
+ * was recovered from similar devices. For example Alpscale ASAP1826 – which has
+ * identical offsets, but no support for RS485 and autoboud. And NXP
+ * Semiconductors LPC13xx (UM10375) – with identical registers and mostly
+ * identical functionality but different offsets.
+ */
 
 #include <linux/module.h>
 #include <linux/init.h>
@@ -279,31 +287,122 @@
 #define HW_DATA				0x50
 
 #define HW_STAT				0x60
+/* RO. If 1, UARTAPP is present in this product. */
+#define BM_STAT_PRESENT			BIT(31)
+/* RO. If 1, HISPEED is present in this product. */
+#define BM_STAT_HISPEED			BIT(30)
+/* RO. UART Busy. */
 #define BM_STAT_BUSY			BIT(29)
+/* RO. Clear To Send. */
 #define BM_STAT_CTS			BIT(28)
+/* RO. Transmit FIFO/PIO Empty */
 #define BM_STAT_TXEMPTY			BIT(27)
+/* RO. Receive FIFO Full. */
 #define BM_STAT_RXFULL			BIT(26)
+/* RO. Transmit FIFO Full. */
 #define BM_STAT_TXFULL			BIT(25)
+/* RO. Receive FIFO Empty. */
 #define BM_STAT_RXEMPTY			BIT(24)
+/*
+ * RW. The invalid state of the last read of Receive Data. Each
+ * bit corresponds to one byte of the RX data. (1 = invalid.)
+ */
+#define BM_STAT_RXBYTE_INVALID_MASK	(0xf<<20)
+/*
+ * RO. Overrun Error. This bit is set to 1 if data is received and the FIFO is
+ * already full. This bit is cleared to 0 by any write to the Status Register. The
+ * FIFO contents remain valid since no further data is written when the FIFO is
+ * full; only the contents of the shift register are overwritten. The CPU must now
+ * read the data in order to empty the FIFO.
+ */
 #define BM_STAT_OVERRUNERR		BIT(19)
+/*
+ * RW. Break Error. For PIO mode, this is for the last character read from the
+ * data register. For DMA mode, it will be set to 1 if any received character
+ * for a particular RXDMA command had a Break Error. To clear this bit, write a
+ * zero to it. Note that clearing this bit does not affect the interrupt status,
+ * which must be cleared by writing the interrupt register.
+ */
 #define BM_STAT_BREAKERR		BIT(18)
+/* RW. Parity Error. Same as BREAKERR. */
 #define BM_STAT_PARITYERR		BIT(17)
+/* RW. Framing Erro. Same as BREAKERR. */
 #define BM_STAT_FRAMEERR		BIT(16)
+/* RO. Number of bytes received during a Receive DMA command. */
+#define BM_STAT_RXCOUNT_MASK		(0xffff<<0)
+
+/* RO. The UART Debug Register contains the state of the DMA signals. */
+#define HW_DEBUG			0x70
+/* DMA Command Run Status */
+#define BM_DEBUG_TXDMARUN		BIT(5)
+#define BM_DEBUG_RXDMARUN		BIT(4)
+/* DMA Command End Status */
+#define BM_DEBUG_TXCMDEND		BIT(3)
+#define BM_DEBUG_RXCMDEND		BIT(2)
+/* DMA Request Status */
+#define BM_DEBUG_TXDMARQ		BIT(1)
+#define BM_DEBUG_RXDMARQ		BIT(0)
 
 #define HW_ILPR				0x80
 
 #define HW_RS485CTRL			0x90
-#define	BM_RS485CTRL_RS485EN		BIT(0)
-#define	BM_RS485CTRL_RXDIS		BIT(1)
-#define	BM_RS485CTRL_AADEN		BIT(2)
-#define	BM_RS485CTRL_PINSEL		BIT(3)
-#define	BM_RS485CTRL_DIR_CTRL		BIT(4)
+/*
+ * RW. This bit reverses the polarity of the direction control signal on the RTS
+ * (or DTR) pin.
+ * If 0, The direction control pin will be driven to logic ‘0’ when the transmitter
+ * has data to be sent. It will be driven to logic ‘1’ after the last bit of data
+ * has been transmitted.
+ */
 #define	BM_RS485CTRL_ONIV		BIT(5)
+/* RW. Enable Auto Direction Control. */
+#define	BM_RS485CTRL_DIR_CTRL		BIT(4)
+/* 
+ * RW. If 0 and DIR_CTRL = 1, pin RTS is used for direction control.
+ * If 1 and DIR_CTRL = 1, pin DTR is used for direction control.
+ */
+#define	BM_RS485CTRL_PINSEL		BIT(3)
+/* RW. Enable Auto Address Detect (AAD). */
+#define	BM_RS485CTRL_AADEN		BIT(2)
+/* RW. Disable receiver. */
+#define	BM_RS485CTRL_RXDIS		BIT(1)
+/* RW. Enable RS-485/EIA-485 Normal Multidrop Mode (NMM) */
+#define	BM_RS485CTRL_RS485EN		BIT(0)
 
 #define HW_RS485ADRMATCH		0xA0
+/* Contains the address match value. */
+#define BM_RS485ADRMATCH_MASK		(0xff<<0)
+
 #define HW_RS485DLY			0xB0
+/*
+ * RW. Contains the direction control (RTS or DTR) delay value. This delay time
+ * is in periods of the baud clock.
+ */
+#define BM_RS485DLY_MASK		(0xff<<0)
+
 #define HW_AUTOBAUD			0xC0
+/* WO. Auto-baud time-out interrupt clear bit. */
+#define BM_AUTOBAUD_ABTOIntClr		BIT(9)
+/* WO. End of auto-baud interrupt clear bit. */
+#define BM_AUTOBAUD_ABEOIntClr		BIT(8)
+/* Restart in case of time-out (counter restarts at next UART Rx falling edge) */
+#define BM_AUTOBAUD_AUTORESTART		BIT(2)
+/* Auto-baud mode select bit. 0 - Mode 0, 1 - Mode 1. */
+#define BM_AUTOBAUD_MODE		BIT(1)
+/*
+ * Auto-baud start (auto-baud is running). Auto-baud run bit. This bit is
+ * automatically cleared after auto-baud completion.
+ */
+#define BM_AUTOBAUD_START		BIT(0)
+
 #define HW_CTRL3			0xD0
+#define BM_CTRL3_OUTCLK_DIV_MASK	(0xffff<<16)
+#define BM_CTRL3_MASTERMODE		BIT(6)
+/* RW. Enable sync mode. */
+#define BM_CTRL3_SYNCMODE		BIT(4)
+#define BM_CTRL3_MSBF			BIT(2)
+#define BM_CTRL3_BAUD8			BIT(1)
+/* RW. Set word lenght to 9bit. Overwrite BM_LCTRL_WLEN? */
+#define BM_CTRL3_9BIT			BIT(0)
 
 
 /*

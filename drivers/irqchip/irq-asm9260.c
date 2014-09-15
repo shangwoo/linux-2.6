@@ -30,6 +30,13 @@
 
 #include "irqchip.h"
 
+/*
+ * this device provide 4 offsets for each register:
+ * 0x0 - plain read write mode
+ * 0x4 - set mode, OR logic.
+ * 0x8 - clr mode, XOR logic.
+ * 0xc - togle mode.
+ */
 #define SET_REG 4
 #define CLR_REG 8
 

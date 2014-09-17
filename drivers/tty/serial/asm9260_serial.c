@@ -73,7 +73,7 @@
 #define CLR_REG				0x8
 
 /* RX ctrl register */
-#define HW_CTRL0			0x00
+#define HW_CTRL0			0x0000
 /* RW. Set to zero for normal operation. */
 #define BM_CTRL0_SFTRST			BIT(31)
 /*
@@ -112,7 +112,7 @@
 #define BM_CTRL0_RXDMA_COUNT_MASK	(0xffff<<0)
 
 /* TX ctrl register */
-#define HW_CTRL1			0x10
+#define HW_CTRL1			0x0010
 /*
  * RW. Tell the UART to execute the TX DMA Command. The
  * UART will clear this bit at the end of transmit execution.
@@ -121,7 +121,7 @@
 /* RW. Number of bytes to transmit. */
 #define BM_CTRL1_TXDMA_COUNT_MASK	(0xffff << 0)
 
-#define HW_CTRL2			0x20
+#define HW_CTRL2			0x0020
 /*
  * RW. Receive dma will terminate on error. (Cmd_end signal may not be asserted
  * when this occurs.)
@@ -170,7 +170,7 @@
 #define BM_CTRL2_LBE			BIT(7)
 #define BM_CTRL2_PORT_ENABLE		BIT(0)
 
-#define HW_LINECTRL			0x30
+#define HW_LINECTRL			0x0030
 #define BM_LCTRL_BAUD_DIVINT		(0xFFFF<<16)
 #define BM_LCTRL_BAUD_DIVFRA		(0x3F<<8)
 /*
@@ -221,7 +221,7 @@
  * Interrupt register.
  * contains the interrupt enables and the interrupt status bits
  */
-#define HW_INTR				0x40
+#define HW_INTR				0x0040
 /* Tx FIFO EMPTY Raw Interrupt enable */
 #define BM_INTR_TFEIEN			BIT(27)
 /* Overrun Error Interrupt Enable. */
@@ -284,9 +284,9 @@
  * In PIO mode, only one character can be accessed at a time. The status register
  * contains the receive data flags and valid bits.
  */
-#define HW_DATA				0x50
+#define HW_DATA				0x0050
 
-#define HW_STAT				0x60
+#define HW_STAT				0x0060
 /* RO. If 1, UARTAPP is present in this product. */
 #define BM_STAT_PRESENT			BIT(31)
 /* RO. If 1, HISPEED is present in this product. */
@@ -332,7 +332,7 @@
 #define BM_STAT_RXCOUNT_MASK		(0xffff<<0)
 
 /* RO. The UART Debug Register contains the state of the DMA signals. */
-#define HW_DEBUG			0x70
+#define HW_DEBUG			0x0070
 /* DMA Command Run Status */
 #define BM_DEBUG_TXDMARUN		BIT(5)
 #define BM_DEBUG_RXDMARUN		BIT(4)
@@ -343,9 +343,9 @@
 #define BM_DEBUG_TXDMARQ		BIT(1)
 #define BM_DEBUG_RXDMARQ		BIT(0)
 
-#define HW_ILPR				0x80
+#define HW_ILPR				0x0080
 
-#define HW_RS485CTRL			0x90
+#define HW_RS485CTRL			0x0090
 /*
  * RW. This bit reverses the polarity of the direction control signal on the RTS
  * (or DTR) pin.
@@ -368,18 +368,18 @@
 /* RW. Enable RS-485/EIA-485 Normal Multidrop Mode (NMM) */
 #define	BM_RS485CTRL_RS485EN		BIT(0)
 
-#define HW_RS485ADRMATCH		0xA0
+#define HW_RS485ADRMATCH		0x00a0
 /* Contains the address match value. */
 #define BM_RS485ADRMATCH_MASK		(0xff<<0)
 
-#define HW_RS485DLY			0xB0
+#define HW_RS485DLY			0x00b0
 /*
  * RW. Contains the direction control (RTS or DTR) delay value. This delay time
  * is in periods of the baud clock.
  */
 #define BM_RS485DLY_MASK		(0xff<<0)
 
-#define HW_AUTOBAUD			0xC0
+#define HW_AUTOBAUD			0x00c0
 /* WO. Auto-baud time-out interrupt clear bit. */
 #define BM_AUTOBAUD_ABTOIntClr		BIT(9)
 /* WO. End of auto-baud interrupt clear bit. */
@@ -394,16 +394,37 @@
  */
 #define BM_AUTOBAUD_START		BIT(0)
 
-#define HW_CTRL3			0xD0
+#define HW_CTRL3			0x00d0
 #define BM_CTRL3_OUTCLK_DIV_MASK	(0xffff<<16)
 #define BM_CTRL3_MASTERMODE		BIT(6)
-/* RW. Enable sync mode. */
+/* RW. Baud Rate Mode: 1 - Enable sync mode. 0 - async mode. */
 #define BM_CTRL3_SYNCMODE		BIT(4)
+/* RW. 1 - MSB bit send frist; 0 - LSB bit frist. */
 #define BM_CTRL3_MSBF			BIT(2)
+/* RW. 1 - sample rate = 8 x Baudrate; 0 - sample rate = 16 x Baudrate. */
 #define BM_CTRL3_BAUD8			BIT(1)
-/* RW. Set word lenght to 9bit. Overwrite BM_LCTRL_WLEN? */
+/* RW. 1 - Set word lenght to 9bit. 0 - use BM_LCTRL_WLEN */
 #define BM_CTRL3_9BIT			BIT(0)
 
+#define HW_ISO7816_CTRL			0x00e0
+/* RW. Enable High Speed mode. */
+#define BM_ISO7816CTRL_HS		BIT(12)
+/* Disable Successive Receive NACK */
+#define BM_ISO7816CTRL_DS_NACK		BIT(8)
+#define BM_ISO7816CTRL_MAX_ITER_MASK	(0xff<<4)
+/* Receive NACK Inhibit */
+#define BM_ISO7816CTRL_INACK		BIT(3)
+#define BM_ISO7816CTRL_NEG_DATA		BIT(2)
+/* RW. 1 - ISO7816 mode; 0 - USART mode */
+#define BM_ISO7816CTRL_ENABLE		BIT(0)
+
+#define HW_ISO7816_ERRCNT		0x00f0
+/* Parity error counter. Will be cleared after reading */
+#define BM_ISO7816_NB_ERRORS_MASK	(0xff<<0)
+
+#define HW_ISO7816_STATUS		0x0100
+/* Max number of Repetitions Reached */
+#define BM_ISO7816_STAT_ITERATION	BIT(0)
 
 /*
  * We wrap our port structure around the generic uart_port.

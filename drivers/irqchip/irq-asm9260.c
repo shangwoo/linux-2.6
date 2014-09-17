@@ -128,38 +128,13 @@
 #define HW_ICOLL_UNDEF_VECTOR			0x01f0
 /* Scratchpad */
 
-#define ICOLL_NUM_IRQS		64
+#define ICOLL_NUM_IRQS				64
 
 static void __iomem *icoll_base;
 static struct irq_domain *icoll_domain;
 static int use_cached_level = 1;
 static u8 level_cache[ICOLL_NUM_IRQS];
 static DEFINE_MUTEX(icoll_lock);
-
-static unsigned int irq_get_level(struct irq_data *d)
-{
-	unsigned int tmp;
-
-	if (use_cached_level)
-		return level_cache[d->hwirq];
-
-	tmp = readl_relaxed(icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
-	return (tmp >> BM_ICOLL_INTERRUPTn_SHIFT(d->hwirq)) & 0x3;
-}
-
-static void irq_set_level(int hwirq, int level)
-{
-	if (unlikely(level < 0 || level > 3)) {
-		pr_err("%s Wrong level (%i) for irq (%i)!", __func__, level,
-				hwirq);
-		return;
-	}
-	if (use_cached_level)
-		level_cache[hwirq] = level;
-
-	writel_relaxed(level << BM_ICOLL_INTERRUPTn_SHIFT(hwirq),
-			icoll_base + HW_ICOLL_INTERRUPTn(hwirq));
-}
 
 static void icoll_ack_irq(struct irq_data *d)
 {
@@ -176,13 +151,9 @@ static void icoll_unmask_irq(struct irq_data *d)
 {
 	u32 level;
 
-	level = irq_get_level(d);
-
 	mutex_lock(&icoll_lock);
 	writel_relaxed(BM_CLEAR_BIT(d->hwirq),
 			icoll_base + HW_ICOLL_CLEARn(d->hwirq));
-
-	writel_relaxed(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);
 
 	writel_relaxed(BM_ICOLL_INTERRUPTn_ENABLE(d->hwirq),
 			icoll_base + HW_ICOLL_INTERRUPTn_SET(d->hwirq));
@@ -244,9 +215,6 @@ static int __init icoll_of_init(struct device_node *np,
 	 */
 	for (i = 0; i < 16 * 0x10; i += 0x10)
 		writel(0, icoll_base + HW_ICOLL_INTERRUPT0 + i);
-
-	/* set timer 0 priority level high. TODO: should be done by DT  */
-	irq_set_level(29, 3);
 
 	icoll_domain = irq_domain_add_linear(np, ICOLL_NUM_IRQS,
 					     &icoll_irq_domain_ops, NULL);

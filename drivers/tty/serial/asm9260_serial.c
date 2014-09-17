@@ -430,15 +430,12 @@
  * We wrap our port structure around the generic uart_port.
  */
 struct asm9260_uart_port {
-	struct uart_port	uart;		/* uart */
 	struct clk		*clk;		/* uart clock */
 	struct clk		*clk_ahb;
 	int			clk_on;
-
+	int			init_ok;
+	struct uart_port	uart;		/* uart */
 	struct serial_rs485	rs485;		/* rs485 settings */
-
-	uint32_t intmask;
-	int init_ok;
 };
 
 static struct asm9260_uart_port *asm9260_ports;

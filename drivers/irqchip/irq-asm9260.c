@@ -132,8 +132,6 @@
 
 static void __iomem *icoll_base;
 static struct irq_domain *icoll_domain;
-static int use_cached_level = 1;
-static u8 level_cache[ICOLL_NUM_IRQS];
 static DEFINE_MUTEX(icoll_lock);
 
 static void icoll_ack_irq(struct irq_data *d)
@@ -149,8 +147,6 @@ static void icoll_mask_irq(struct irq_data *d)
 
 static void icoll_unmask_irq(struct irq_data *d)
 {
-	u32 level;
-
 	mutex_lock(&icoll_lock);
 	writel_relaxed(BM_CLEAR_BIT(d->hwirq),
 			icoll_base + HW_ICOLL_CLEARn(d->hwirq));

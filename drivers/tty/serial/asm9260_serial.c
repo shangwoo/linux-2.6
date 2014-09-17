@@ -396,6 +396,8 @@
 
 #define HW_CTRL3			0x00d0
 #define BM_CTRL3_OUTCLK_DIV_MASK	(0xffff<<16)
+/* RW. Provide clk over OUTCLK pin. In case of asm9260 it can be configured on pins 137
+ * and 144. */
 #define BM_CTRL3_MASTERMODE		BIT(6)
 /* RW. Baud Rate Mode: 1 - Enable sync mode. 0 - async mode. */
 #define BM_CTRL3_SYNCMODE		BIT(4)

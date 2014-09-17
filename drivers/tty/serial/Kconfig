@@ -1569,8 +1569,6 @@ config SERIAL_ASM9260_CONSOLE
 		If you want to support serial console on borad asm9260
 		say Y. Otherwise, say N.
 
-source "arch/arm/mach-asm9260/Kconfig"
-
 endmenu
 
 config SERIAL_MCTRL_GPIO

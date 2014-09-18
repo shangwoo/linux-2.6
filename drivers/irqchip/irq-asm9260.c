@@ -223,4 +223,4 @@ static int __init icoll_of_init(struct device_node *np,
 
 	return icoll_domain ? 0 : -ENODEV;
 }
-IRQCHIP_DECLARE(asm9260, "alpscale,asm9260-icall", icoll_of_init);
+IRQCHIP_DECLARE(asm9260, "alphascale,asm9260-icall", icoll_of_init);

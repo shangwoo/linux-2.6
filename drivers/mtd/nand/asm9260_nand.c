@@ -1,5 +1,5 @@
 /********************************************************
-Copyright (C), 2007-2013, Alpscale Tech. Co., Ltd.
+Copyright (C), 2007-2013, Alphascale Tech. Co., Ltd.
 File name: asm9260_nand.c
 Author: ChenDongdong    Version: 1.0    Date: 2012-04-17
 Description: asm9260 nand driver.
@@ -1720,7 +1720,7 @@ static struct platform_driver asm9260_nand_driver = {
 
 static int __init asm9260_nand_init(void)
 {
-	printk("ASM9260 NAND Driver, (c) 2012 Alpscale.\n");
+	printk("ASM9260 NAND Driver, (c) 2012 Alphascale.\n");
 	
 	return platform_driver_register(&asm9260_nand_driver);
 }
@@ -1734,7 +1734,7 @@ module_init(asm9260_nand_init);
 module_exit(asm9260_nand_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Chen Dongdong <chendd@alpscale.cn>");
+MODULE_AUTHOR("Chen Dongdong <chendd@alphascale.cn>");
 MODULE_DESCRIPTION("ASM9260 MTD NAND driver");
 
 

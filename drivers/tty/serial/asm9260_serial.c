@@ -1223,7 +1223,7 @@ static struct uart_driver asm9260_uart = {
 
 /* Match table for of_platform binding */
 static struct of_device_id asm9260_of_match[] = {
-	{ .compatible = "alpscale,asm9260-uart", },
+	{ .compatible = "alphascale,asm9260-uart", },
 	{}
 };
 MODULE_DEVICE_TABLE(of, asm9260_of_match);

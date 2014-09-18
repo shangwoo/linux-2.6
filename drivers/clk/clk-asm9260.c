@@ -16,11 +16,6 @@
 
 static DEFINE_SPINLOCK(asm9260_clk_lock);
 
-struct asm9260_clk {
-	void __iomem    *reg;
-	char *parent_name;
-};
-
 static void __iomem *asm9260_get_sreg(struct device_node *node)
 {
 	u32 reg;

@@ -3,7 +3,7 @@
  *  Co-author: Du Huanpeng <u74147@gmail.com>
  * map_desc based on:
  *  linux/arch/arm/mach-asm9260/core.c
- *  Copyright (C) 2011-2014 Alpscale
+ *  Copyright (C) 2011-2014 Alphascale
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -66,11 +66,11 @@ static void __init asm9260_init(void)
 }
 
 static const char * const asm9260_dt_board_compat[] __initconst = {
-	"alpscale,asm9260",
+	"alphascale,asm9260",
 	NULL
 };
 
-DT_MACHINE_START(ASM9260, "Alpscale ASM9260 (Device Tree Support)")
+DT_MACHINE_START(ASM9260, "Alphascale ASM9260 (Device Tree Support)")
 	.map_io		= asm9260_map_io,
 	.init_machine	= asm9260_init,
 	.dt_compat	= asm9260_dt_board_compat,

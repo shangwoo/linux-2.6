@@ -1,12 +1,12 @@
 /*
- * asm9260_serial.c Alpscale ASM9260 UART driver
+ * asm9260_serial.c Alphascale ASM9260 UART driver
  *
  * Mostly rewritten with irq_thread, clk and DT suppor:
  * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
  * 		 2014 Cleaned up by Du Huanpeng <u74147@gmail.com>
  *
- * Copyright (C) 2013, Alpscale Tech. Co., Ltd.
+ * Copyright (C) 2013, Alphascale Tech. Co., Ltd.
  * Initial code has been inspired/copied from atmel_serial.c (kernel v2.4) and
  * adopted for asm9260 (kernel v2.4) by Chen Dongdong.
  *
@@ -24,9 +24,9 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 /*
- * Note: This driver was tested and written for Alpscale ASM9260T. Since
+ * Note: This driver was tested and written for Alphascale ASM9260T. Since
  * documentation for this SoC currently available only in Chinese, parts of it
- * was recovered from similar devices. For example Alpscale ASAP1826 – which has
+ * was recovered from similar devices. For example Alphascale ASAP1826 – which has
  * identical offsets, but no support for RS485 and autoboud. And NXP
  * Semiconductors LPC13xx (UM10375) – with identical registers and mostly
  * identical functionality but different offsets.

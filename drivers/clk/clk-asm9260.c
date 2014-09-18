@@ -32,7 +32,7 @@ static void __iomem *asm9260_get_sreg(struct device_node *node)
 	if (WARN_ON(ret))
 		return NULL;
 
-	srnp = of_find_compatible_node(NULL, NULL, "alpscale,asm9260-sregs");
+	srnp = of_find_compatible_node(NULL, NULL, "alphascale,asm9260-sregs");
 	iomem = of_iomap(srnp, 0);
 	iomem += reg;
 
@@ -67,7 +67,7 @@ static void __init asm9260_gate_init(struct device_node *node)
 	if (!IS_ERR(clk))
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 }
-CLK_OF_DECLARE(asm9260_gate, "alpscale,asm9260-gate-clock", asm9260_gate_init);
+CLK_OF_DECLARE(asm9260_gate, "alphascale,asm9260-gate-clock", asm9260_gate_init);
 
 
 static void __init asm9260_div_init(struct device_node *node)
@@ -87,7 +87,7 @@ static void __init asm9260_div_init(struct device_node *node)
 	if (!IS_ERR(clk))
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 }
-CLK_OF_DECLARE(asm9260_div, "alpscale,asm9260-div-clock", asm9260_div_init);
+CLK_OF_DECLARE(asm9260_div, "alphascale,asm9260-div-clock", asm9260_div_init);
 
 /*
  * Simple one bit MUX for two sources
@@ -133,7 +133,7 @@ static void __init asm9260_bimux_init(struct device_node *node)
 	if (!IS_ERR(clk))
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 }
-CLK_OF_DECLARE(asm9260_bimux, "alpscale,asm9260-bimux-clock", asm9260_bimux_init);
+CLK_OF_DECLARE(asm9260_bimux, "alphascale,asm9260-bimux-clock", asm9260_bimux_init);
 
 static void __init asm9260_pll_init(struct device_node *node)
 {
@@ -156,4 +156,4 @@ static void __init asm9260_pll_init(struct device_node *node)
 	if (!IS_ERR(clk))
 		of_clk_add_provider(node, of_clk_src_simple_get, clk);
 }
-CLK_OF_DECLARE(asm9260_pll, "alpscale,asm9260-pll-clock", asm9260_pll_init);
+CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

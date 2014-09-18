@@ -236,5 +236,5 @@ static void __init asm9260_timer_init(struct device_node *np)
 	asm9260_clocksource_init(clk);
 	asm9260_clockevent_init(clk);
 }
-CLOCKSOURCE_OF_DECLARE(asm9260_timer, "alpscale,asm9260-timer",
+CLOCKSOURCE_OF_DECLARE(asm9260_timer, "alphascale,asm9260-timer",
 		asm9260_timer_init);

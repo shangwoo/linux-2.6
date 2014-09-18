@@ -380,7 +380,7 @@ config ARCH_AT91
 	  AT91RM9200 and AT91SAM9* processors.
 
 config MACH_ASM9260
-	bool "Alpscale ASM9260"
+	bool "Alphascale ASM9260"
 	select ARCH_REQUIRE_GPIOLIB
 	select COMMON_CLK
 	select IRQ_DOMAIN
@@ -391,7 +391,7 @@ config MACH_ASM9260
 	select CLKSRC_MMIO
 	select CPU_ARM926T
 	help
-	  Support for Alpscale ASM9260 based platform.
+	  Support for Alpascale ASM9260 based platform.
 
 config ARCH_CLPS711X
 	bool "Cirrus Logic CLPS711x/EP721x/EP731x-based"

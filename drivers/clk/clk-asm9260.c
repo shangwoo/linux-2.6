@@ -13,6 +13,7 @@
 #include <linux/spinlock.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <dt-bindings/clock/alphascale,asm9260.h>
 
 #define HW_AHBCLKCTRL0		0x0020
 #define HW_AHBCLKCTRL1		0x0030
@@ -58,9 +59,19 @@
 #define HW_LCDCLKDIV		0x01fc
 #define HW_ADCANACLKDIV		0x0200
 
+static struct clk *clks[MAX_CLKS];
+static struct clk_onecell_data clk_data;
 static DEFINE_SPINLOCK(asm9260_clk_lock);
 
+struct asm9260_div_clk {
+	unsigned int idx;
+	const char *name;
+	const char *parent_name;
+	u32 reg;
+};
+
 struct asm9260_gate_data {
+	unsigned int idx;
 	const char *name;
 	const char *parent_name;
 	unsigned long flags;
@@ -97,63 +108,90 @@ static const char *clk_names[] = {
 	[USB_PLL]	= "usb_pll",
 };
 
+static const struct asm9260_div_clk asm9260_div_clks[] __initconst = {
+	{ CLKID_SYS_CPU,	"cpu_div", "main_gate", HW_CPUCLKDIV },
+	{ CLKID_SYS_AHB,	"ahb_div", "cpu_div", HW_SYSAHBCLKDIV },
+#if 0
+	{ CLKID_SYS_I2S0M,"i2s0m_div", "i2s0_mclk",  HW_I2S0MCLKDIV },
+	{ CLKID_SYS_I2S0S,"i2s0s_div", "i2s0_mux",  HW_I2S0SCLKDIV },
+	{ CLKID_SYS_I2S1M,"i2s1m_div", "i2s1_mclk",  HW_I2S1MCLKDIV },
+	{ CLKID_SYS_I2S1S,"i2s1s_div", "i2s1_mux",  HW_I2S1SCLKDIV },
+#endif
+	{ CLKID_SYS_UART0,	"uart0_div", "uart_gate", HW_UART0CLKDIV },
+	{ CLKID_SYS_UART1,	"uart1_div", "uart_gate", HW_UART1CLKDIV },
+	{ CLKID_SYS_UART2,	"uart2_div", "uart_gate", HW_UART2CLKDIV },
+	{ CLKID_SYS_UART3,	"uart3_div", "uart_gate", HW_UART3CLKDIV },
+	{ CLKID_SYS_UART4,	"uart4_div", "uart_gate", HW_UART5CLKDIV },
+	{ CLKID_SYS_UART5,	"uart6_div", "uart_gate", HW_UART6CLKDIV },
+	{ CLKID_SYS_UART6,	"uart7_div", "uart_gate", HW_UART7CLKDIV },
+	{ CLKID_SYS_UART7,	"uart8_div", "uart_gate", HW_UART8CLKDIV },
+	{ CLKID_SYS_UART8,	"uart9_div", "uart_gate", HW_UART9CLKDIV },
+};
+
 static const struct asm9260_gate_data asm9260_mux_gates[] __initconst = {
-	{ "main_gate",	"main_mux",	CLK_SET_RATE_PARENT,	HW_MAINCLKUEN,	0 },
-	{ "uart_gate",	"uart_mux",	CLK_SET_RATE_PARENT,	HW_UARTCLKUEN,	0 },
-	{ "i2s0_gate",	"i2s0_mux",	CLK_SET_RATE_PARENT,	HW_I2S0CLKUEN,	0 },
-	{ "i2s1_gate",	"i2s1_mux",	CLK_SET_RATE_PARENT,	HW_I2S1CLKUEN,	0 },
-	{ "wdt_gate",	"wdt_mux",	CLK_SET_RATE_PARENT,	HW_WDTCLKUEN,	0 },
-	{ "clkout_gate",	"clkout_mux",	CLK_SET_RATE_PARENT,	HW_CLKOUTCLKUEN, 0 },
+	{ 0, "main_gate",	"main_mux",	CLK_SET_RATE_PARENT,	HW_MAINCLKUEN,	0 },
+	{ 0, "uart_gate",	"uart_mux",	CLK_SET_RATE_PARENT,	HW_UARTCLKUEN,	0 },
+	{ 0, "i2s0_gate",	"i2s0_mux",	CLK_SET_RATE_PARENT,	HW_I2S0CLKUEN,	0 },
+	{ 0, "i2s1_gate",	"i2s1_mux",	CLK_SET_RATE_PARENT,	HW_I2S1CLKUEN,	0 },
+	{ 0, "wdt_gate",	"wdt_mux",	CLK_SET_RATE_PARENT,	HW_WDTCLKUEN,	0 },
+	{ 0, "clkout_gate",	"clkout_mux",	CLK_SET_RATE_PARENT,	HW_CLKOUTCLKUEN, 0 },
 };
 static const struct asm9260_gate_data asm9260_ahb_gates[] __initconst = {
 	/* ahb gates */
-	{ "rom",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	1 },
-	{ "ram",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	2 },
-	{ "gpio",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	4 },
-	{ "mac",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	5 },
-	{ "emi",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	6 },
-	{ "usb0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	7 },
-	{ "usb1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	8 },
-	{ "dma0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	9 },
-	{ "dma1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	10 },
-	{ "uart0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	11 },
-	{ "uart1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	12 },
-	{ "uart2",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	13 },
-	{ "uart3",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	14 },
-	{ "uart4",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	15 },
-	{ "uart5",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	16 },
-	{ "uart6",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	17 },
-	{ "uart7",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	18 },
-	{ "uart8",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	19 },
-	{ "uart9",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	20 },
-	{ "i2s0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	21 },
-	{ "i2c0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	22 },
-	{ "i2c1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	23 },
-	{ "ssp0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	24 },
-	{ "ioconf",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	25 },
-	{ "wdt",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	26 },
-	{ "can0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	27 },
-	{ "can1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	28 },
-	{ "mpwm",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	29 },
-	{ "spi0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	30 },
-	{ "spi1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	31 },
+#if 0
+	{ CLKID_AHB_ROM,	"rom",	"ahb_div",	CLK_IGNORE_UNUSED,	HW_AHBCLKCTRL0,	1 },
+	{ CLKID_AHB_RAM,	"ram",	"ahb_div",	CLK_IGNORE_UNUSED,	HW_AHBCLKCTRL0,	2 },
+	{ CLKID_AHB_GPIO,	"gpio",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	4 },
+	{ CLKID_AHB_MAC,	"mac",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	5 },
+	{ CLKID_AHB_EMI,	"emi",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	6 },
+	{ CLKID_AHB_USB0,	"usb0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	7 },
+	{ CLKID_AHB_USB1,	"usb1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	8 },
+	{ CLKID_AHB_DMA0,	"dma0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	9 },
+	{ CLKID_AHB_DMA1,	"dma1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	10 },
+#endif
+	{ CLKID_AHB_UART0,	"uart0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	11 },
+	{ CLKID_AHB_UART1,	"uart1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	12 },
+	{ CLKID_AHB_UART2,	"uart2",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	13 },
+	{ CLKID_AHB_UART3,	"uart3",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	14 },
+	{ CLKID_AHB_UART4,	"uart4",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	15 },
+	{ CLKID_AHB_UART5,	"uart5",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	16 },
+	{ CLKID_AHB_UART6,	"uart6",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	17 },
+	{ CLKID_AHB_UART7,	"uart7",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	18 },
+	{ CLKID_AHB_UART8,	"uart8",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	19 },
+	{ CLKID_AHB_UART9,	"uart9",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	20 },
+#if 0
+	{ CLKID_AHB_I2S0,	"i2s0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	21 },
+	{ CLKID_AHB_I2C0,	"i2c0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	22 },
+	{ CLKID_AHB_I2C1,	"i2c1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	23 },
+	{ CLKID_AHB_SSP0,	"ssp0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	24 },
+	{ CLKID_AHB_IOCONFIG,	"ioconf",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	25 },
+	{ CLKID_AHB_WDT,	"wdt",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	26 },
+	{ CLKID_AHB_CAN0,	"can0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	27 },
+	{ CLKID_AHB_CAN1,	"can1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	28 },
+	{ CLKID_AHB_MPWM,	"mpwm",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	29 },
+	{ CLKID_AHB_SPI0,	"spi0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	30 },
+	{ CLKID_AHB_SPI1,	"spi1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL0,	31 },
 
-	{ "qei",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	0 },
-	{ "quadspi0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	1 },
-	{ "capmif",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	2 },
-	{ "lcdif",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	3 },
-	{ "timer0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	4 },
-	{ "timer1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	5 },
-	{ "timer2",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	6 },
-	{ "timer3",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	7 },
-	{ "irq",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	8 },
-	{ "rtc",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	9 },
-	{ "nand",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	10 },
-	{ "adc0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	11 },
-	{ "led",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	12 },
-	{ "dac0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	13 },
-	{ "lcd",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	14 },
-	{ "i2s1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	15 },
+	{ CLKID_AHB_QEI,	"qei",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	0 },
+	{ CLKID_AHB_QUADSPI0,	"quadspi0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	1 },
+	{ CLKID_AHB_CAMIF,	"capmif",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	2 },
+	{ CLKID_AHB_LCDIF,	"lcdif",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	3 },
+#endif
+	{ CLKID_AHB_TIMER0,	"timer0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	4 },
+#if 0
+	{ CLKID_AHB_TIMER1,	"timer1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	5 },
+	{ CLKID_AHB_TIMER2,	"timer2",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	6 },
+	{ CLKID_AHB_TIMER3,	"timer3",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	7 },
+	{ CLKID_AHB_IRQ,	"irq",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	8 },
+	{ CLKID_AHB_RTC,	"rtc",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	9 },
+	{ CLKID_AHB_NAND,	"nand",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	10 },
+	{ CLKID_AHB_ADC0,	"adc0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	11 },
+	{ CLKID_AHB_LED,	"led",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	12 },
+	{ CLKID_AHB_DAC0,	"dac0",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	13 },
+	{ CLKID_AHB_LCD,	"lcd",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	14 },
+	{ CLKID_AHB_I2S1,	"i2s1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	15 },
+	{ CLKID_AHB_MAC1,	"mac1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	16 },
+#endif
 };
 
 static const char *main_mux_p[] = { "oscillator", "pll"};
@@ -204,6 +242,7 @@ static void __init asm9260_gate_init(struct device_node *node)
 	u32 bit;
 	int ret;
 
+	return;
 	iomem = asm9260_get_sreg(node);
 	parent_name = of_clk_get_parent_name(node, 0);
 
@@ -228,6 +267,7 @@ static void __init asm9260_div_init(struct device_node *node)
 	void __iomem *iomem;
 	const char *parent_name;
 
+	return;
 	iomem = asm9260_get_sreg(node);
 
 	parent_name = of_clk_get_parent_name(node, 0);
@@ -296,15 +336,42 @@ static void __init asm9260_pll_init(struct device_node *np)
                             gd->bit_idx, 0, &asm9260_clk_lock);
         }
 
-#if 0
+
+	/* clock div cells */
+        for (n = 0; n < ARRAY_SIZE(asm9260_div_clks); n++) {
+                const struct asm9260_div_clk *dc = &asm9260_div_clks[n];
+
+		clks[dc->idx] = clk_register_divider(NULL, dc->name, dc->parent_name,
+				CLK_SET_RATE_PARENT, base + dc->reg, 0, 8,
+				CLK_DIVIDER_ONE_BASED, &asm9260_clk_lock);
+
+	}
+
         /* clock ahb gate cells */
         for (n = 0; n < ARRAY_SIZE(asm9260_ahb_gates); n++) {
                 const struct asm9260_gate_data *gd = &asm9260_ahb_gates[n];
 
-                clk = clk_register_gate(NULL, gd->name,
-                            gd->parent_name, gd->flags, base + gd->reg,
+                clks[gd->idx] = clk_register_gate(NULL, gd->name,
+                            gd->parent_name, gd->flags | CLK_IGNORE_UNUSED, base + gd->reg,
                             gd->bit_idx, 0, &asm9260_clk_lock);
         }
-#endif
+
+        /* check for errors on leaf clocks */
+        for (n = 0; n < MAX_CLKS; n++) {
+                if (!IS_ERR(clks[n]))
+                        continue;
+
+                pr_err("%s: Unable to register leaf clock %d\n",
+                       np->full_name, n);
+                goto fail;
+        }
+
+	printk("!!!!!!!!!!!!!\n");
+	/* register clk-provider */
+	clk_data.clks = clks;
+	clk_data.clk_num = MAX_CLKS;
+	of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data);
+fail:
+	iounmap(base);
 }
 CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

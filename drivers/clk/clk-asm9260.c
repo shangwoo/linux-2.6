@@ -296,5 +296,15 @@ static void __init asm9260_pll_init(struct device_node *np)
                             gd->bit_idx, 0, &asm9260_clk_lock);
         }
 
+#if 0
+        /* clock ahb gate cells */
+        for (n = 0; n < ARRAY_SIZE(asm9260_ahb_gates); n++) {
+                const struct asm9260_gate_data *gd = &asm9260_ahb_gates[n];
+
+                clk = clk_register_gate(NULL, gd->name,
+                            gd->parent_name, gd->flags, base + gd->reg,
+                            gd->bit_idx, 0, &asm9260_clk_lock);
+        }
+#endif
 }
 CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

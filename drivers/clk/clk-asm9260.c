@@ -207,12 +207,14 @@ static struct asm9260_mux_clock asm9260_mux_clks[] __initdata = {
                 0, HW_UARTCLKSEL, 0, 1, 0, three_mux_table, },
         { 0, "wdt_mux", main_mux_p, ARRAY_SIZE(main_mux_p),
                 0, HW_WDTCLKSEL, 0, 1, 0, three_mux_table, },
-        { 0, "i2s0_mux", i2s0_mux_p, ARRAY_SIZE(i2s0_mux_p),
+#if 0
+	{ 0, "i2s0_mux", i2s0_mux_p, ARRAY_SIZE(i2s0_mux_p),
                 0, HW_I2S0CLKSEL, 0, 3, 0, three_mux_table, },
         { 0, "i2s1_mux", i2s1_mux_p, ARRAY_SIZE(i2s1_mux_p),
                 0, HW_I2S1CLKSEL, 0, 3, 0, three_mux_table, },
         { 0, "clkout_mux", clkout_mux_p, ARRAY_SIZE(clkout_mux_p),
                 0, HW_CLKOUTCLKSEL, 0, 3, 0, three_mux_table, },
+#endif
 };
 
 

@@ -154,16 +154,12 @@
 
 				main_mux: main_mux@0120 {
 					compatible = "alphascale,asm9260-bimux-clock";
-					#clock-cells = <0>;
-					/* clocks = <&osc24m>, <&pll>;*/
-					mux-table = <0 1>;
-					reg = <0x0120>;
 				};
 
 				main_gate: main_gate@0124 {
 					compatible = "alphascale,asm9260-gate-clock";
 					#clock-cells = <0>;
-					clocks = <&main_mux>;
+					/*clocks = <&main_mux>;*/
 					reg = <0x0124>;
 					bit-index = <0>;
 				};
@@ -343,15 +339,11 @@
 				/* uart related clocks */
 				uart_mux: uart_mux@0128 {
 					compatible = "alphascale,asm9260-bimux-clock";
-					#clock-cells = <0>;
-					/* clocks = <&osc24m>, <&pll>; */
-					mux-table = <0 1>;
-					reg = <0x0128>;
 				};
 				uart_gate: uart_gate@012c {
 					compatible = "alphascale,asm9260-gate-clock";
 					#clock-cells = <0>;
-					clocks = <&uart_mux>;
+					/*clocks = <&uart_mux>;*/
 					reg = <0x012c>;
 					bit-index = <0>;
 				};

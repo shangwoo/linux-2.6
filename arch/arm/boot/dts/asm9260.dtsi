@@ -131,9 +131,8 @@
 			/* status = "disabled"; */
 		};
 
-		sregs@80040000 {
-			compatible = "alphascale,asm9260-sregs";
-			reg = <0x80040000 0x504>;
+			/* compatible = "alphascale,asm9260-sregs"; */
+			/* reg = <0x80040000 0x504>; */
 
 			clocks {
 				#address-cells = <1>;
@@ -150,7 +149,7 @@
 					compatible = "alphascale,asm9260-pll-clock";
 					#clock-cells = <0>;
 					clocks = <&osc24m>;
-					reg = <0x0100>;
+					reg = <0x80040000 0x500>;
 				};
 
 				main_mux: main_mux@0120 {
@@ -419,7 +418,6 @@
 				/* end of uart section */
 
 
-			};
 		};
 	};
 };

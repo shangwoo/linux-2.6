@@ -131,19 +131,13 @@ static const struct asm9260_gate_data asm9260_gates[] __initconst = {
 static void __iomem *asm9260_get_sreg(struct device_node *node)
 {
 	u32 reg;
-	void __iomem *iomem;
-	struct device_node *srnp;
 	int ret;
 
 	ret = of_property_read_u32(node, "reg", &reg);
 	if (WARN_ON(ret))
 		return NULL;
 
-	srnp = of_find_compatible_node(NULL, NULL, "alphascale,asm9260-sregs");
-	iomem = of_iomap(srnp, 0);
-	iomem += reg;
-
-	return iomem;
+	return base + reg;
 }
 
 /*
@@ -242,25 +236,34 @@ static void __init asm9260_bimux_init(struct device_node *node)
 }
 CLK_OF_DECLARE(asm9260_bimux, "alphascale,asm9260-bimux-clock", asm9260_bimux_init);
 
-static void __init asm9260_pll_init(struct device_node *node)
+static void __init asm9260_pll_init(struct device_node *np)
 {
 	struct clk *clk;
-	const char *clk_name = node->name;
+	struct resource res;
+	const char *clk_name = np->name;
 	u32 rate;
-	void __iomem *iomem;
 	const char *parent_name;
 	u32 accuracy = 0;
 
-	iomem = asm9260_get_sreg(node);
-	rate = (ioread32(iomem) & 0xffff) * 1000000;
+	of_address_to_resource(np, 0, &res);
+	//if (!request_mem_region(res.start, resource_size(&res), "asm9260-clk"))
+	if (!request_mem_region(0x80040000, 0x504, "asm9260-clk"))
+		panic("%s: unable to request mem region", np->name);
 
-	parent_name = of_clk_get_parent_name(node, 0);
+	//base = ioremap_nocache(res.start, resource_size(&res));
+	base = ioremap_nocache(0x80040000, 0x504);
+	if (!base)
+		panic("%s: unable to map resource", np->name);
+
+	rate = (ioread32(base + HW_SYSPLLCTRL) & 0xffff) * 1000000;
+
+	parent_name = of_clk_get_parent_name(np, 0);
 	accuracy = clk_get_accuracy(__clk_lookup(parent_name));
 	clk = clk_register_fixed_rate_with_accuracy(NULL, clk_name, parent_name,
 			0, rate,
 			accuracy);
 
 	if (!IS_ERR(clk))
-		of_clk_add_provider(node, of_clk_src_simple_get, clk);
+		of_clk_add_provider(np, of_clk_src_simple_get, clk);
 }
 CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

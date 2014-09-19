@@ -68,7 +68,34 @@ struct asm9260_gate_data {
 	u8 bit_idx;
 };
 
+struct asm9260_mux_clock {
+	unsigned int            id;
+	const char              *name;
+	const char              **parent_names;
+	u8                      num_parents;
+	unsigned long           flags;
+	unsigned long           offset;
+	u8                      shift;
+	u8                      mask;
+	u8                      mux_flags;
+	u32                     *table;
+	const char              *alias;
+};
+
 static void __iomem *base;
+
+enum {
+	REFCLK, SYSPLL, I2S0_MCLK, I2S1_MCLK, RTC_OSC, USB_PLL,
+};
+
+static const char *clk_names[] = {
+	[REFCLK]	= "oscillator",
+	[SYSPLL]	= "pll",
+	[I2S0_MCLK]	= "i2s0_mclk",
+	[I2S1_MCLK]	= "i2s1_mclk",
+	[RTC_OSC]	= "rtc_osc",
+	[USB_PLL]	= "usb_pll",
+};
 
 static const struct asm9260_gate_data asm9260_gates[] __initconst = {
 	{ "main_gate",	"main_mux",	CLK_SET_RATE_PARENT,	HW_MAINCLKUEN,	0 },
@@ -127,6 +154,16 @@ static const struct asm9260_gate_data asm9260_gates[] __initconst = {
 	{ "lcd",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	14 },
 	{ "i2s1",	"ahb_div",	CLK_SET_RATE_PARENT,	HW_AHBCLKCTRL1,	15 },
 };
+
+static const char *main_mux_p[] = { "oscillator", "pll"};
+static u32 main_mux_table[] = {0, 1};
+
+static struct asm9260_mux_clock asm9260_mux_clks[] __initdata = {
+        { 0, "main_mux", main_mux_p, ARRAY_SIZE(main_mux_p),
+                0, HW_MAINCLKSEL, 0, 1, 0, main_mux_table, },
+
+};
+
 
 static void __iomem *asm9260_get_sreg(struct device_node *node)
 {
@@ -242,7 +279,7 @@ static void __init asm9260_pll_init(struct device_node *np)
 	struct resource res;
 	const char *clk_name = np->name;
 	u32 rate;
-	const char *parent_name;
+	int n;
 	u32 accuracy = 0;
 
 	of_address_to_resource(np, 0, &res);
@@ -259,13 +296,22 @@ static void __init asm9260_pll_init(struct device_node *np)
 	/* register pll */
 	rate = (ioread32(base + HW_SYSPLLCTRL) & 0xffff) * 1000000;
 
-	parent_name = of_clk_get_parent_name(np, 0);
-	accuracy = clk_get_accuracy(__clk_lookup(parent_name));
-	clk = clk_register_fixed_rate_with_accuracy(NULL, clk_name, parent_name,
-			0, rate,
-			accuracy);
+	clk_names[REFCLK] = of_clk_get_parent_name(np, 0);
+	accuracy = clk_get_accuracy(__clk_lookup(clk_names[REFCLK]));
+	clk = clk_register_fixed_rate_with_accuracy(NULL, clk_name,
+			clk_names[REFCLK], 0, rate, accuracy);
 
 	if (!IS_ERR(clk))
 		of_clk_add_provider(np, of_clk_src_simple_get, clk);
+
+	for (n = 0; n < ARRAY_SIZE(asm9260_mux_clks); n++) {
+		const struct asm9260_mux_clock *mc = &asm9260_mux_clks[n];
+
+		mc->parent_names[0] = clk_names[REFCLK];
+		mc->parent_names[1] = clk_names[SYSPLL];
+		clk = clk_register_mux_table(NULL, mc->name, mc->parent_names, mc->num_parents,
+			mc->flags, base + mc->offset, mc->shift, mc->mask, mc->mux_flags, mc->table,
+			&asm9260_clk_lock);
+	}
 }
 CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

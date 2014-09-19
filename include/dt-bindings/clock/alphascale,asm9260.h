@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Copyright 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -14,6 +14,7 @@
 #ifndef _DT_BINDINGS_CLK_ASM9260_H
 #define _DT_BINDINGS_CLK_ASM9260_H
 
+/* ahb gate */
 #define CLKID_AHB_ROM		0
 #define CLKID_AHB_RAM		1
 #define CLKID_AHB_GPIO		2
@@ -62,5 +63,35 @@
 #define CLKID_AHB_I2S1		45
 #define CLKID_AHB_MAC1		46
 
-#define MAX_CLKS 47
+/* devider */
+#define CLKID_SYS_CPU		47
+#define CLKID_SYS_AHB		48
+#define CLKID_SYS_I2S0M		49
+#define CLKID_SYS_I2S0S		50
+#define CLKID_SYS_I2S1M		51
+#define CLKID_SYS_I2S1S		52
+#define CLKID_SYS_UART0		53
+#define CLKID_SYS_UART1		54
+#define CLKID_SYS_UART2		55
+#define CLKID_SYS_UART3		56
+#define CLKID_SYS_UART4		56
+#define CLKID_SYS_UART5		57
+#define CLKID_SYS_UART6		58
+#define CLKID_SYS_UART7		59
+#define CLKID_SYS_UART8		60
+#define CLKID_SYS_UART9		61
+#define CLKID_SYS_SPI0		62
+#define CLKID_SYS_SPI1		63
+#define CLKID_SYS_QUADSPI	64
+#define CLKID_SYS_SSP0		65
+#define CLKID_SYS_NAND		66
+#define CLKID_SYS_TRACE		67
+#define CLKID_SYS_CAMM		68
+#define CLKID_SYS_WDT		69
+#define CLKID_SYS_CLKOUT	70
+#define CLKID_SYS_MAC		71
+#define CLKID_SYS_LCD		72
+#define CLKID_SYS_ADCANA	73
+
+#define MAX_CLKS		74
 #endif

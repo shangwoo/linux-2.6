@@ -286,5 +286,15 @@ static void __init asm9260_pll_init(struct device_node *np)
 			mc->num_parents, mc->flags, base + mc->offset, mc->shift,
 			mc->mask, mc->mux_flags, mc->table, &asm9260_clk_lock);
 	}
+
+        /* clock mux gate cells */
+        for (n = 0; n < ARRAY_SIZE(asm9260_mux_gates); n++) {
+                const struct asm9260_gate_data *gd = &asm9260_mux_gates[n];
+
+                clk = clk_register_gate(NULL, gd->name,
+                            gd->parent_name, gd->flags, base + gd->reg,
+                            gd->bit_idx, 0, &asm9260_clk_lock);
+        }
+
 }
 CLK_OF_DECLARE(asm9260_pll, "alphascale,asm9260-pll-clock", asm9260_pll_init);

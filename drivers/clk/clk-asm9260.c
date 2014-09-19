@@ -255,6 +255,8 @@ static void __init asm9260_pll_init(struct device_node *np)
 	if (!base)
 		panic("%s: unable to map resource", np->name);
 
+
+	/* register pll */
 	rate = (ioread32(base + HW_SYSPLLCTRL) & 0xffff) * 1000000;
 
 	parent_name = of_clk_get_parent_name(np, 0);

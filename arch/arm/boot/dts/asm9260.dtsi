@@ -344,7 +344,7 @@
 				uart_mux: uart_mux@0128 {
 					compatible = "alphascale,asm9260-bimux-clock";
 					#clock-cells = <0>;
-					clocks = <&osc24m>, <&pll>;
+					/* clocks = <&osc24m>, <&pll>; */
 					mux-table = <0 1>;
 					reg = <0x0128>;
 				};

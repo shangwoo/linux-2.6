@@ -121,11 +121,12 @@ static const struct asm9260_div_clk asm9260_div_clks[] __initconst = {
 	{ CLKID_SYS_UART1,	"uart1_div", "uart_gate", HW_UART1CLKDIV },
 	{ CLKID_SYS_UART2,	"uart2_div", "uart_gate", HW_UART2CLKDIV },
 	{ CLKID_SYS_UART3,	"uart3_div", "uart_gate", HW_UART3CLKDIV },
-	{ CLKID_SYS_UART4,	"uart4_div", "uart_gate", HW_UART5CLKDIV },
-	{ CLKID_SYS_UART5,	"uart6_div", "uart_gate", HW_UART6CLKDIV },
-	{ CLKID_SYS_UART6,	"uart7_div", "uart_gate", HW_UART7CLKDIV },
-	{ CLKID_SYS_UART7,	"uart8_div", "uart_gate", HW_UART8CLKDIV },
-	{ CLKID_SYS_UART8,	"uart9_div", "uart_gate", HW_UART9CLKDIV },
+	{ CLKID_SYS_UART4,	"uart4_div", "uart_gate", HW_UART4CLKDIV },
+	{ CLKID_SYS_UART5,	"uart5_div", "uart_gate", HW_UART5CLKDIV },
+	{ CLKID_SYS_UART6,	"uart6_div", "uart_gate", HW_UART6CLKDIV },
+	{ CLKID_SYS_UART7,	"uart7_div", "uart_gate", HW_UART7CLKDIV },
+	{ CLKID_SYS_UART8,	"uart8_div", "uart_gate", HW_UART8CLKDIV },
+	{ CLKID_SYS_UART9,	"uart9_div", "uart_gate", HW_UART9CLKDIV },
 };
 
 static const struct asm9260_gate_data asm9260_mux_gates[] __initconst = {
@@ -354,7 +355,7 @@ static void __init asm9260_pll_init(struct device_node *np)
                 const struct asm9260_gate_data *gd = &asm9260_ahb_gates[n];
 
                 clks[gd->idx] = clk_register_gate(NULL, gd->name,
-                            gd->parent_name, gd->flags | CLK_IGNORE_UNUSED, base + gd->reg,
+                            gd->parent_name, gd->flags, base + gd->reg,
                             gd->bit_idx, 0, &asm9260_clk_lock);
         }
 

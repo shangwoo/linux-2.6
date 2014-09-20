@@ -217,12 +217,10 @@ static void __init asm9260_pll_init(struct device_node *np)
 	u32 accuracy = 0;
 
 	of_address_to_resource(np, 0, &res);
-	//if (!request_mem_region(res.start, resource_size(&res), "asm9260-clk"))
-	if (!request_mem_region(0x80040000, 0x504, "asm9260-clk"))
+	if (!request_mem_region(res.start, resource_size(&res), "asm9260-clk"))
 		panic("%s: unable to request mem region", np->name);
 
-	//base = ioremap_nocache(res.start, resource_size(&res));
-	base = ioremap_nocache(0x80040000, 0x504);
+	base = ioremap_nocache(res.start, resource_size(&res));
 	if (!base)
 		panic("%s: unable to map resource", np->name);
 

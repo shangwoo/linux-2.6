@@ -80,14 +80,13 @@ struct asm9260_gate_data {
 };
 
 struct asm9260_mux_clock {
+	u8                      mask;
+	u32                     *table;
 	const char              *name;
 	const char              **parent_names;
 	u8                      num_parents;
-	unsigned long           flags;
 	unsigned long           offset;
-	u8                      mask;
-	u32                     *table;
-	const char              *alias;
+	unsigned long           flags;
 };
 
 static void __iomem *base;
@@ -199,23 +198,12 @@ static const char *clkout_mux_p[] = { "oscillator", "pll", "rtc"};
 static u32 three_mux_table[] = {0, 1, 3};
 
 static struct asm9260_mux_clock asm9260_mux_clks[] __initdata = {
-        { "main_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p),		0,
-		HW_MAINCLKSEL,		1, three_mux_table, },
-
-        { "uart_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p),		0,
-		HW_UARTCLKSEL,		1, three_mux_table, },
-
-        { "wdt_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p),		0,
-		HW_WDTCLKSEL,		1, three_mux_table, },
-
-	{ "i2s0_mux",	i2s0_mux_p,	ARRAY_SIZE(i2s0_mux_p),		0,
-		HW_I2S0CLKSEL,		3, three_mux_table, },
-
-        { "i2s1_mux",	i2s1_mux_p,	ARRAY_SIZE(i2s1_mux_p),		0,
-		HW_I2S1CLKSEL,		3, three_mux_table, },
-
-        { "clkout_mux",	clkout_mux_p,	ARRAY_SIZE(clkout_mux_p),	0,
-		HW_CLKOUTCLKSEL,	3, three_mux_table, },
+        { 1, three_mux_table, "main_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_MAINCLKSEL, },
+        { 1, three_mux_table, "uart_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_UARTCLKSEL, },
+        { 1, three_mux_table, "wdt_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_WDTCLKSEL, },
+	{ 3, three_mux_table, "i2s0_mux",	i2s0_mux_p,	ARRAY_SIZE(i2s0_mux_p), HW_I2S0CLKSEL, },
+        { 3, three_mux_table, "i2s1_mux",	i2s1_mux_p,	ARRAY_SIZE(i2s1_mux_p), HW_I2S1CLKSEL, },
+        { 3, three_mux_table, "clkout_mux",	clkout_mux_p,	ARRAY_SIZE(clkout_mux_p), HW_CLKOUTCLKSEL, },
 };
 
 static void __init asm9260_pll_init(struct device_node *np)

@@ -194,12 +194,18 @@ static const char *clkout_mux_p[] = { "oscillator", "pll", "rtc"};
 static u32 three_mux_table[] = {0, 1, 3};
 
 static struct asm9260_mux_clock asm9260_mux_clks[] __initdata = {
-        { 1, three_mux_table, "main_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_MAINCLKSEL, },
-        { 1, three_mux_table, "uart_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_UARTCLKSEL, },
-        { 1, three_mux_table, "wdt_mux",	main_mux_p,	ARRAY_SIZE(main_mux_p), HW_WDTCLKSEL, },
-	{ 3, three_mux_table, "i2s0_mux",	i2s0_mux_p,	ARRAY_SIZE(i2s0_mux_p), HW_I2S0CLKSEL, },
-        { 3, three_mux_table, "i2s1_mux",	i2s1_mux_p,	ARRAY_SIZE(i2s1_mux_p), HW_I2S1CLKSEL, },
-        { 3, three_mux_table, "clkout_mux",	clkout_mux_p,	ARRAY_SIZE(clkout_mux_p), HW_CLKOUTCLKSEL, },
+	{ 1, three_mux_table, "main_mux",	main_mux_p,
+		ARRAY_SIZE(main_mux_p), HW_MAINCLKSEL, },
+	{ 1, three_mux_table, "uart_mux",	main_mux_p,
+		ARRAY_SIZE(main_mux_p), HW_UARTCLKSEL, },
+	{ 1, three_mux_table, "wdt_mux",	main_mux_p,
+		ARRAY_SIZE(main_mux_p), HW_WDTCLKSEL, },
+	{ 3, three_mux_table, "i2s0_mux",	i2s0_mux_p,
+		ARRAY_SIZE(i2s0_mux_p), HW_I2S0CLKSEL, },
+	{ 3, three_mux_table, "i2s1_mux",	i2s1_mux_p,
+		ARRAY_SIZE(i2s1_mux_p), HW_I2S1CLKSEL, },
+	{ 3, three_mux_table, "clkout_mux",	clkout_mux_p,
+		ARRAY_SIZE(clkout_mux_p), HW_CLKOUTCLKSEL, },
 };
 
 static void __init asm9260_pll_init(struct device_node *np)
@@ -237,8 +243,8 @@ static void __init asm9260_pll_init(struct device_node *np)
 
 		mc->parent_names[0] = clk_names[REFCLK];
 		clk = clk_register_mux_table(NULL, mc->name, mc->parent_names,
-			mc->num_parents, mc->flags, base + mc->offset, 0,
-			mc->mask, 0, mc->table, &asm9260_clk_lock);
+				mc->num_parents, mc->flags, base + mc->offset,
+				0, mc->mask, 0, mc->table, &asm9260_clk_lock);
 	}
 
         /* clock mux gate cells */
@@ -246,39 +252,39 @@ static void __init asm9260_pll_init(struct device_node *np)
                 const struct asm9260_gate_data *gd = &asm9260_mux_gates[n];
 
                 clk = clk_register_gate(NULL, gd->name,
-                            gd->parent_name, gd->flags | CLK_SET_RATE_PARENT,
-			    base + gd->reg, gd->bit_idx, 0, &asm9260_clk_lock);
+				gd->parent_name, gd->flags | CLK_SET_RATE_PARENT,
+				base + gd->reg, gd->bit_idx, 0, &asm9260_clk_lock);
         }
 
 
 	/* clock div cells */
-        for (n = 0; n < ARRAY_SIZE(asm9260_div_clks); n++) {
-                const struct asm9260_div_clk *dc = &asm9260_div_clks[n];
+	for (n = 0; n < ARRAY_SIZE(asm9260_div_clks); n++) {
+		const struct asm9260_div_clk *dc = &asm9260_div_clks[n];
 
-		clks[dc->idx] = clk_register_divider(NULL, dc->name, dc->parent_name,
-				CLK_SET_RATE_PARENT, base + dc->reg, 0, 8,
-				CLK_DIVIDER_ONE_BASED, &asm9260_clk_lock);
-
+		clks[dc->idx] = clk_register_divider(NULL, dc->name,
+				dc->parent_name, CLK_SET_RATE_PARENT,
+				base + dc->reg, 0, 8, CLK_DIVIDER_ONE_BASED,
+				&asm9260_clk_lock);
 	}
 
-        /* clock ahb gate cells */
-        for (n = 0; n < ARRAY_SIZE(asm9260_ahb_gates); n++) {
-                const struct asm9260_gate_data *gd = &asm9260_ahb_gates[n];
+	/* clock ahb gate cells */
+	for (n = 0; n < ARRAY_SIZE(asm9260_ahb_gates); n++) {
+		const struct asm9260_gate_data *gd = &asm9260_ahb_gates[n];
 
-                clks[gd->idx] = clk_register_gate(NULL, gd->name,
-                            gd->parent_name, gd->flags, base + gd->reg,
-                            gd->bit_idx, 0, &asm9260_clk_lock);
-        }
+		clks[gd->idx] = clk_register_gate(NULL, gd->name,
+				gd->parent_name, gd->flags, base + gd->reg,
+				gd->bit_idx, 0, &asm9260_clk_lock);
+	}
 
-        /* check for errors on leaf clocks */
-        for (n = 0; n < MAX_CLKS; n++) {
-                if (!IS_ERR(clks[n]))
-                        continue;
+	/* check for errors on leaf clocks */
+	for (n = 0; n < MAX_CLKS; n++) {
+		if (!IS_ERR(clks[n]))
+			continue;
 
-                pr_err("%s: Unable to register leaf clock %d\n",
-                       np->full_name, n);
-                goto fail;
-        }
+		pr_err("%s: Unable to register leaf clock %d\n",
+				np->full_name, n);
+		goto fail;
+	}
 
 	/* register clk-provider */
 	clk_data.clks = clks;

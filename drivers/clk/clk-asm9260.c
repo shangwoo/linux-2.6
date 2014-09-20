@@ -231,66 +231,6 @@ static void __iomem *asm9260_get_sreg(struct device_node *node)
 	return base + reg;
 }
 
-/*
- * On this chip gate used to disable or to update clock
- * after new source was selected
- */
-
-static void __init asm9260_gate_init(struct device_node *node)
-{
-	struct clk *clk;
-	const char *clk_name = node->name;
-	void __iomem *iomem;
-	const char *parent_name;
-	u32 bit;
-	int ret;
-
-	return;
-	iomem = asm9260_get_sreg(node);
-	parent_name = of_clk_get_parent_name(node, 0);
-
-	ret = of_property_read_u32(node, "bit-index", &bit);
-	if (WARN_ON(ret))
-		return;
-
-	clk = clk_register_gate(NULL, clk_name, parent_name,
-			CLK_SET_RATE_PARENT, iomem, bit, 0,
-			&asm9260_clk_lock);
-
-	if (!IS_ERR(clk))
-		of_clk_add_provider(node, of_clk_src_simple_get, clk);
-}
-CLK_OF_DECLARE(asm9260_gate, "alphascale,asm9260-gate-clock", asm9260_gate_init);
-
-
-static void __init asm9260_div_init(struct device_node *node)
-{
-	struct clk *clk;
-	const char *clk_name = node->name;
-	void __iomem *iomem;
-	const char *parent_name;
-
-	return;
-	iomem = asm9260_get_sreg(node);
-
-	parent_name = of_clk_get_parent_name(node, 0);
-	clk = clk_register_divider(NULL, clk_name, parent_name,
-			CLK_SET_RATE_PARENT, iomem, 0, 8, CLK_DIVIDER_ONE_BASED,
-			&asm9260_clk_lock);
-
-	if (!IS_ERR(clk))
-		of_clk_add_provider(node, of_clk_src_simple_get, clk);
-}
-CLK_OF_DECLARE(asm9260_div, "alphascale,asm9260-div-clock", asm9260_div_init);
-
-/*
- * Simple one bit MUX for two sources
- */
-static void __init asm9260_bimux_init(struct device_node *node)
-{
-}
-CLK_OF_DECLARE(asm9260_bimux, "alphascale,asm9260-bimux-clock", asm9260_bimux_init);
-
 static void __init asm9260_pll_init(struct device_node *np)
 {
 	struct clk *clk;
@@ -369,7 +309,6 @@ static void __init asm9260_pll_init(struct device_node *np)
                 goto fail;
         }
 
-	printk("!!!!!!!!!!!!!\n");
 	/* register clk-provider */
 	clk_data.clks = clks;
 	clk_data.clk_num = MAX_CLKS;

@@ -80,13 +80,13 @@ struct asm9260_gate_data {
 };
 
 struct asm9260_mux_clock {
-	u8                      mask;
-	u32                     *table;
-	const char              *name;
-	const char              **parent_names;
-	u8                      num_parents;
-	unsigned long           offset;
-	unsigned long           flags;
+	u8			mask;
+	u32			*table;
+	const char		*name;
+	const char		**parent_names;
+	u8			num_parents;
+	unsigned long		offset;
+	unsigned long		flags;
 };
 
 static void __iomem *base;
@@ -187,10 +187,10 @@ static const struct asm9260_gate_data asm9260_ahb_gates[] __initconst = {
 	{ CLKID_AHB_MAC1,	"mac1",		"ahb_div",	HW_AHBCLKCTRL1,	16 },
 };
 
-static const char *main_mux_p[]		= { "oscillator", "pll" };
-static const char *i2s0_mux_p[]		= { "oscillator", "pll", "i2s0m_div" };
-static const char *i2s1_mux_p[]		= { "oscillator", "pll", "i2s1m_div" };
-static const char *clkout_mux_p[]	= { "oscillator", "pll", "rtc" };
+static const char __initdata *main_mux_p[] = { "oscillator", "pll" };
+static const char __initdata *i2s0_mux_p[] = { "oscillator", "pll", "i2s0m_div" };
+static const char __initdata *i2s1_mux_p[] = { "oscillator", "pll", "i2s1m_div" };
+static const char __initdata *clkout_mux_p[] = { "oscillator", "pll", "rtc" };
 static u32 three_mux_table[]		= { 0, 1, 3 };
 
 static struct asm9260_mux_clock asm9260_mux_clks[] __initdata = {

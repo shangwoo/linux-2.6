@@ -147,7 +147,7 @@ static unsigned int irq_get_level(struct irq_data *d)
 	return (tmp >> BM_ICOLL_INTERRUPTn_SHIFT(d->hwirq)) & 0x3;
 }
 
-static void irq_set_level(int hwirq, int level)
+static void __init irq_set_level(int hwirq, int level)
 {
 	if (unlikely(level < 0 || level > 3)) {
 		pr_err("%s Wrong level (%i) for irq (%i)!", __func__, level,

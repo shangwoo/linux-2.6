@@ -75,7 +75,7 @@
 			compatible = "alphascale,asm9260-clock-controller";
 			#clock-cells = <1>;
 			clocks = <&osc24m>;
-			reg = <0x80040000 0x500>;
+			reg = <0x80040000 0x204>;
 		};
 
 		icoll: interrupt-controller@80054000 {

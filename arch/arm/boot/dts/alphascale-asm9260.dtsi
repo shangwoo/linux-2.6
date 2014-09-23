@@ -1,12 +1,7 @@
 /*
  * Copyright 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
- * The code contained herein is licensed under the GNU General Public
- * License. You may obtain a copy of the GNU General Public License
- * Version 2 or later at the following locations:
- *
- * http://www.opensource.org/licenses/gpl-license.html
- * http://www.gnu.org/copyleft/gpl.html
+ * Licensed under the X11 license or the GPL v2 (or later)
  */
 
 #include "skeleton.dtsi"
@@ -27,6 +22,11 @@
 		serial8 = &uart8;
 		serial9 = &uart9;
         };
+
+	memory {
+		device_type = "memory";
+		reg = <0x20000000 0x2000000>;
+	};
 
 	cpus {
 		#address-cells = <0>;

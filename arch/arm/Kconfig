@@ -379,19 +379,6 @@ config ARCH_AT91
 	  This enables support for systems based on Atmel
 	  AT91RM9200 and AT91SAM9* processors.
 
-config MACH_ASM9260
-	bool "Alphascale ASM9260"
-	select COMMON_CLK
-	select IRQ_DOMAIN
-	select SPARSE_IRQ
-	select MULTI_IRQ_HANDLER
-	select GENERIC_IRQ_CHIP
-	select GENERIC_CLOCKEVENTS
-	select CLKSRC_MMIO
-	select CPU_ARM926T
-	help
-	  Support for Alpascale ASM9260 based platform.
-
 config ARCH_CLPS711X
 	bool "Cirrus Logic CLPS711x/EP721x/EP731x-based"
 	select ARCH_REQUIRE_GPIOLIB
@@ -980,6 +967,8 @@ source "arch/arm/mach-vt8500/Kconfig"
 source "arch/arm/mach-w90x900/Kconfig"
 
 source "arch/arm/mach-zynq/Kconfig"
+
+source "arch/arm/mach-asm9260/Kconfig"
 
 # Definitions to make life easier
 config ARCH_ACORN

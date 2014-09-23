@@ -43,26 +43,11 @@ static struct map_desc asm9260_io_desc[] __initdata = {
 		.length		= 0x00100000,
 		.type		= MT_DEVICE
 	},
-	{	/* SRAM space Cacheable */
-		.virtual	= (unsigned long)0xd0000000,
-		.pfn		= __phys_to_pfn(0x40000000),
-		.length		= 0x00100000,
-#ifdef CONFIG_SRAM_MEM_CACHED
-		.type		= MT_MEMORY
-#else
-		.type		= MT_DEVICE
-#endif
-	},
 };
 
 static void __init asm9260_map_io(void)
 {
 	iotable_init(asm9260_io_desc, ARRAY_SIZE(asm9260_io_desc));
-}
-
-static void __init asm9260_init(void)
-{
-	of_platform_populate(NULL, of_default_bus_match_table, NULL, NULL);
 }
 
 static const char * const asm9260_dt_board_compat[] __initconst = {
@@ -72,6 +57,5 @@ static const char * const asm9260_dt_board_compat[] __initconst = {
 
 DT_MACHINE_START(ASM9260, "Alphascale ASM9260 (Device Tree Support)")
 	.map_io		= asm9260_map_io,
-	.init_machine	= asm9260_init,
 	.dt_compat	= asm9260_dt_board_compat,
 MACHINE_END

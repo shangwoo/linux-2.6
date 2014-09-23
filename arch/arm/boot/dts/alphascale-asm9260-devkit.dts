@@ -11,10 +11,6 @@
 	model = "Alphascale asm9260 Development Kit";
 	compatible = "alphascale,asm9260devkit", "alphascale,asm9260";
 
-	chosen {
-		bootargs = "earlyprintk=serial console=ttyS0,115200n8";
-	};
-
 	aliases {
 		serial0 = &uart4;
 	};

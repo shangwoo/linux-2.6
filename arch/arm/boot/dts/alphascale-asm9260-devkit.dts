@@ -12,9 +12,12 @@
 	compatible = "alphascale,asm9260devkit", "alphascale,asm9260";
 
 	chosen {
-		bootargs = "earlyprintk=serial console=ttyS4,115200n8";
+		bootargs = "earlyprintk=serial console=ttyS0,115200n8";
 	};
 
+	aliases {
+		serial0 = &uart4;
+	};
 };
 
 &uart4 {

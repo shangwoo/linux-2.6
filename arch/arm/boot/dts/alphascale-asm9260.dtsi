@@ -10,19 +10,6 @@
 / {
 	interrupt-parent = <&icoll>;
 
-        aliases {
-		serial0 = &uart0;
-		serial1 = &uart1;
-		serial2 = &uart2;
-		serial3 = &uart3;
-		serial4 = &uart4;
-		serial5 = &uart5;
-		serial6 = &uart6;
-		serial7 = &uart7;
-		serial8 = &uart8;
-		serial9 = &uart9;
-        };
-
 	memory {
 		device_type = "memory";
 		reg = <0x20000000 0x2000000>;

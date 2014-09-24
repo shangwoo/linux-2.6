@@ -62,14 +62,14 @@
 			compatible = "alphascale,asm9260-clock-controller";
 			#clock-cells = <1>;
 			clocks = <&osc24m>;
-			reg = <0x80040000 0x2000>;
+			reg = <0x80040000 0x204>;
 		};
 
 		icoll: interrupt-controller@80054000 {
 			compatible = "alphascale,asm9260-icall";
 			interrupt-controller;
 			#interrupt-cells = <1>;
-			reg = <0x80054000 0x2000>;
+			reg = <0x80054000 0x200>;
 		};
 
 		uart0: serial@80000000 {

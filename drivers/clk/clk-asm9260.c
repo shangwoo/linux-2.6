@@ -343,6 +343,7 @@ static void __init asm9260_acc_init(struct device_node *np)
 	clk_data.clks = clks;
 	clk_data.clk_num = MAX_CLKS;
 	of_clk_add_provider(np, of_clk_src_onecell_get, &clk_data);
+	return;
 fail:
 	iounmap(base);
 }

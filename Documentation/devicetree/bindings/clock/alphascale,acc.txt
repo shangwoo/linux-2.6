@@ -11,7 +11,7 @@ ACC allow peripheral clocks to be gated to save some power. The clock consumer
 should specify the desired clock by having the clock ID in it
 "clocks" phandle cell. It is encouraged to use dt-binding for clock ID
 definitions. SoC specific dt-binding should be included to the device tree
-descriptor. For example Alphascale ASM9260: 
+descriptor. For example Alphascale ASM9260:
 #include <dt-bindings/clock/alphascale,asm9260.h>
 
 This binding contains two types of clock sinks: _AHB_ sink - a peripheral

@@ -47,7 +47,7 @@
 		};
 
 		icoll: interrupt-controller@80054000 {
-			compatible = "alphascale,asm9260-icall";
+			compatible = "alphascale,asm9260-icoll";
 			interrupt-controller;
 			#interrupt-cells = <1>;
 			reg = <0x80054000 0x200>;

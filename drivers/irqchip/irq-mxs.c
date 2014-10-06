@@ -49,22 +49,36 @@
 #define HW_ICOLL_STAT_OFFSET			0x0070
 #define HW_ICOLL_INTERRUPT0			0x0120
 #define HW_ICOLL_INTERRUPTn(n)			((n) * 0x10)
-#define BM_ICOLL_INTERRUPTn_ENABLE		0x00000004
+#define BM_ICOLL_INTR_ENABLE			BIT(2)
 #define BV_ICOLL_LEVELACK_IRQLEVELACK__LEVEL0	0x1
 
 #define ICOLL_NUM_IRQS		128
 
-struct icoll_regs {
+struct icoll_priv {
 	void __iomem *vector;
 	void __iomem *levelack;
 	void __iomem *ctrl;
 	void __iomem *stat;
 	void __iomem *intr;
+	/* number of interrupts per register */
+	int intr_reg_num;
 	void __iomem *clear;
 };
 
-struct icoll_regs icoll_regs;
+struct icoll_priv icoll_priv;
 static struct irq_domain *icoll_domain;
+
+static u32 icoll_intr_bitshift(struct irq_data *d, u32 bit)
+{
+	int n = icoll_priv.intr_reg_num - 1;
+	return bit << ((d->hwirq & n) << n);
+}
+
+static void __iomem *icoll_intr_reg(struct irq_data *d)
+{
+	int n = icoll_priv.intr_reg_num;
+	return icoll_priv.intr + ((d->hwirq / n) * 0x10);
+}
 
 static void icoll_ack_irq(struct irq_data *d)
 {
@@ -74,26 +88,25 @@ static void icoll_ack_irq(struct irq_data *d)
 	 * BV_ICOLL_LEVELACK_IRQLEVELACK__LEVEL0 unconditionally.
 	 */
 	__raw_writel(BV_ICOLL_LEVELACK_IRQLEVELACK__LEVEL0,
-			icoll_regs.levelack);
+			icoll_priv.levelack);
 }
 
 static void icoll_mask_irq(struct irq_data *d)
 {
-	__raw_writel(BM_ICOLL_INTERRUPTn_ENABLE,
-			icoll_regs.intr +
-			SET_REG + HW_ICOLL_INTERRUPTn(d->hwirq));
+	__raw_writel(icoll_intr_bitshift(d, BM_ICOLL_INTR_ENABLE),
+			icoll_intr_reg(d) + CLR_REG);
 }
 
 static void icoll_unmask_irq(struct irq_data *d)
 {
-	if (!IS_ERR(icoll_regs.clear))
+	if (!IS_ERR(icoll_priv.clear)) {
 		__raw_writel(ASM9260_BM_CLEAR_BIT(d->hwirq),
-				icoll_regs.clear +
-				SET_REG + ASM9260_HW_ICOLL_CLEARn(d->hwirq));
+				icoll_priv.clear +
+				ASM9260_HW_ICOLL_CLEARn(d->hwirq));
+	}
 
-	__raw_writel(BM_ICOLL_INTERRUPTn_ENABLE,
-			icoll_regs.intr +
-			SET_REG + HW_ICOLL_INTERRUPTn(d->hwirq));
+	__raw_writel(icoll_intr_bitshift(d, BM_ICOLL_INTR_ENABLE),
+			icoll_intr_reg(d) + SET_REG);
 }
 
 static struct irq_chip mxs_icoll_chip = {
@@ -106,8 +119,8 @@ asmlinkage void __exception_irq_entry icoll_handle_irq(struct pt_regs *regs)
 {
 	u32 irqnr;
 
-	irqnr = __raw_readl(icoll_regs.stat);
-	__raw_writel(irqnr, icoll_regs.vector);
+	irqnr = __raw_readl(icoll_priv.stat);
+	__raw_writel(irqnr, icoll_priv.vector);
 	handle_domain_irq(icoll_domain, irqnr, regs);
 }
 
@@ -160,18 +173,19 @@ static int __init icoll_of_init(struct device_node *np,
 	void __iomem *icoll_base;
 
 	icoll_base		= icoll_init_iobase(np);
-	icoll_regs.vector	= icoll_base + HW_ICOLL_VECTOR;
-	icoll_regs.levelack	= icoll_base + HW_ICOLL_LEVELACK;
-	icoll_regs.ctrl		= icoll_base + HW_ICOLL_CTRL;
-	icoll_regs.stat		= icoll_base + HW_ICOLL_STAT_OFFSET;
-	icoll_regs.intr		= icoll_base + HW_ICOLL_INTERRUPT0;
-	icoll_regs.clear	= ERR_PTR(-ENODEV);
+	icoll_priv.vector	= icoll_base + HW_ICOLL_VECTOR;
+	icoll_priv.levelack	= icoll_base + HW_ICOLL_LEVELACK;
+	icoll_priv.ctrl		= icoll_base + HW_ICOLL_CTRL;
+	icoll_priv.stat		= icoll_base + HW_ICOLL_STAT_OFFSET;
+	icoll_priv.intr		= icoll_base + HW_ICOLL_INTERRUPT0;
+	icoll_priv.intr_reg_num	= 1;
+	icoll_priv.clear	= ERR_PTR(-ENODEV);
 
 	/*
 	 * Interrupt Collector reset, which initializes the priority
 	 * for each irq to level 0.
 	 */
-	stmp_reset_block(icoll_regs.ctrl);
+	stmp_reset_block(icoll_priv.ctrl);
 
 	icoll_add_domain(np, ICOLL_NUM_IRQS);
 
@@ -186,21 +200,22 @@ static int __init asm9260_of_init(struct device_node *np,
 	int i;
 
 	icoll_base = icoll_init_iobase(np);
-	icoll_regs.vector	= icoll_base + ASM9260_HW_ICOLL_VECTOR;
-	icoll_regs.levelack	= icoll_base + ASM9260_HW_ICOLL_LEVELACK;
-	icoll_regs.ctrl		= icoll_base + ASM9260_HW_ICOLL_CTRL;
-	icoll_regs.stat		= icoll_base + ASM9260_HW_ICOLL_STAT_OFFSET;
-	icoll_regs.intr		= icoll_base + ASM9260_HW_ICOLL_INTERRUPT0;
-	icoll_regs.clear	= icoll_base + ASM9260_HW_ICOLL_CLEAR0;
+	icoll_priv.vector	= icoll_base + ASM9260_HW_ICOLL_VECTOR;
+	icoll_priv.levelack	= icoll_base + ASM9260_HW_ICOLL_LEVELACK;
+	icoll_priv.ctrl		= icoll_base + ASM9260_HW_ICOLL_CTRL;
+	icoll_priv.stat		= icoll_base + ASM9260_HW_ICOLL_STAT_OFFSET;
+	icoll_priv.intr		= icoll_base + ASM9260_HW_ICOLL_INTERRUPT0;
+	icoll_priv.intr_reg_num	= 4;
+	icoll_priv.clear	= icoll_base + ASM9260_HW_ICOLL_CLEAR0;
 
 	writel_relaxed(ASM9260_BM_CTRL_IRQ_ENABLE,
-			icoll_regs.ctrl);
+			icoll_priv.ctrl);
 	/*
 	 * ASM9260 don't provide reset bit. So, we need to set level 0
 	 * manually.
 	 */
 	for (i = 0; i < 16 * 0x10; i += 0x10)
-		writel(0, icoll_regs.intr + i);
+		writel(0, icoll_priv.intr + i);
 
 	icoll_add_domain(np, ASM9260_NUM_IRQS);
 

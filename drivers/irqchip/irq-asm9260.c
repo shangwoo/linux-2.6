@@ -5,15 +5,6 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 #include <linux/kernel.h>
@@ -121,7 +112,7 @@
 
 #define HW_ICOLL_CLEAR0				0x01d0
 #define	HW_ICOLL_CLEAR1				0x01e0
-#define HW_ICOLL_CLEARn(n)			(0x01d0 + ((n >> 5) * 0x10) \
+#define HW_ICOLL_CLEARn(n)			(((n >> 5) * 0x10) \
 							+ SET_REG)
 #define BM_CLEAR_BIT(n)				BIT(n & 0x1f)
 
@@ -177,8 +168,8 @@ static void icoll_unmask_irq(struct irq_data *d)
 	u32 level = irq_get_level(d);
 
 	mutex_lock(&icoll_lock);
-	writel_relaxed(BM_CLEAR_BIT(d->hwirq),
-			icoll_base + HW_ICOLL_CLEARn(d->hwirq));
+	//writel_relaxed(BM_CLEAR_BIT(d->hwirq),
+	//		icoll_base + HW_ICOLL_CLEARn(d->hwirq));
 
 	writel_relaxed(BM_LEVELn(level), icoll_base + HW_ICOLL_LEVELACK);
 

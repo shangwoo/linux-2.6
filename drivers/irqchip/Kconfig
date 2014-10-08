@@ -125,3 +125,8 @@ config KEYSTONE_IRQ
 	help
 		Support for Texas Instruments Keystone 2 IRQ controller IP which
 		is part of the Keystone 2 IPC mechanism
+
+config IRQ_MXS
+	def_bool y if MACH_ASM9260 || ARCH_MXS
+	select IRQ_DOMAIN
+	select STMP_DEVICE

@@ -266,7 +266,7 @@ enum asm9260_pin_enum {
 	GPIO17_5	= PINID(17, 5), /* 86 */
 	GPIO17_6	= PINID(17, 6), /* 87 */
 	GPIO17_7	= PINID(17, 7), /* 88 */
-}
+};
 /////////////////////////////////////////////////
 
 static const struct pinctrl_pin_desc asm9260_pins[] = {
@@ -396,6 +396,30 @@ static const struct pinctrl_pin_desc asm9260_pins[] = {
 	ASM9260_PINCTRL_PIN(GPIO17_7),
 };
 
+static const unsigned int uart1_pins[] = {
+	GPIO0_0, /* clk */
+	GPIO0_1, /* tx */
+	GPIO0_2, /* rx */
+	GPIO0_3, /* rts */
+	GPIO0_4, /* cts */
+};
+
+static const unsigned int uart4_0_pins[] = {
+	GPIO2_7, /* clk */
+	GPIO3_0, /* tx */
+	GPIO3_1, /* rx */
+	GPIO3_2, /* rts */
+	GPIO3_3, /* cts */
+};
+
+static const unsigned int uart4_1_pins[] = {
+	GPIO9_2, /* clk */
+	GPIO9_3, /* tx */
+	GPIO9_4, /* rx */
+	GPIO9_5, /* rts */
+	/* TODO: no cts, probably ASM9260_PIN_GPIO3_3 should be used */
+};
+
 #if 0
 /* Pins in each pin group */
 
@@ -405,145 +429,6 @@ static const unsigned int spi1_cs2_pins[] = {
 
 static const unsigned int pdm_d_pins[] = {
 	ASM9260_PIN_PDM_D,
-};
-
-static const unsigned int tft_pins[] = {
-	ASM9260_PIN_TFT_RED0,
-	ASM9260_PIN_TFT_RED1,
-	ASM9260_PIN_TFT_RED2,
-	ASM9260_PIN_TFT_RED3,
-	ASM9260_PIN_TFT_RED4,
-	ASM9260_PIN_TFT_RED5,
-	ASM9260_PIN_TFT_RED6,
-	ASM9260_PIN_TFT_RED7,
-	ASM9260_PIN_TFT_GREEN0,
-	ASM9260_PIN_TFT_GREEN1,
-	ASM9260_PIN_TFT_GREEN2,
-	ASM9260_PIN_TFT_GREEN3,
-	ASM9260_PIN_TFT_GREEN4,
-	ASM9260_PIN_TFT_GREEN5,
-	ASM9260_PIN_TFT_GREEN6,
-	ASM9260_PIN_TFT_GREEN7,
-	ASM9260_PIN_TFT_BLUE0,
-	ASM9260_PIN_TFT_BLUE1,
-	ASM9260_PIN_TFT_BLUE2,
-	ASM9260_PIN_TFT_BLUE3,
-	ASM9260_PIN_TFT_BLUE4,
-	ASM9260_PIN_TFT_BLUE5,
-	ASM9260_PIN_TFT_BLUE6,
-	ASM9260_PIN_TFT_BLUE7,
-	ASM9260_PIN_TFT_VDDEN_GD,
-	ASM9260_PIN_TFT_PANELCLK,
-	ASM9260_PIN_TFT_BLANK_LS,
-	ASM9260_PIN_TFT_VSYNC_NS,
-	ASM9260_PIN_TFT_HSYNC_NR,
-	ASM9260_PIN_TFT_VD12ACB,
-	ASM9260_PIN_TFT_PWRSAVE,
-};
-
-static const unsigned int afe_pins[] = {
-	ASM9260_PIN_TX_ON,
-	ASM9260_PIN_RX_ON,
-	ASM9260_PIN_PLL_ON,
-	ASM9260_PIN_PA_ON,
-	ASM9260_PIN_RX_HP,
-	ASM9260_PIN_ANT_SEL0,
-	ASM9260_PIN_ANT_SEL1,
-	ASM9260_PIN_GAIN0,
-	ASM9260_PIN_GAIN1,
-	ASM9260_PIN_GAIN2,
-	ASM9260_PIN_GAIN3,
-	ASM9260_PIN_GAIN4,
-	ASM9260_PIN_GAIN5,
-	ASM9260_PIN_GAIN6,
-	ASM9260_PIN_GAIN7,
-};
-
-static const unsigned int sdio_pins[] = {
-	ASM9260_PIN_SDIO_CLK,
-	ASM9260_PIN_SDIO_CMD,
-	ASM9260_PIN_SDIO_D0,
-	ASM9260_PIN_SDIO_D1,
-	ASM9260_PIN_SDIO_D2,
-	ASM9260_PIN_SDIO_D3,
-};
-
-static const unsigned int sdh_pins[] = {
-	ASM9260_PIN_SDH_CD,
-	ASM9260_PIN_SDH_WP,
-	ASM9260_PIN_SDH_CLK_IN,
-};
-
-static const unsigned int spi0_pins[] = {
-	ASM9260_PIN_SPI0_MCLK,
-	ASM9260_PIN_SPI0_CS0,
-	ASM9260_PIN_SPI0_CS1,
-	ASM9260_PIN_SPI0_CS2,
-	ASM9260_PIN_SPI0_DOUT,
-	ASM9260_PIN_SPI0_DIN,
-};
-
-static const unsigned int spi1_pins[] = {
-	ASM9260_PIN_SPI1_MCLK,
-	ASM9260_PIN_SPI1_CS0,
-	ASM9260_PIN_SPI1_CS1,
-	ASM9260_PIN_SPI1_CS2,
-	ASM9260_PIN_SPI1_DOUT,
-	ASM9260_PIN_SPI1_DIN,
-};
-
-static const unsigned int uart0_pins[] = {
-	ASM9260_PIN_UART0_RTS,
-	ASM9260_PIN_UART0_CTS,
-	ASM9260_PIN_UART0_TXD,
-	ASM9260_PIN_UART0_RXD,
-};
-
-static const unsigned int uart1_pins[] = {
-	ASM9260_PIN_UART1_TXD,
-	ASM9260_PIN_UART1_RXD,
-};
-
-static const unsigned int uart_pins[] = {
-	ASM9260_PIN_UART1_TXD,
-	ASM9260_PIN_UART1_RXD,
-	ASM9260_PIN_UART0_RTS,
-	ASM9260_PIN_UART0_CTS,
-	ASM9260_PIN_UART0_TXD,
-	ASM9260_PIN_UART0_RXD,
-};
-
-static const unsigned int scb0_pins[] = {
-	ASM9260_PIN_SCB0_SDAT,
-	ASM9260_PIN_SCB0_SCLK,
-};
-
-static const unsigned int scb1_pins[] = {
-	ASM9260_PIN_SCB1_SDAT,
-	ASM9260_PIN_SCB1_SCLK,
-};
-
-static const unsigned int scb2_pins[] = {
-	ASM9260_PIN_SCB2_SDAT,
-	ASM9260_PIN_SCB2_SCLK,
-};
-
-static const unsigned int i2s_pins[] = {
-	ASM9260_PIN_I2S_MCLK,
-	ASM9260_PIN_I2S_BCLK_OUT,
-	ASM9260_PIN_I2S_LRCLK_OUT,
-	ASM9260_PIN_I2S_DOUT0,
-	ASM9260_PIN_I2S_DOUT1,
-	ASM9260_PIN_I2S_DOUT2,
-	ASM9260_PIN_I2S_DIN,
-};
-
-static const unsigned int jtag_pins[] = {
-	ASM9260_PIN_TCK,
-	ASM9260_PIN_TRST,
-	ASM9260_PIN_TDI,
-	ASM9260_PIN_TDO,
-	ASM9260_PIN_TMS,
 };
 
 /* Pins in each drive pin group */
@@ -870,20 +755,6 @@ static const struct asm9260_function asm9260_functions[] = {
 			   mux_r, mux_b, mux_w),		\
 	}
 
-/**
- * SIMPLE_PG() - Initialise a simple convenience pin group
- * @pg_name:	Pin group name (stringified, _pins appended to get pins array)
- *
- * A simple pin group is simply used for binding pins together so they can be
- * referred to by a single name instead of having to list every pin
- * individually.
- */
-#define SIMPLE_PG(pg_name)					\
-	{							\
-		.name = #pg_name,				\
-		.pins = pg_name##_pins,				\
-		.npins = ARRAY_SIZE(pg_name##_pins),		\
-	}
 
 /**
  * DRV_PG() - Initialise a pin group with drive control
@@ -938,7 +809,7 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
  *
  * This array is initialised in asm9260_init_mux_pins().
  */
-static u8 asm9260_mux_pins[NUM_GPIOS];
+static u8 asm9260_mux_pins[ARRAY_SIZE(asm9260_pins)];
 
 /* ASM9260_MUX_GROUP_MAX is used in asm9260_mux_pins[] for non-muxing pins */
 #define ASM9260_MUX_GROUP_MAX ARRAY_SIZE(asm9260_mux_groups)
@@ -957,7 +828,7 @@ static void __init asm9260_init_mux_pins(void)
 	const struct asm9260_pingroup *grp;
 	const unsigned int *pin;
 
-	for (p = 0; p < NUM_GPIOS; ++p)
+	for (p = 0; p < ARRAY_SIZE(asm9260_pins); ++p)
 		asm9260_mux_pins[p] = ASM9260_MUX_GROUP_MAX;
 
 	grp = asm9260_mux_groups;
@@ -968,47 +839,27 @@ static void __init asm9260_init_mux_pins(void)
 }
 
 #endif
-/*
- * These are the externally visible pin groups. Some of them allow group control
- * of drive configuration. Some are just simple convenience pingroups. All the
- * internal pin mux groups in asm9260_mux_groups[] are mirrored here with the
- * same pins.
- * Pseudo pin groups follow in the group numbers after this array for each GPIO
- * pin. Any group used for muxing must have all pins belonging to the same pin
- * mux group.
+
+/**
+ * SIMPLE_PG() - Initialise a simple convenience pin group
+ * @pg_name:	Pin group name (stringified, _pins appended to get pins array)
+ *
+ * A simple pin group is simply used for binding pins together so they can be
+ * referred to by a single name instead of having to list every pin
+ * individually.
  */
+#define SIMPLE_PG(pg_name)					\
+	{							\
+		.name = #pg_name,				\
+		.pins = pg_name##_pins,				\
+		.npins = ARRAY_SIZE(pg_name##_pins),		\
+	}
+
 static struct asm9260_pingroup asm9260_groups[] = {
-	/* Pin groups with drive control (with no out of place pins) */
-	/*     pg_name,		slw/schmitt/drv b */
-	DRV_PG(jtag,		11 /* 11, 22 */),
-	DRV_PG(tft,		10 /* 10, 20 */),
-	DRV_PG(scb2,		9  /*  9, 18 */),
-	DRV_PG(spi0,		7  /*  7, 14 */),
-	DRV_PG(uart,		5  /*  5, 10 */),
-	DRV_PG(scb1,		4  /*  4,  8 */),
-	DRV_PG(spi1,		3  /*  3,  6 */),
-	DRV_PG(afe,		0  /*  0,  0 */),
-
-	/*
-	 * Drive specific pin groups (with odd combinations of pins which makes
-	 * the pin group naming somewhat arbitrary)
-	 */
-	/*     pg_name,		slw/schmitt/drv b */
-	DRV_PG(drive_sdio,	8  /*  8, 16 */), /* sdio_* + sdh_* */
-	DRV_PG(drive_i2s,	6  /*  6, 12 */), /* i2s_* + clk_out1 */
-	DRV_PG(drive_scb0,	2  /*  2,  4 */), /* scb0_* + pdm_{c,d} */
-	DRV_PG(drive_pdm,	1  /*  1,  2 */), /* pdm_{a,b} + clk_out0 */
-
-	/* Convenience pin groups */
 	/*        pg_name */
-	SIMPLE_PG(uart0),
 	SIMPLE_PG(uart1),
-	SIMPLE_PG(scb0),
-	SIMPLE_PG(i2s),
-	SIMPLE_PG(sdh),
-	SIMPLE_PG(sdio),
-
-	/* pseudo-pingroups for each GPIO pin follow */
+	SIMPLE_PG(uart4_0),
+	SIMPLE_PG(uart4_1),
 };
 
 /**
@@ -1048,7 +899,7 @@ static inline void pmx_write(struct asm9260_pmx *pmx, u32 val, u32 reg)
 
 static int asm9260_pinctrl_get_groups_count(struct pinctrl_dev *pctldev)
 {
-	return ARRAY_SIZE(asm9260_groups) + NUM_GPIOS;
+	return ARRAY_SIZE(asm9260_pins);
 }
 
 static const char *asm9260_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
@@ -1269,12 +1120,12 @@ static int asm9260_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
 static struct pinctrl_ops asm9260_pinctrl_ops = {
 	.get_groups_count	= asm9260_pinctrl_get_groups_count,
 	.get_group_name		= asm9260_pinctrl_get_group_name,
-	.get_group_pins		= asm9260_pinctrl_get_group_pins,
+//	.get_group_pins		= asm9260_pinctrl_get_group_pins,
 #ifdef CONFIG_DEBUG_FS
-	.pin_dbg_show		= asm9260_pinctrl_pin_dbg_show,
+//	.pin_dbg_show		= asm9260_pinctrl_pin_dbg_show,
 #endif
-	.dt_node_to_map		= asm9260_pinctrl_dt_node_to_map,
-	.dt_free_map		= asm9260_pinctrl_dt_free_map,
+//	.dt_node_to_map		= asm9260_pinctrl_dt_node_to_map,
+//	.dt_free_map		= asm9260_pinctrl_dt_free_map,
 };
 
 /*
@@ -1353,7 +1204,7 @@ static void asm9260_pinctrl_gpio_select(struct asm9260_pmx *pmx,
 	unsigned int index, shift;
 	u32 gpio_en;
 
-	if (pin >= NUM_GPIOS)
+	if (pin >= ARRAY_SIZE(asm9260_pins))
 		return;
 
 	/* uses base 32 instead of base 30 */
@@ -1392,7 +1243,7 @@ static void asm9260_pinctrl_perip_select(struct asm9260_pmx *pmx,
 	unsigned int index, shift;
 	u32 pin_en;
 
-	if (pin >= NUM_GPIOS)
+	if (pin >= ARRAY_SIZE(asm9260_pins))
 		return;
 
 	/* uses base 32 instead of base 30 */

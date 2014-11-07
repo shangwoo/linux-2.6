@@ -1055,6 +1055,7 @@ static void __init asm9260_init_mux_pins(void)
 			asm9260_mux_pins[*pin] = g;
 }
 
+#endif
 /*
  * These are the externally visible pin groups. Some of them allow group control
  * of drive configuration. Some are just simple convenience pingroups. All the
@@ -1098,7 +1099,6 @@ static struct asm9260_pingroup asm9260_groups[] = {
 	/* pseudo-pingroups for each GPIO pin follow */
 };
 
-#endif
 /**
  * struct asm9260_pmx - Private pinctrl data
  * @dev:	Platform device
@@ -1127,6 +1127,7 @@ static inline void pmx_write(struct asm9260_pmx *pmx, u32 val, u32 reg)
 	iowrite32(val, pmx->regs + reg);
 }
 
+#endif
 /*
  * Pin control operations
  */
@@ -1151,6 +1152,7 @@ static const char *asm9260_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
 	}
 }
 
+#if 0
 static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
 					 unsigned int group,
 					 const unsigned int **pins,
@@ -1351,6 +1353,7 @@ static int asm9260_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
+#endif
 static struct pinctrl_ops asm9260_pinctrl_ops = {
 	.get_groups_count	= asm9260_pinctrl_get_groups_count,
 	.get_group_name		= asm9260_pinctrl_get_group_name,
@@ -1365,7 +1368,7 @@ static struct pinctrl_ops asm9260_pinctrl_ops = {
 /*
  * Pin mux operations
  */
-
+#if 0
 static int asm9260_pinctrl_get_funcs_count(struct pinctrl_dev *pctldev)
 {
 	return ARRAY_SIZE(asm9260_functions);
@@ -1953,7 +1956,7 @@ static struct pinconf_ops asm9260_pinconf_ops = {
 
 /* OK */
 static struct pinctrl_desc asm9260_pinctrl_desc = {
-//	.pctlops	= &asm9260_pinctrl_ops,
+	.pctlops	= &asm9260_pinctrl_ops,
 //	.pmxops		= &asm9260_pinmux_ops,
 //	.confops	= &asm9260_pinconf_ops,
 	.owner		= THIS_MODULE,
@@ -1965,7 +1968,6 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct asm9260_pmx *pmx;
 
-	printk("%s:%i\n", __func__, __LINE__);
 	pmx = devm_kzalloc(&pdev->dev, sizeof(*pmx), GFP_KERNEL);
 	if (!pmx) {
 		dev_err(&pdev->dev, "Can't alloc asm9260_pmx\n");

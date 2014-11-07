@@ -1964,6 +1964,7 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 	struct asm9260_pmx *pmx;
 	struct resource *res;
 
+	printk("%s:%i\n", __func__, __LINE__);
 	pmx = devm_kzalloc(&pdev->dev, sizeof(*pmx), GFP_KERNEL);
 	if (!pmx) {
 		dev_err(&pdev->dev, "Can't alloc asm9260_pmx\n");

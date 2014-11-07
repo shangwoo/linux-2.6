@@ -28,6 +28,7 @@
 #include <linux/io.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_address.h>
 #include <linux/platform_device.h>
 #include <linux/pinctrl/machine.h>
 #include <linux/pinctrl/pinconf-generic.h>
@@ -1961,8 +1962,8 @@ static struct pinctrl_desc asm9260_pinctrl_desc = {
 /* OK */
 static int asm9260_pinctrl_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
 	struct asm9260_pmx *pmx;
-	struct resource *res;
 
 	printk("%s:%i\n", __func__, __LINE__);
 	pmx = devm_kzalloc(&pdev->dev, sizeof(*pmx), GFP_KERNEL);
@@ -1977,8 +1978,7 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 	asm9260_pinctrl_desc.pins = asm9260_pins;
 	asm9260_pinctrl_desc.npins = ARRAY_SIZE(asm9260_pins);
 
-	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	pmx->regs = devm_ioremap_resource(&pdev->dev, res);
+	pmx->regs = of_io_request_and_map(np, 0, dev_name(&pdev->dev));
 	if (IS_ERR(pmx->regs))
 		return PTR_ERR(pmx->regs);
 

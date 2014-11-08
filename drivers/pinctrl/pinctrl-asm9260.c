@@ -423,54 +423,6 @@ static const unsigned int uart4_1_pins[] = {
 #if 0
 /* Pins in each pin group */
 
-static const unsigned int spi1_cs2_pins[] = {
-	ASM9260_PIN_SPI1_CS2,
-};
-
-static const unsigned int pdm_d_pins[] = {
-	ASM9260_PIN_PDM_D,
-};
-
-/* Pins in each drive pin group */
-
-static const unsigned int drive_sdio_pins[] = {
-	ASM9260_PIN_SDIO_CLK,
-	ASM9260_PIN_SDIO_CMD,
-	ASM9260_PIN_SDIO_D0,
-	ASM9260_PIN_SDIO_D1,
-	ASM9260_PIN_SDIO_D2,
-	ASM9260_PIN_SDIO_D3,
-	ASM9260_PIN_SDH_WP,
-	ASM9260_PIN_SDH_CD,
-	ASM9260_PIN_SDH_CLK_IN,
-};
-
-static const unsigned int drive_i2s_pins[] = {
-	ASM9260_PIN_CLK_OUT1,
-	ASM9260_PIN_I2S_DIN,
-	ASM9260_PIN_I2S_DOUT0,
-	ASM9260_PIN_I2S_DOUT1,
-	ASM9260_PIN_I2S_DOUT2,
-	ASM9260_PIN_I2S_LRCLK_OUT,
-	ASM9260_PIN_I2S_BCLK_OUT,
-	ASM9260_PIN_I2S_MCLK,
-};
-
-static const unsigned int drive_scb0_pins[] = {
-	ASM9260_PIN_SCB0_SCLK,
-	ASM9260_PIN_SCB0_SDAT,
-	ASM9260_PIN_PDM_D,
-	ASM9260_PIN_PDM_C,
-};
-
-static const unsigned int drive_pdm_pins[] = {
-	ASM9260_PIN_CLK_OUT0,
-	ASM9260_PIN_PDM_B,
-	ASM9260_PIN_PDM_A,
-};
-
-/* Pin groups each function can be muxed to */
-
 /*
  * The magic "perip" function allows otherwise non-muxing pins to be enabled in
  * peripheral mode.

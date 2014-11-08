@@ -886,7 +886,6 @@ static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
-#if 0
 #ifdef CONFIG_DEBUG_FS
 static void asm9260_pinctrl_pin_dbg_show(struct pinctrl_dev *pctldev,
 					struct seq_file *s,
@@ -1068,16 +1067,15 @@ static int asm9260_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
-#endif
 static struct pinctrl_ops asm9260_pinctrl_ops = {
 	.get_groups_count	= asm9260_pinctrl_get_groups_count,
 	.get_group_name		= asm9260_pinctrl_get_group_name,
 	.get_group_pins		= asm9260_pinctrl_get_group_pins,
 #ifdef CONFIG_DEBUG_FS
-//	.pin_dbg_show		= asm9260_pinctrl_pin_dbg_show,
+	.pin_dbg_show		= asm9260_pinctrl_pin_dbg_show,
 #endif
-//	.dt_node_to_map		= asm9260_pinctrl_dt_node_to_map,
-//	.dt_free_map		= asm9260_pinctrl_dt_free_map,
+	.dt_node_to_map		= asm9260_pinctrl_dt_node_to_map,
+	.dt_free_map		= asm9260_pinctrl_dt_free_map,
 };
 
 /*

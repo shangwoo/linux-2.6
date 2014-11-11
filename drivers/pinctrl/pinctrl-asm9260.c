@@ -645,43 +645,6 @@ static const struct asm9260_function asm9260_functions[] = {
 	}
 
 /**
- * DEFINE_SUBMUX() - Defines a submux description separate from a pin group.
- * @mux:	Mux name (_submux is appended)
- * @f0:		Function 0 (ASM9260_MUX_ is prepended, NA for none)
- * @f1:		Function 1 (ASM9260_MUX_ is prepended, NA for none)
- * @f2:		Function 2 (ASM9260_MUX_ is prepended, NA for none)
- * @f3:		Function 3 (ASM9260_MUX_ is prepended, NA for none)
- * @f4:		Function 4 (ASM9260_MUX_ is prepended, NA for none)
- * @mux_r:	Mux register (REG_PINCTRL_ is prepended)
- * @mux_b:	Bit number in register that the mux field begins
- * @mux_w:	Width of mux field in register
- *
- * A sub mux is a nested mux that can be bound to a magic function number used
- * by another mux description. For example value 4 of the top level mux might
- * correspond to a function which has a submux pointed to in asm9260_submux[].
- * The outer mux can then take on any function in the top level mux or the
- * submux, and if a submux function is chosen both muxes are updated to route
- * the signal from the submux.
- *
- * The submux can be defined with DEFINE_SUBMUX and pointed to from
- * asm9260_submux[] using SUBMUX.
- */
-#define DEFINE_SUBMUX(mux, f0, f1, f2, f3, f4, mux_r, mux_b, mux_w)	\
-	static struct asm9260_muxdesc mux ## _submux =			\
-		MUX(f0, f1, f2, f3, f4, mux_r, mux_b, mux_w)
-
-/**
- * SUBMUX() - Link a submux to a function number.
- * @f:		Function name (ASM9260_MUX_ is prepended)
- * @submux:	Submux name (_submux is appended)
- *
- * For use in asm9260_submux[] initialisation to link an intermediate function
- * number to a particular submux description. It indicates that when the
- * function is chosen the signal is connected to the submux.
- */
-#define SUBMUX(f, submux)	[(ASM9260_MUX_ ## f)] = &(submux ## _submux)
-
-/**
  * MUX_PG() - Initialise a pin group with mux control
  * @pg_name:	Pin group name (stringified, _pins appended to get pins array)
  * @f0:		Function 0 (ASM9260_MUX_ is prepended, NA for none)
@@ -693,13 +656,13 @@ static const struct asm9260_function asm9260_functions[] = {
  * @mux_b:	Bit number in register that the mux field begins
  * @mux_w:	Width of mux field in register
  */
-#define MUX_PG(pg_name, f0, f1, f2, f3, f4,			\
+#define MUX_PG(pg_name, f0, f1, f2, f3, f4, f5, f6,		\
 	       mux_r, mux_b, mux_w)				\
 	{							\
 		.name = #pg_name,				\
 		.pins = pg_name##_pins,				\
 		.npins = ARRAY_SIZE(pg_name##_pins),		\
-		.mux = MUX(f0, f1, f2, f3, f4,			\
+		.mux = MUX(f0, f1, f2, f3, f4, f5, f6,		\
 			   mux_r, mux_b, mux_w),		\
 	}
 
@@ -723,15 +686,6 @@ static const struct asm9260_function asm9260_functions[] = {
  * Define main muxing pin groups
  */
 
-/* submuxes */
-
-/*            name     f0,  f1,            f2,        f3, f4, mux r/b/w */
-DEFINE_SUBMUX(ext_dac, DAC, NOT_IQADC_STB, IQDAC_STB, NA, NA, IF_CTL, 6, 2);
-
-/* bind submuxes to internal functions */
-static struct asm9260_muxdesc *asm9260_submux[] = {
-	SUBMUX(EXT_DAC, ext_dac),
-};
 
 /*
  * These are the pin mux groups. Pin muxing can be enabled and disabled for each
@@ -748,6 +702,7 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
 //	MUX_PG(afe,      AFE,      TS_OUT_0, NA,       NA,        NA,          IF_CTL,  4, 2),
 //	MUX_PG(tft,      TFT,      EXT_DAC,  TS_OUT_1, LCD_TRACE, PHY_RINGOSC, IF_CTL,  0, 3),
 
+	/*     pg,		f0,	f1,	f2,	f3,	f4,	f5,	f6, */
 	MUX_PG(GPIO0_0,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
 	MUX_PG(GPIO0_1,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
 	MUX_PG(GPIO0_2,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
@@ -937,7 +892,7 @@ struct asm9260_pmx {
 	u32			pin_en[3];
 	u32			gpio_en[3];
 };
-#if 0
+
 static inline u32 pmx_read(struct asm9260_pmx *pmx, u32 reg)
 {
 	return ioread32(pmx->regs + reg);
@@ -948,7 +903,6 @@ static inline void pmx_write(struct asm9260_pmx *pmx, u32 val, u32 reg)
 	iowrite32(val, pmx->regs + reg);
 }
 
-#endif
 /*
  * Pin control operations
  */
@@ -1346,15 +1300,6 @@ static int asm9260_pinctrl_enable_mux(struct asm9260_pmx *pmx,
 		func = *fit;
 		if (func == function)
 			goto found_mux;
-
-		/* maybe it's a sub-mux */
-		if (func < ARRAY_SIZE(asm9260_submux) && asm9260_submux[func]) {
-			ret = asm9260_pinctrl_enable_mux(pmx,
-							asm9260_submux[func],
-							function);
-			if (!ret)
-				goto found_mux;
-		}
 	}
 
 	return -EINVAL;

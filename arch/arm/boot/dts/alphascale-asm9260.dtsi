@@ -48,7 +48,15 @@
 
 		pinctrl: pinctrl@80044000 {
 			compatible = "alphascale,asm9260-pinctrl";
+			pinctrl-names = "default";
 			reg = <0x80044000 0x200>;
+
+			/* SATA Activity and Present pins are not connected */
+			pmx_uart1: pmx-uart1 {
+				asm9260,pins = "uart1";
+				/* marvell,function = "sata0"; */
+			};
+
 		};
 
 		icoll: interrupt-controller@80054000 {

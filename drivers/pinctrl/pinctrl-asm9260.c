@@ -420,9 +420,7 @@ static const unsigned int uart4_1_pins[] = {
 	/* TODO: no cts, probably ASM9260_PIN_GPIO3_3 should be used */
 };
 
-#if 0
 /* Pins in each pin group */
-
 static const char * const CAM_DAT0_groups[] = {
 	"GPIO8_4",
 };
@@ -1036,7 +1034,8 @@ static const char * const RMII_MDIO_groups[] = {
 };
 
 static const char * const RMII_REFCLK_groups[] = {
-	"GPIO1_5", "GPIO1_6", "GPIO1_7", "GPIO10_1", "GPIO10_2", "GPIO10_4", "GPIO10_5", "GPIO10_6", "GPIO10_7", "GPIO17_0", "GPIO17_5",
+	"GPIO1_5", "GPIO1_6", "GPIO1_7", "GPIO10_1", "GPIO10_2", "GPIO10_4",
+	"GPIO10_5", "GPIO10_6", "GPIO10_7", "GPIO17_0", "GPIO17_5",
 };
 
 static const char * const RMII_RXD0_groups[] = {
@@ -1521,11 +1520,11 @@ enum asm9260_mux {
 	ASM9260_MUX_UART9_TXD,
 };
 
-#define FUNCTION(mux, fname, group)			\
+#define FUNCTION(mux)			\
 	[(ASM9260_MUX_ ## mux)] = {			\
-		.name = #fname,				\
-		.groups = group##_groups,		\
-		.ngroups = ARRAY_SIZE(group##_groups),	\
+		.name = #mux,				\
+		.groups = mux##_groups,		\
+		.ngroups = ARRAY_SIZE(mux##_groups),	\
 	}
 
 /* Must correlate with enum asm9260_mux */
@@ -1750,6 +1749,7 @@ static const struct asm9260_function asm9260_functions[] = {
 	FUNCTION(UART9_TXD),
 };
 
+#if 0
 /* Sub muxes */
 
 /**
@@ -1759,9 +1759,6 @@ static const struct asm9260_function asm9260_functions[] = {
  * @f2:		Function 2 (ASM9260_MUX_ is prepended, NA for none)
  * @f3:		Function 3 (ASM9260_MUX_ is prepended, NA for none)
  * @f4:		Function 4 (ASM9260_MUX_ is prepended, NA for none)
- * @mux_r:	Mux register (REG_PINCTRL_ is prepended)
- * @mux_b:	Bit number in register that the mux field begins
- * @mux_w:	Width of mux field in register
  */
 #define MUX(f0, f1, f2, f3, f4, mux_r, mux_b, mux_w)		\
 	{							\
@@ -1771,11 +1768,9 @@ static const struct asm9260_function asm9260_functions[] = {
 			ASM9260_MUX_ ## f2,			\
 			ASM9260_MUX_ ## f3,			\
 			ASM9260_MUX_ ## f4,			\
+			ASM9260_MUX_ ## f5,			\
+			ASM9260_MUX_ ## f6,			\
 		},						\
-		.reg = (REG_PINCTRL_ ## mux_r),			\
-		.bit = (mux_b),					\
-		.width = (mux_w),				\
-	}
 
 /**
  * MUX_PG() - Initialise a pin group with mux control
@@ -1785,34 +1780,13 @@ static const struct asm9260_function asm9260_functions[] = {
  * @f2:		Function 2 (ASM9260_MUX_ is prepended, NA for none)
  * @f3:		Function 3 (ASM9260_MUX_ is prepended, NA for none)
  * @f4:		Function 4 (ASM9260_MUX_ is prepended, NA for none)
- * @mux_r:	Mux register (REG_PINCTRL_ is prepended)
- * @mux_b:	Bit number in register that the mux field begins
- * @mux_w:	Width of mux field in register
  */
-#define MUX_PG(pg_name, f0, f1, f2, f3, f4, f5, f6,		\
-	       mux_r, mux_b, mux_w)				\
+#define MUX_PG(pg_name, f0, f1, f2, f3, f4, f5, f6)				\
 	{							\
 		.name = #pg_name,				\
 		.pins = pg_name##_pins,				\
 		.npins = ARRAY_SIZE(pg_name##_pins),		\
-		.mux = MUX(f0, f1, f2, f3, f4, f5, f6,		\
-			   mux_r, mux_b, mux_w),		\
-	}
-
-
-/**
- * DRV_PG() - Initialise a pin group with drive control
- * @pg_name:	Pin group name (stringified, _pins appended to get pins array)
- * @slw_b:	Slew register bit.
- *		The same bit is used for Schmitt, and Drive (*2).
- */
-#define DRV_PG(pg_name, slw_b)					\
-	{							\
-		.name = #pg_name,				\
-		.pins = pg_name##_pins,				\
-		.npins = ARRAY_SIZE(pg_name##_pins),		\
-		.drv = true,					\
-		.slw_bit = (slw_b),				\
+		.mux = MUX(f0, f1, f2, f3, f4, f5, f6),		\
 	}
 
 /*
@@ -1827,66 +1801,58 @@ static const struct asm9260_function asm9260_functions[] = {
  */
 static struct asm9260_pingroup asm9260_mux_groups[] = {
 	/* Muxing pin groups */
-	/*     pg_name,  f0,       f1,       f2,       f3,        f4,          mux r/b/w */
-//	MUX_PG(sdh,      SDH,      SDIO,     NA,       NA,        NA,          IF_CTL, 20, 2),
-//	MUX_PG(sdio,     SDIO,     SDH,      NA,       NA,        NA,          IF_CTL, 16, 2),
-//	MUX_PG(spi1_cs2, SPI1_CS2, USB_VBUS, NA,       NA,        NA,          IF_CTL, 10, 2),
-//	MUX_PG(pdm_d,    PDM_DAC,  USB_VBUS, NA,       NA,        NA,          IF_CTL,  8, 2),
-//	MUX_PG(afe,      AFE,      TS_OUT_0, NA,       NA,        NA,          IF_CTL,  4, 2),
-//	MUX_PG(tft,      TFT,      EXT_DAC,  TS_OUT_1, LCD_TRACE, PHY_RINGOSC, IF_CTL,  0, 3),
-
 	/*     pg,		f0,	f1,	f2,	f3,	f4,	f5,	f6, */
-	MUX_PG(GPIO0_0,	UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_1,	UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_2,	UART1_RXD,	I2S0_LRC,	SPI1_MISO,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_3,	UART1_RTS,	I2S0_RX0,	SPI1_MOSI,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_4,	UART1_CTS,	I2S0_TX0,	SPI0_SCK,	JTAG,	I2C0_SCL,	NA,	NA),
-	MUX_PG(GPIO1_4,	CT0_CAP,	UART0_DTR,	LCD_IF_BUSY,	SPI0_SCK,	MII_PPS_OUT,	LCD_CP_OQ,	NA),
-	MUX_PG(GPIO1_5,	UART0_DSR,	LCD_IF_WR,	SPI0_SEL,	RMII_REFCLK,	LCD_FP_OQ,	NA,	NA),
-	MUX_PG(GPIO1_6,	UART0_DCD,	LCD_IF_RS,	SPI0_MISO,	RMII_REFCLK,	LCD_AC_OQ,	I2C1_SCL,	NA),
-	MUX_PG(GPIO1_7,	UART0_RI,	LCD_IF_CS,	SPI0_MOSI,	RMII_REFCLK,	LCD_LP_OQ,	I2C1_SDA,	NA),
-	MUX_PG(GPIO2_0,	CT1_MAT0,	UART2_RTS,	LCD_IF_DAT0,	SPI1_SCK,	MII_RXD2,	LCD_PIXEL_OQ0,	CAN0_TX),
-	MUX_PG(GPIO2_1,	CT1_MAT1,	UART2_CTS,	LCD_IF_DAT1,	SPI1_SEL,	MII_RXD3,	LCD_PIXEL_OQ1,	CAN0_RX),
-	MUX_PG(GPIO2_2,	CT1_MAT2,	UART3_CLK,	LCD_IF_DAT2,	SPI1_MISO,	MII_TXD2,	LCD_PIXEL_OQ2,	NA),
-	MUX_PG(GPIO2_3,	CT1_MAT3,	UART3_TXD,	LCD_IF_DAT3,	SPI1_MOSI,	MII_TXD3,	LCD_PIXEL_OQ3,	NA),
-	MUX_PG(GPIO2_4,	CT1_CAP,	UART3_RXD,	LCD_IF_DAT4,	MII_TX_CLK,	LCD_PIXEL_OQ4,	NA,	NA),
-	MUX_PG(GPIO2_5,	UART3_RTS,	LCD_IF_DAT5,	MII_CRS,	LCD_PIXEL_OQ5,	OUTCLK,	NA,	NA),
-	MUX_PG(GPIO2_6,	UART3_CTS,	LCD_IF_DAT6,	MII_COL,	LCD_PIXEL_OQ6,	CAN1_TX,	NA,	NA),
-	MUX_PG(GPIO2_7,	UART4_CLK,	LCD_IF_DAT7,	MII_RX_ER,	LCD_PIXEL_OQ7,	CAN1_RX,	NA,	NA),
-	MUX_PG(GPIO3_0,	CT2_MAT0,	UART4_TXD,	LCD_IF_DAT8,	SD0_CLK,	RMII_MDC,	LCD_PIXEL_OQ8,	NA),
-	MUX_PG(GPIO3_1,	CT2_MAT1,	UART4_RXD,	LCD_IF_DAT9,	SD0_CMD,	RMII_MDIO,	LCD_PIXEL_OQ9,	NA),
-	MUX_PG(GPIO3_2,	CT2_MAT2,	UART4_RTS,	LCD_IF_DAT10,	SD0_DAT0,	RMII_CRS_DV,	LCD_PIXEL_OQ10,	CAN1_TX),
-	MUX_PG(GPIO3_3,	CT2_MAT3,	UART4_CTS,	LCD_IF_DAT11,	SD0_DAT1,	RMII_RXD0,	LCD_PIXEL_OQ11,	CAN1_RX),
-	MUX_PG(GPIO3_4,	CT2_CAP,	UART5_CLK,	LCD_IF_DAT12,	SD0_DAT2,	RMII_RXD1,	LCD_PIXEL_OQ12,	OUTCLK),
-	MUX_PG(GPIO3_5,	UART5_TXD,	LCD_IF_DAT13,	SD0_DAT3,	RMII_TX_EN,	LCD_PIXEL_OQ13,	I2C0_SCL,	NA),
-	MUX_PG(GPIO3_6,	UART5_RXD,	LCD_IF_DAT14,	RMII_TXD0,	LCD_PIXEL_OQ14,	I2C0_SDA,	NA,	NA),
-	MUX_PG(GPIO3_7,	UART5_RTS,	LCD_IF_DAT15,	RMII_TXD1,	LCD_PIXEL_OQ15,	NA,	NA,	NA),
-	MUX_PG(GPIO4_0,	CT3_MAT0,	UART5_CTS,	QSPI0_SCK,	MII_RXD2,	LCD_PIXEL_OQ16,	NA,	NA),
-	MUX_PG(GPIO4_1,	CT3_MAT1,	UART6_CLK,	QSPI0_SEL,	MII_RXD3,	LCD_PIXEL_OQ17,	NA,	NA),
-	MUX_PG(GPIO4_2,	CT3_MAT2,	UART6_TXD,	QSPI0_DAT0,	MII_TXD2,	LCD_PIXEL_OQ18,	NA,	NA),
-	MUX_PG(GPIO4_3,	CT3_MAT3,	UART6_RXD,	QSPI0_DAT1,	MII_TXD3,	LCD_PIXEL_OQ19,	NA,	NA),
-	MUX_PG(GPIO4_4,	CT3_CAP,	UART6_RTS,	QSPI0_DAT2,	MII_TX_CLK,	LCD_PIXEL_OQ20,	NA,	NA),
-	MUX_PG(GPIO4_5,	UART6_CTS,	QSPI0_DAT3,	MII_CRS,	LCD_PIXEL_OQ21,	NA,	NA,	NA),
-	MUX_PG(GPIO4_6,	MII_COL,	LCD_PIXEL_OQ22,	I2C1_SCL,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO4_7,	MII_RX_ER,	LCD_PIXEL_OQ23,	I2C1_SDA,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO5_0,	MCIABORT,	UART7_TXD,	I2S1_MCLK,	SD0_CLK,	RMII_MDC,	NA,	NA),
-	MUX_PG(GPIO5_1,	MCI0,	UART7_RXD,	I2S1_BCLK,	SD0_CMD,	RMII_MDIO,	NA,	NA),
-	MUX_PG(GPIO5_2,	MCOA0,	UART7_RTS,	I2S1_LRC,	SD0_DAT0,	RMII_CRS_DV,	CAN0_TX,	NA),
-	MUX_PG(GPIO5_3,	MCOB0,	UART7_CTS,	I2S1_RX0,	SD0_DAT1,	RMII_RXD0,	CAN0_RX,	NA),
-	MUX_PG(GPIO5_4,	MCI1,	UART8_TXD,	I2S1_TX0,	SD0_DAT2,	RMII_RXD1,	NA,	NA),
-	MUX_PG(GPIO8_1,	UART2_TXD,	CAM_PCLK,	MII_RXD3,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_2,	UART2_RXD,	CAM_VSYN,	MII_TXD2,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_3,	UART2_RTS,	CAM_HREF,	MII_TXD3,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_4,	UART2_CTS,	CAM_DAT0,	MII_TX_CLK,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_5,	UART3_CLK,	CAM_DAT1,	MII_CRS,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_6,	UART3_TXD,	CAM_DAT2,	MII_COL,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_7,	UART3_RXD,	CAM_DAT3,	MII_RX_ER,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO9_0,	CT0_MAT0,	UART3_RTS,	CAM_DAT4,	RMII_MDC,	I2C0_SCL,	NA,	NA),
-	MUX_PG(GPIO9_1,	CT0_MAT1,	UART3_CTS,	CAM_DAT5,	RMII_MDIO,	I2C0_SDA,	NA,	NA),
-	MUX_PG(GPIO9_2,	CT0_MAT2,	UART4_CLK,	CAM_DAT6,	RMII_CRS_DV,	NA,	NA,	NA),
-	MUX_PG(GPIO9_3,	CT0_MAT3,	UART4_TXD,	CAM_DAT7,	RMII_RXD0,	NA,	NA,	NA),
-	MUX_PG(GPIO9_4,	CT0_CAP,	UART4_RXD,	CAM_DAT8,	RMII_RXD1,	NA,	NA,	NA),
-	MUX_PG(GPIO9_5,	UART4_RTS,	CAM_DAT9,	RMII_TX_EN,	I2C1_SCL,	NA,	NA,	NA),
+	MUX_PG(GPIO0_0,		UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_1,		UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_2,		UART1_RXD,	I2S0_LRC,	SPI1_MISO,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_3,		UART1_RTS,	I2S0_RX0,	SPI1_MOSI,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_4,		UART1_CTS,	I2S0_TX0,	SPI0_SCK,	JTAG,	I2C0_SCL,	NA,	NA),
+	MUX_PG(GPIO1_4,		CT0_CAP,	UART0_DTR,	LCD_IF_BUSY,	SPI0_SCK,	MII_PPS_OUT,	LCD_CP_OQ,	NA),
+	MUX_PG(GPIO1_5,		UART0_DSR,	LCD_IF_WR,	SPI0_SEL,	RMII_REFCLK,	LCD_FP_OQ,	NA,	NA),
+	MUX_PG(GPIO1_6,		UART0_DCD,	LCD_IF_RS,	SPI0_MISO,	RMII_REFCLK,	LCD_AC_OQ,	I2C1_SCL,	NA),
+	MUX_PG(GPIO1_7,		UART0_RI,	LCD_IF_CS,	SPI0_MOSI,	RMII_REFCLK,	LCD_LP_OQ,	I2C1_SDA,	NA),
+	MUX_PG(GPIO2_0,		CT1_MAT0,	UART2_RTS,	LCD_IF_DAT0,	SPI1_SCK,	MII_RXD2,	LCD_PIXEL_OQ0,	CAN0_TX),
+	MUX_PG(GPIO2_1,		CT1_MAT1,	UART2_CTS,	LCD_IF_DAT1,	SPI1_SEL,	MII_RXD3,	LCD_PIXEL_OQ1,	CAN0_RX),
+	MUX_PG(GPIO2_2,		CT1_MAT2,	UART3_CLK,	LCD_IF_DAT2,	SPI1_MISO,	MII_TXD2,	LCD_PIXEL_OQ2,	NA),
+	MUX_PG(GPIO2_3,		CT1_MAT3,	UART3_TXD,	LCD_IF_DAT3,	SPI1_MOSI,	MII_TXD3,	LCD_PIXEL_OQ3,	NA),
+	MUX_PG(GPIO2_4,		CT1_CAP,	UART3_RXD,	LCD_IF_DAT4,	MII_TX_CLK,	LCD_PIXEL_OQ4,	NA,	NA),
+	MUX_PG(GPIO2_5,		UART3_RTS,	LCD_IF_DAT5,	MII_CRS,	LCD_PIXEL_OQ5,	OUTCLK,	NA,	NA),
+	MUX_PG(GPIO2_6,		UART3_CTS,	LCD_IF_DAT6,	MII_COL,	LCD_PIXEL_OQ6,	CAN1_TX,	NA,	NA),
+	MUX_PG(GPIO2_7,		UART4_CLK,	LCD_IF_DAT7,	MII_RX_ER,	LCD_PIXEL_OQ7,	CAN1_RX,	NA,	NA),
+	MUX_PG(GPIO3_0,		CT2_MAT0,	UART4_TXD,	LCD_IF_DAT8,	SD0_CLK,	RMII_MDC,	LCD_PIXEL_OQ8,	NA),
+	MUX_PG(GPIO3_1,		CT2_MAT1,	UART4_RXD,	LCD_IF_DAT9,	SD0_CMD,	RMII_MDIO,	LCD_PIXEL_OQ9,	NA),
+	MUX_PG(GPIO3_2,		CT2_MAT2,	UART4_RTS,	LCD_IF_DAT10,	SD0_DAT0,	RMII_CRS_DV,	LCD_PIXEL_OQ10,	CAN1_TX),
+	MUX_PG(GPIO3_3,		CT2_MAT3,	UART4_CTS,	LCD_IF_DAT11,	SD0_DAT1,	RMII_RXD0,	LCD_PIXEL_OQ11,	CAN1_RX),
+	MUX_PG(GPIO3_4,		CT2_CAP,	UART5_CLK,	LCD_IF_DAT12,	SD0_DAT2,	RMII_RXD1,	LCD_PIXEL_OQ12,	OUTCLK),
+	MUX_PG(GPIO3_5,		UART5_TXD,	LCD_IF_DAT13,	SD0_DAT3,	RMII_TX_EN,	LCD_PIXEL_OQ13,	I2C0_SCL,	NA),
+	MUX_PG(GPIO3_6,		UART5_RXD,	LCD_IF_DAT14,	RMII_TXD0,	LCD_PIXEL_OQ14,	I2C0_SDA,	NA,	NA),
+	MUX_PG(GPIO3_7,		UART5_RTS,	LCD_IF_DAT15,	RMII_TXD1,	LCD_PIXEL_OQ15,	NA,	NA,	NA),
+	MUX_PG(GPIO4_0,		CT3_MAT0,	UART5_CTS,	QSPI0_SCK,	MII_RXD2,	LCD_PIXEL_OQ16,	NA,	NA),
+	MUX_PG(GPIO4_1,		CT3_MAT1,	UART6_CLK,	QSPI0_SEL,	MII_RXD3,	LCD_PIXEL_OQ17,	NA,	NA),
+	MUX_PG(GPIO4_2,		CT3_MAT2,	UART6_TXD,	QSPI0_DAT0,	MII_TXD2,	LCD_PIXEL_OQ18,	NA,	NA),
+	MUX_PG(GPIO4_3,		CT3_MAT3,	UART6_RXD,	QSPI0_DAT1,	MII_TXD3,	LCD_PIXEL_OQ19,	NA,	NA),
+	MUX_PG(GPIO4_4,		CT3_CAP,	UART6_RTS,	QSPI0_DAT2,	MII_TX_CLK,	LCD_PIXEL_OQ20,	NA,	NA),
+	MUX_PG(GPIO4_5,		UART6_CTS,	QSPI0_DAT3,	MII_CRS,	LCD_PIXEL_OQ21,	NA,	NA,	NA),
+	MUX_PG(GPIO4_6,		MII_COL,	LCD_PIXEL_OQ22,	I2C1_SCL,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO4_7,		MII_RX_ER,	LCD_PIXEL_OQ23,	I2C1_SDA,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO5_0,		MCIABORT,	UART7_TXD,	I2S1_MCLK,	SD0_CLK,	RMII_MDC,	NA,	NA),
+	MUX_PG(GPIO5_1,		MCI0,	UART7_RXD,	I2S1_BCLK,	SD0_CMD,	RMII_MDIO,	NA,	NA),
+	MUX_PG(GPIO5_2,		MCOA0,	UART7_RTS,	I2S1_LRC,	SD0_DAT0,	RMII_CRS_DV,	CAN0_TX,	NA),
+	MUX_PG(GPIO5_3,		MCOB0,	UART7_CTS,	I2S1_RX0,	SD0_DAT1,	RMII_RXD0,	CAN0_RX,	NA),
+	MUX_PG(GPIO5_4,		MCI1,	UART8_TXD,	I2S1_TX0,	SD0_DAT2,	RMII_RXD1,	NA,	NA),
+	MUX_PG(GPIO8_1,		UART2_TXD,	CAM_PCLK,	MII_RXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_2,		UART2_RXD,	CAM_VSYN,	MII_TXD2,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_3,		UART2_RTS,	CAM_HREF,	MII_TXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_4,		UART2_CTS,	CAM_DAT0,	MII_TX_CLK,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_5,		UART3_CLK,	CAM_DAT1,	MII_CRS,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_6,		UART3_TXD,	CAM_DAT2,	MII_COL,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_7,		UART3_RXD,	CAM_DAT3,	MII_RX_ER,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO9_0,		CT0_MAT0,	UART3_RTS,	CAM_DAT4,	RMII_MDC,	I2C0_SCL,	NA,	NA),
+	MUX_PG(GPIO9_1,		CT0_MAT1,	UART3_CTS,	CAM_DAT5,	RMII_MDIO,	I2C0_SDA,	NA,	NA),
+	MUX_PG(GPIO9_2,		CT0_MAT2,	UART4_CLK,	CAM_DAT6,	RMII_CRS_DV,	NA,	NA,	NA),
+	MUX_PG(GPIO9_3,		CT0_MAT3,	UART4_TXD,	CAM_DAT7,	RMII_RXD0,	NA,	NA,	NA),
+	MUX_PG(GPIO9_4,		CT0_CAP,	UART4_RXD,	CAM_DAT8,	RMII_RXD1,	NA,	NA,	NA),
+	MUX_PG(GPIO9_5,		UART4_RTS,	CAM_DAT9,	RMII_TX_EN,	I2C1_SCL,	NA,	NA,	NA),
 	MUX_PG(GPIO10_0,	CT1_MAT0,	UART5_TXD,	I2S0_MCLK,	SPI0_SCK,	NA,	NA,	NA),
 	MUX_PG(GPIO10_1,	CT1_MAT1,	UART5_RXD,	I2S0_BCLK,	SPI0_SEL,	RMII_REFCLK,	NA,	NA),
 	MUX_PG(GPIO10_2,	CT1_MAT2,	UART5_RTS,	I2S0_LRC,	SPI0_MISO,	RMII_REFCLK,	NA,	NA),
@@ -2274,7 +2240,6 @@ static struct pinctrl_ops asm9260_pinctrl_ops = {
 /*
  * Pin mux operations
  */
-#if 0
 static int asm9260_pinctrl_get_funcs_count(struct pinctrl_dev *pctldev)
 {
 	return ARRAY_SIZE(asm9260_functions);
@@ -2297,6 +2262,7 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
+#if 0
 /**
  * asm9260_pinctrl_select() - update bit in SELECT register
  * @pmx:		Pinmux data
@@ -2562,16 +2528,17 @@ static void asm9260_pinctrl_gpio_disable_free(struct pinctrl_dev *pctldev,
 	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
 	asm9260_pinctrl_gpio_select(pmx, pin, false);
 }
-
+#endif
 static struct pinmux_ops asm9260_pinmux_ops = {
 	.get_functions_count	= asm9260_pinctrl_get_funcs_count,
 	.get_function_name	= asm9260_pinctrl_get_func_name,
 	.get_function_groups	= asm9260_pinctrl_get_func_groups,
-	.enable			= asm9260_pinctrl_enable,
-	.gpio_request_enable	= asm9260_pinctrl_gpio_request_enable,
-	.gpio_disable_free	= asm9260_pinctrl_gpio_disable_free,
+//	.enable			= asm9260_pinctrl_enable,
+//	.gpio_request_enable	= asm9260_pinctrl_gpio_request_enable,
+//	.gpio_disable_free	= asm9260_pinctrl_gpio_disable_free,
 };
 
+#if 0
 static int asm9260_pinconf_reg(struct pinctrl_dev *pctldev,
 			      unsigned int pin,
 			      enum pin_config_param param,
@@ -2854,7 +2821,7 @@ static struct pinconf_ops asm9260_pinconf_ops = {
 /* OK */
 static struct pinctrl_desc asm9260_pinctrl_desc = {
 	.pctlops	= &asm9260_pinctrl_ops,
-//	.pmxops		= &asm9260_pinmux_ops,
+	.pmxops		= &asm9260_pinmux_ops,
 //	.confops	= &asm9260_pinconf_ops,
 	.owner		= THIS_MODULE,
 };

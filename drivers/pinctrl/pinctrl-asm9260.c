@@ -2418,6 +2418,7 @@ found_mux:
 	return 0;
 }
 
+#endif
 /**
  * asm9260_pinctrl_enable() - Enable a function on a pin group.
  * @pctldev:		Pin control data
@@ -2434,6 +2435,7 @@ found_mux:
 static int asm9260_pinctrl_enable(struct pinctrl_dev *pctldev,
 				 unsigned int function, unsigned int group)
 {
+#if 0
 	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
 	struct asm9260_pingroup *grp;
 	int ret;
@@ -2491,8 +2493,10 @@ mux_pins:
 	for (i = 0; i < npins; ++i)
 		asm9260_pinctrl_perip_select(pmx, pins[i], true);
 
+#endif
 	return 0;
 }
+#if 0
 
 /**
  * asm9260_pinctrl_gpio_request_enable() - Put pin in GPIO mode.
@@ -2533,7 +2537,7 @@ static struct pinmux_ops asm9260_pinmux_ops = {
 	.get_functions_count	= asm9260_pinctrl_get_funcs_count,
 	.get_function_name	= asm9260_pinctrl_get_func_name,
 	.get_function_groups	= asm9260_pinctrl_get_func_groups,
-//	.enable			= asm9260_pinctrl_enable,
+	.enable			= asm9260_pinctrl_enable,
 //	.gpio_request_enable	= asm9260_pinctrl_gpio_request_enable,
 //	.gpio_disable_free	= asm9260_pinctrl_gpio_disable_free,
 };

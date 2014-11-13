@@ -423,165 +423,1102 @@ static const unsigned int uart4_1_pins[] = {
 #if 0
 /* Pins in each pin group */
 
-/*
- * The magic "perip" function allows otherwise non-muxing pins to be enabled in
- * peripheral mode.
- */
-static const char * const perip_groups[] = {
-	/* non-muxing convenient gpio pingroups */
-	"uart",
-	"uart0",
-	"uart1",
-	"spi0",
-	"spi1",
-	"scb0",
-	"scb1",
-	"scb2",
-	"i2s",
-	/* individual pins not part of a pin mux group */
-	"spi0_mclk",
-	"spi0_cs0",
-	"spi0_cs1",
-	"spi0_cs2",
-	"spi0_dout",
-	"spi0_din",
-	"spi1_mclk",
-	"spi1_cs0",
-	"spi1_cs1",
-	"spi1_dout",
-	"spi1_din",
-	"uart0_rxd",
-	"uart0_txd",
-	"uart0_cts",
-	"uart0_rts",
-	"uart1_rxd",
-	"uart1_txd",
-	"scb0_sdat",
-	"scb0_sclk",
-	"scb1_sdat",
-	"scb1_sclk",
-	"scb2_sdat",
-	"scb2_sclk",
-	"i2s_mclk",
-	"i2s_bclk_out",
-	"i2s_lrclk_out",
-	"i2s_dout0",
-	"i2s_dout1",
-	"i2s_dout2",
-	"i2s_din",
-	"pdm_a",
-	"pdm_b",
-	"pdm_c",
+static const char * const CAM_DAT0_groups[] = {
+	"GPIO8_4",
 };
 
-static const char * const sdh_sdio_groups[] = {
-	"sdh",
-	"sdio",
-	/* sdh pins */
-	"sdh_cd",
-	"sdh_wp",
-	"sdh_clk_in",
-	/* sdio pins */
-	"sdio_clk",
-	"sdio_cmd",
-	"sdio_d0",
-	"sdio_d1",
-	"sdio_d2",
-	"sdio_d3",
+static const char * const CAM_DAT1_groups[] = {
+	"GPIO8_5",
 };
 
-static const char * const spi1_cs2_groups[] = {
-	"spi1_cs2",
+static const char * const CAM_DAT2_groups[] = {
+	"GPIO8_6",
 };
 
-static const char * const pdm_dac_groups[] = {
-	"pdm_d",
+static const char * const CAM_DAT3_groups[] = {
+	"GPIO8_7",
 };
 
-static const char * const usb_vbus_groups[] = {
-	"spi1_cs2",
-	"pdm_d",
+static const char * const CAM_DAT4_groups[] = {
+	"GPIO9_0",
 };
 
-static const char * const afe_groups[] = {
-	"afe",
-	/* afe pins */
-	"tx_on",
-	"rx_on",
-	"pll_on",
-	"pa_on",
-	"rx_hp",
-	"ant_sel0",
-	"ant_sel1",
-	"gain0",
-	"gain1",
-	"gain2",
-	"gain3",
-	"gain4",
-	"gain5",
-	"gain6",
-	"gain7",
+static const char * const CAM_DAT5_groups[] = {
+	"GPIO9_1",
 };
 
-static const char * const tft_groups[] = {
-	"tft",
-	/* tft pins */
-	"tft_red0",
-	"tft_red1",
-	"tft_red2",
-	"tft_red3",
-	"tft_red4",
-	"tft_red5",
-	"tft_red6",
-	"tft_red7",
-	"tft_green0",
-	"tft_green1",
-	"tft_green2",
-	"tft_green3",
-	"tft_green4",
-	"tft_green5",
-	"tft_green6",
-	"tft_green7",
-	"tft_blue0",
-	"tft_blue1",
-	"tft_blue2",
-	"tft_blue3",
-	"tft_blue4",
-	"tft_blue5",
-	"tft_blue6",
-	"tft_blue7",
-	"tft_vdden_gd",
-	"tft_panelclk",
-	"tft_blank_ls",
-	"tft_vsync_ns",
-	"tft_hsync_nr",
-	"tft_vd12acb",
-	"tft_pwrsave",
+static const char * const CAM_DAT6_groups[] = {
+	"GPIO9_2",
 };
+
+static const char * const CAM_DAT7_groups[] = {
+	"GPIO9_3",
+};
+
+static const char * const CAM_DAT8_groups[] = {
+	"GPIO9_4",
+};
+
+static const char * const CAM_DAT9_groups[] = {
+	"GPIO9_5",
+};
+
+static const char * const CAM_HREF_groups[] = {
+	"GPIO8_3",
+};
+
+static const char * const CAM_MCLK_groups[] = {
+	"GPIO10_7", "GPIO11_7", "GPIO12_6", "GPIO12_7",
+};
+
+static const char * const CAM_PCLK_groups[] = {
+	"GPIO8_1",
+};
+
+static const char * const CAM_VSYN_groups[] = {
+	"GPIO8_2",
+};
+
+static const char * const CAN0_RX_groups[] = {
+	"GPIO5_3", "GPIO10_3",
+};
+
+static const char * const CAN0_TX_groups[] = {
+	"GPIO5_2",
+};
+
+static const char * const CAN1_RX_groups[] = {
+	"GPIO2_7", "GPIO10_5", "GPIO16_7",
+};
+
+static const char * const CAN1_TX_groups[] = {
+	"GPIO2_6", "GPIO10_6", "GPIO16_6",
+};
+
+static const char * const CT0_CAP_groups[] = {
+	"GPIO1_4", "GPIO9_4",
+};
+
+static const char * const CT0_MAT0_groups[] = {
+	"GPIO9_0",
+};
+
+static const char * const CT0_MAT1_groups[] = {
+	"GPIO9_1",
+};
+
+static const char * const CT0_MAT2_groups[] = {
+	"GPIO9_2",
+};
+
+static const char * const CT0_MAT3_groups[] = {
+	"GPIO9_3",
+};
+
+static const char * const CT1_CAP_groups[] = {
+	"GPIO2_4", "GPIO10_4",
+};
+
+static const char * const CT1_MAT0_groups[] = {
+	"GPIO2_0", "GPIO10_0",
+};
+
+static const char * const CT1_MAT1_groups[] = {
+	"GPIO2_1", "GPIO10_1",
+};
+
+static const char * const CT1_MAT2_groups[] = {
+	"GPIO2_2", "GPIO10_2",
+};
+
+static const char * const CT1_MAT3_groups[] = {
+	"GPIO2_3", "GPIO10_3",
+};
+
+static const char * const CT2_CAP_groups[] = {
+	"GPIO3_4", "GPIO11_4", "GPIO16_4",
+};
+
+static const char * const CT2_MAT0_groups[] = {
+	"GPIO3_0", "GPIO11_0", "GPIO16_0",
+};
+
+static const char * const CT2_MAT1_groups[] = {
+	"GPIO3_1", "GPIO11_1", "GPIO16_1",
+};
+
+static const char * const CT2_MAT2_groups[] = {
+	"GPIO3_2", "GPIO11_2", "GPIO16_2",
+};
+
+static const char * const CT2_MAT3_groups[] = {
+	"GPIO3_3", "GPIO11_3", "GPIO16_3",
+};
+
+static const char * const CT3_CAP_groups[] = {
+	"GPIO4_4", "GPIO12_4", "GPIO17_4",
+};
+
+static const char * const CT3_MAT0_groups[] = {
+	"GPIO4_0", "GPIO12_0", "GPIO17_0",
+};
+
+static const char * const CT3_MAT1_groups[] = {
+	"GPIO4_1", "GPIO12_1", "GPIO17_1",
+};
+
+static const char * const CT3_MAT2_groups[] = {
+	"GPIO4_2", "GPIO12_2", "GPIO17_2",
+};
+
+static const char * const CT3_MAT3_groups[] = {
+	"GPIO4_3", "GPIO12_3", "GPIO17_3",
+};
+
+static const char * const I2C0_SCL_groups[] = {
+	"GPIO0_4", "GPIO3_5", "GPIO9_0", "GPIO11_6",
+};
+
+static const char * const I2C0_SDA_groups[] = {
+	"GPIO3_6", "GPIO9_1", "GPIO11_7",
+};
+
+static const char * const I2C1_SCL_groups[] = {
+	"GPIO1_6", "GPIO4_6", "GPIO9_5", "GPIO12_6", "GPIO17_2",
+};
+
+static const char * const I2C1_SDA_groups[] = {
+	"GPIO1_7", "GPIO4_7", "GPIO12_7", "GPIO17_3",
+};
+
+static const char * const I2S0_BCLK_groups[] = {
+	"GPIO0_1", "GPIO10_1", "GPIO14_1", "GPIO15_1",
+};
+
+static const char * const I2S0_LRC_groups[] = {
+	"GPIO0_2", "GPIO10_2", "GPIO14_2", "GPIO15_2",
+};
+
+static const char * const I2S0_MCLK_groups[] = {
+	"GPIO0_0", "GPIO10_0", "GPIO14_0", "GPIO15_0",
+};
+
+static const char * const I2S0_RX0_groups[] = {
+	"GPIO0_3", "GPIO10_3", "GPIO14_3", "GPIO15_3",
+};
+
+static const char * const I2S0_TX0_groups[] = {
+	"GPIO0_4", "GPIO10_4", "GPIO14_4", "GPIO15_4",
+};
+
+static const char * const I2S0_TX1_groups[] = {
+	"GPIO10_5", "GPIO14_5", "GPIO15_5",
+};
+
+static const char * const I2S0_TX2_groups[] = {
+	"GPIO10_6", "GPIO15_6",
+};
+
+static const char * const I2S1_BCLK_groups[] = {
+	"GPIO5_1", "GPIO11_1", "GPIO17_1",
+};
+
+static const char * const I2S1_LRC_groups[] = {
+	"GPIO5_2", "GPIO11_2", "GPIO17_2",
+};
+
+static const char * const I2S1_MCLK_groups[] = {
+	"GPIO5_0", "GPIO11_0", "GPIO17_0",
+};
+
+static const char * const I2S1_RX0_groups[] = {
+	"GPIO5_3", "GPIO11_3", "GPIO17_3",
+};
+
+static const char * const I2S1_TX0_groups[] = {
+	"GPIO5_4", "GPIO11_4", "GPIO17_4",
+};
+
+static const char * const I2S1_TX1_groups[] = {
+	"GPIO11_5", "GPIO17_5",
+};
+
+static const char * const I2S1_TX2_groups[] = {
+	"GPIO11_6", "GPIO17_6",
+};
+
+static const char * const JTAG_groups[] = {
+	"GPIO0_0", "GPIO0_1", "GPIO0_2", "GPIO0_3", "GPIO0_4",
+};
+
+static const char * const LCD_AC_OQ_groups[] = {
+	"GPIO1_6",
+};
+
+static const char * const LCD_CP_OQ_groups[] = {
+	"GPIO1_4",
+};
+
+static const char * const LCD_FP_OQ_groups[] = {
+	"GPIO1_5",
+};
+
+static const char * const LCD_IF_BUSY_groups[] = {
+	"GPIO1_4",
+};
+
+static const char * const LCD_IF_CS_groups[] = {
+	"GPIO1_7",
+};
+
+static const char * const LCD_IF_DAT0_groups[] = {
+	"GPIO2_0",
+};
+
+static const char * const LCD_IF_DAT1_groups[] = {
+	"GPIO2_1",
+};
+
+static const char * const LCD_IF_DAT10_groups[] = {
+	"GPIO3_2",
+};
+
+static const char * const LCD_IF_DAT11_groups[] = {
+	"GPIO3_3",
+};
+
+static const char * const LCD_IF_DAT12_groups[] = {
+	"GPIO3_4",
+};
+
+static const char * const LCD_IF_DAT13_groups[] = {
+	"GPIO3_5",
+};
+
+static const char * const LCD_IF_DAT14_groups[] = {
+	"GPIO3_6",
+};
+
+static const char * const LCD_IF_DAT15_groups[] = {
+	"GPIO3_7",
+};
+
+static const char * const LCD_IF_DAT2_groups[] = {
+	"GPIO2_2",
+};
+
+static const char * const LCD_IF_DAT3_groups[] = {
+	"GPIO2_3",
+};
+
+static const char * const LCD_IF_DAT4_groups[] = {
+	"GPIO2_4",
+};
+
+static const char * const LCD_IF_DAT5_groups[] = {
+	"GPIO2_5",
+};
+
+static const char * const LCD_IF_DAT6_groups[] = {
+	"GPIO2_6",
+};
+
+static const char * const LCD_IF_DAT7_groups[] = {
+	"GPIO2_7",
+};
+
+static const char * const LCD_IF_DAT8_groups[] = {
+	"GPIO3_0",
+};
+
+static const char * const LCD_IF_DAT9_groups[] = {
+	"GPIO3_1",
+};
+
+static const char * const LCD_IF_RS_groups[] = {
+	"GPIO1_6",
+};
+
+static const char * const LCD_IF_WR_groups[] = {
+	"GPIO1_5",
+};
+
+static const char * const LCD_LP_OQ_groups[] = {
+	"GPIO1_7",
+};
+
+static const char * const LCD_PIXEL_OQ0_groups[] = {
+	"GPIO2_0",
+};
+
+static const char * const LCD_PIXEL_OQ1_groups[] = {
+	"GPIO2_1",
+};
+
+static const char * const LCD_PIXEL_OQ10_groups[] = {
+	"GPIO3_2",
+};
+
+static const char * const LCD_PIXEL_OQ11_groups[] = {
+	"GPIO3_3",
+};
+
+static const char * const LCD_PIXEL_OQ12_groups[] = {
+	"GPIO3_4",
+};
+
+static const char * const LCD_PIXEL_OQ13_groups[] = {
+	"GPIO3_5",
+};
+
+static const char * const LCD_PIXEL_OQ14_groups[] = {
+	"GPIO3_6",
+};
+
+static const char * const LCD_PIXEL_OQ15_groups[] = {
+	"GPIO3_7",
+};
+
+static const char * const LCD_PIXEL_OQ16_groups[] = {
+	"GPIO4_0",
+};
+
+static const char * const LCD_PIXEL_OQ17_groups[] = {
+	"GPIO4_1",
+};
+
+static const char * const LCD_PIXEL_OQ18_groups[] = {
+	"GPIO4_2",
+};
+
+static const char * const LCD_PIXEL_OQ19_groups[] = {
+	"GPIO4_3",
+};
+
+static const char * const LCD_PIXEL_OQ2_groups[] = {
+	"GPIO2_2",
+};
+
+static const char * const LCD_PIXEL_OQ20_groups[] = {
+	"GPIO4_4",
+};
+
+static const char * const LCD_PIXEL_OQ21_groups[] = {
+	"GPIO4_5",
+};
+
+static const char * const LCD_PIXEL_OQ22_groups[] = {
+	"GPIO4_6",
+};
+
+static const char * const LCD_PIXEL_OQ23_groups[] = {
+	"GPIO4_7",
+};
+
+static const char * const LCD_PIXEL_OQ3_groups[] = {
+	"GPIO2_3",
+};
+
+static const char * const LCD_PIXEL_OQ4_groups[] = {
+	"GPIO2_4",
+};
+
+static const char * const LCD_PIXEL_OQ5_groups[] = {
+	"GPIO2_5",
+};
+
+static const char * const LCD_PIXEL_OQ6_groups[] = {
+	"GPIO2_6",
+};
+
+static const char * const LCD_PIXEL_OQ7_groups[] = {
+	"GPIO2_7",
+};
+
+static const char * const LCD_PIXEL_OQ8_groups[] = {
+	"GPIO3_0",
+};
+
+static const char * const LCD_PIXEL_OQ9_groups[] = {
+	"GPIO3_1",
+};
+
+static const char * const MCI0_groups[] = {
+	"GPIO5_1",
+};
+
+static const char * const MCI1_groups[] = {
+	"GPIO5_4", "GPIO13_4",
+};
+
+static const char * const MCI2_groups[] = {
+	"GPIO13_7",
+};
+
+static const char * const MCIABORT_groups[] = {
+	"GPIO5_0",
+};
+
+static const char * const MCOA0_groups[] = {
+	"GPIO5_2",
+};
+
+static const char * const MCOA1_groups[] = {
+	"GPIO13_5",
+};
+
+static const char * const MCOA2_groups[] = {
+	"GPIO14_0",
+};
+
+static const char * const MCOB0_groups[] = {
+	"GPIO5_3",
+};
+
+static const char * const MCOB1_groups[] = {
+	"GPIO13_6",
+};
+
+static const char * const MCOB2_groups[] = {
+	"GPIO14_1",
+};
+
+static const char * const MII_COL_groups[] = {
+	"GPIO2_6", "GPIO4_6", "GPIO8_6", "GPIO16_6",
+};
+
+static const char * const MII_CRS_groups[] = {
+	"GPIO2_5", "GPIO4_5", "GPIO8_5", "GPIO16_5",
+};
+
+static const char * const MII_PPS_OUT_groups[] = {
+	"GPIO1_4", "GPIO17_6", "GPIO17_7",
+};
+
+static const char * const MII_RXD2_groups[] = {
+	"GPIO2_0", "GPIO4_0", "GPIO16_0",
+};
+
+static const char * const MII_RXD3_groups[] = {
+	"GPIO2_1", "GPIO4_1", "GPIO8_1", "GPIO16_1",
+};
+
+static const char * const MII_RX_ER_groups[] = {
+	"GPIO2_7", "GPIO4_7", "GPIO8_7", "GPIO16_7",
+};
+
+static const char * const MII_TX_CLK_groups[] = {
+	"GPIO2_4", "GPIO4_4", "GPIO8_4", "GPIO16_4",
+};
+
+static const char * const MII_TXD2_groups[] = {
+	"GPIO2_2", "GPIO4_2", "GPIO8_2", "GPIO16_2",
+};
+
+static const char * const MII_TXD3_groups[] = {
+	"GPIO2_3", "GPIO4_3", "GPIO8_3", "GPIO16_3",
+};
+
+static const char * const NAND_ALE_groups[] = {
+	"GPIO11_2",
+};
+
+static const char * const NAND_CE0N_groups[] = {
+	"GPIO11_6", "GPIO13_6",
+};
+
+static const char * const NAND_CE1N_groups[] = {
+	"GPIO11_7", "GPIO13_7",
+};
+
+static const char * const NAND_CLE_groups[] = {
+	"GPIO11_3",
+};
+
+static const char * const NAND_D0_groups[] = {
+	"GPIO12_0", "GPIO14_0",
+};
+
+static const char * const NAND_D1_groups[] = {
+	"GPIO12_1", "GPIO14_1",
+};
+
+static const char * const NAND_D2_groups[] = {
+	"GPIO12_2", "GPIO14_2",
+};
+
+static const char * const NAND_D3_groups[] = {
+	"GPIO12_3", "GPIO14_3",
+};
+
+static const char * const NAND_D4_groups[] = {
+	"GPIO12_4", "GPIO14_4",
+};
+
+static const char * const NAND_D5_groups[] = {
+	"GPIO12_5", "GPIO14_5",
+};
+
+static const char * const NAND_D6_groups[] = {
+	"GPIO12_6",
+};
+
+static const char * const NAND_D7_groups[] = {
+	"GPIO12_7",
+};
+
+static const char * const NAND_RDY0_groups[] = {
+	"GPIO11_4", "GPIO13_4",
+};
+
+static const char * const NAND_RDY1_groups[] = {
+	"GPIO11_5", "GPIO13_5",
+};
+
+static const char * const NAND_REN_groups[] = {
+	"GPIO11_0",
+};
+
+static const char * const NAND_WEN_groups[] = {
+	"GPIO11_1",
+};
+
+static const char * const OUTCLK_groups[] = {
+	"GPIO2_5",
+};
+
+static const char * const QEI_A_groups[] = {
+	"GPIO16_5", "GPIO17_5",
+};
+
+static const char * const QEI_B_groups[] = {
+	"GPIO16_6", "GPIO17_6",
+};
+
+static const char * const QEI_INDEX_groups[] = {
+	"GPIO16_7", "GPIO17_7",
+};
+
+static const char * const QSPI0_DAT0_groups[] = {
+	"GPIO4_2", "GPIO11_2",
+};
+
+static const char * const QSPI0_DAT1_groups[] = {
+	"GPIO4_3", "GPIO11_3",
+};
+
+static const char * const QSPI0_DAT2_groups[] = {
+	"GPIO4_4", "GPIO11_4",
+};
+
+static const char * const QSPI0_DAT3_groups[] = {
+	"GPIO4_5", "GPIO11_5",
+};
+
+static const char * const QSPI0_SCK_groups[] = {
+	"GPIO4_0", "GPIO11_0",
+};
+
+static const char * const QSPI0_SEL_groups[] = {
+	"GPIO4_1", "GPIO11_1",
+};
+
+static const char * const RMII_CRS_DV_groups[] = {
+	"GPIO3_2", "GPIO5_2", "GPIO9_2", "GPIO15_2",
+};
+
+static const char * const RMII_MDC_groups[] = {
+	"GPIO3_0", "GPIO5_0", "GPIO9_0", "GPIO15_0",
+};
+
+static const char * const RMII_MDIO_groups[] = {
+	"GPIO3_1", "GPIO5_1", "GPIO9_1", "GPIO15_1",
+};
+
+static const char * const RMII_REFCLK_groups[] = {
+	"GPIO1_5", "GPIO1_6", "GPIO1_7", "GPIO10_1", "GPIO10_2", "GPIO10_4", "GPIO10_5", "GPIO10_6", "GPIO10_7", "GPIO17_0", "GPIO17_5",
+};
+
+static const char * const RMII_RXD0_groups[] = {
+	"GPIO3_3", "GPIO5_3", "GPIO9_3", "GPIO15_3",
+};
+
+static const char * const RMII_RXD1_groups[] = {
+	"GPIO3_4", "GPIO5_4", "GPIO9_4", "GPIO15_4",
+};
+
+static const char * const RMII_TXD0_groups[] = {
+	"GPIO3_6", "GPIO15_6",
+};
+
+static const char * const RMII_TXD1_groups[] = {
+	"GPIO3_7", "GPIO15_7",
+};
+
+static const char * const RMII_TX_EN_groups[] = {
+	"GPIO3_5", "GPIO9_5", "GPIO15_5",
+};
+
+static const char * const SD0_CLK_groups[] = {
+	"GPIO3_0", "GPIO5_0", "GPIO12_0", "GPIO14_0", "GPIO15_0",
+};
+
+static const char * const SD0_CMD_groups[] = {
+	"GPIO3_1", "GPIO5_1", "GPIO12_1", "GPIO14_1", "GPIO15_1",
+};
+
+static const char * const SD0_DAT0_groups[] = {
+	"GPIO3_2", "GPIO5_2", "GPIO12_2", "GPIO14_2", "GPIO15_2",
+};
+
+static const char * const SD0_DAT1_groups[] = {
+	"GPIO3_3", "GPIO5_3", "GPIO12_3", "GPIO14_3", "GPIO15_3",
+};
+
+static const char * const SD0_DAT2_groups[] = {
+	"GPIO3_4", "GPIO5_4", "GPIO12_4", "GPIO14_4", "GPIO15_4",
+};
+
+static const char * const SD0_DAT3_groups[] = {
+	"GPIO3_5", "GPIO12_5", "GPIO14_5", "GPIO15_5",
+};
+
+static const char * const SPI0_MISO_groups[] = {
+	"GPIO1_6", "GPIO10_2",
+};
+
+static const char * const SPI0_MOSI_groups[] = {
+	"GPIO1_7", "GPIO10_3",
+};
+
+static const char * const SPI0_SCK_groups[] = {
+	"GPIO0_4", "GPIO1_4", "GPIO10_0",
+};
+
+static const char * const SPI0_SEL_groups[] = {
+	"GPIO1_5", "GPIO10_1",
+};
+
+static const char * const SPI1_MISO_groups[] = {
+	"GPIO0_2", "GPIO2_2", "GPIO10_6", "GPIO13_6",
+};
+
+static const char * const SPI1_MOSI_groups[] = {
+	"GPIO0_3", "GPIO2_3", "GPIO10_7", "GPIO13_7",
+};
+
+static const char * const SPI1_SCK_groups[] = {
+	"GPIO0_0", "GPIO2_0", "GPIO10_4", "GPIO13_4",
+};
+
+static const char * const SPI1_SEL_groups[] = {
+	"GPIO0_1", "GPIO2_1", "GPIO10_5", "GPIO13_5",
+};
+
+static const char * const UART0_CTS_groups[] = {
+	"GPIO14_3",
+};
+
+static const char * const UART0_DCD_groups[] = {
+	"GPIO1_6",
+};
+
+static const char * const UART0_DSR_groups[] = {
+	"GPIO1_5", "GPIO14_5",
+};
+
+static const char * const UART0_DTR_groups[] = {
+	"GPIO1_4", "GPIO14_4",
+};
+
+static const char * const UART0_RI_groups[] = {
+	"GPIO1_7",
+};
+
+static const char * const UART0_RTS_groups[] = {
+	"GPIO14_2",
+};
+
+static const char * const UART0_RXD_groups[] = {
+	"GPIO14_1",
+};
+
+static const char * const UART0_TXD_groups[] = {
+	"GPIO14_0",
+};
+
+static const char * const UART1_CLK_groups[] = {
+	"GPIO0_0", "GPIO12_0",
+};
+
+static const char * const UART1_CTS_groups[] = {
+	"GPIO0_4", "GPIO12_4",
+};
+
+static const char * const UART1_RTS_groups[] = {
+	"GPIO0_3", "GPIO12_3",
+};
+
+static const char * const UART1_RXD_groups[] = {
+	"GPIO0_2", "GPIO12_2",
+};
+
+static const char * const UART1_TXD_groups[] = {
+	"GPIO0_1", "GPIO12_1",
+};
+
+static const char * const UART2_CTS_groups[] = {
+	"GPIO2_1", "GPIO8_4", "GPIO13_4",
+};
+
+static const char * const UART2_RTS_groups[] = {
+	"GPIO2_0", "GPIO8_3",
+};
+
+static const char * const UART2_RXD_groups[] = {
+	"GPIO8_2",
+};
+
+static const char * const UART2_TXD_groups[] = {
+	"GPIO8_1",
+};
+
+static const char * const UART3_CLK_groups[] = {
+	"GPIO2_2", "GPIO8_5",
+};
+
+static const char * const UART3_CTS_groups[] = {
+	"GPIO2_6", "GPIO9_1",
+};
+
+static const char * const UART3_RTS_groups[] = {
+	"GPIO2_5", "GPIO9_0",
+};
+
+static const char * const UART3_RXD_groups[] = {
+	"GPIO2_4", "GPIO8_7",
+};
+
+static const char * const UART3_TXD_groups[] = {
+	"GPIO2_3", "GPIO8_6",
+};
+
+static const char * const UART4_CLK_groups[] = {
+	"GPIO2_7", "GPIO9_2",
+};
+
+static const char * const UART4_CTS_groups[] = {
+	"GPIO3_3",
+};
+
+static const char * const UART4_RTS_groups[] = {
+	"GPIO3_2", "GPIO9_5",
+};
+
+static const char * const UART4_RXD_groups[] = {
+	"GPIO3_1", "GPIO9_4", "GPIO15_1", "GPIO16_1",
+};
+
+static const char * const UART4_TXD_groups[] = {
+	"GPIO3_0", "GPIO9_3", "GPIO15_0", "GPIO16_0",
+};
+
+static const char * const UART5_CLK_groups[] = {
+	"GPIO3_4",
+};
+
+static const char * const UART5_CTS_groups[] = {
+	"GPIO4_0", "GPIO10_3",
+};
+
+static const char * const UART5_RTS_groups[] = {
+	"GPIO3_7", "GPIO10_2",
+};
+
+static const char * const UART5_RXD_groups[] = {
+	"GPIO3_6", "GPIO10_1", "GPIO15_3", "GPIO16_3",
+};
+
+static const char * const UART5_TXD_groups[] = {
+	"GPIO3_5", "GPIO10_0", "GPIO15_2", "GPIO16_2",
+};
+
+static const char * const UART6_CLK_groups[] = {
+	"GPIO4_1",
+};
+
+static const char * const UART6_CTS_groups[] = {
+	"GPIO4_5", "GPIO10_7", "GPIO16_7",
+};
+
+static const char * const UART6_RTS_groups[] = {
+	"GPIO4_4", "GPIO10_6", "GPIO16_6",
+};
+
+static const char * const UART6_RXD_groups[] = {
+	"GPIO4_3", "GPIO10_5", "GPIO15_5", "GPIO16_5",
+};
+
+static const char * const UART6_TXD_groups[] = {
+	"GPIO4_2", "GPIO10_4", "GPIO15_4", "GPIO16_4",
+};
+
+static const char * const UART7_CTS_groups[] = {
+	"GPIO5_3", "GPIO11_3", "GPIO17_3",
+};
+
+static const char * const UART7_RTS_groups[] = {
+	"GPIO5_2", "GPIO11_2", "GPIO17_2",
+};
+
+static const char * const UART7_RXD_groups[] = {
+	"GPIO5_1", "GPIO11_1", "GPIO15_7", "GPIO17_1",
+};
+
+static const char * const UART7_TXD_groups[] = {
+	"GPIO5_0", "GPIO11_0", "GPIO15_6", "GPIO17_0",
+};
+
+static const char * const UART8_RXD_groups[] = {
+	"GPIO11_5", "GPIO12_6", "GPIO17_5",
+};
+
+static const char * const UART8_TXD_groups[] = {
+	"GPIO5_4", "GPIO11_4", "GPIO12_5", "GPIO17_4",
+};
+
+static const char * const UART9_RXD_groups[] = {
+	"GPIO11_7", "GPIO13_6", "GPIO17_7",
+};
+
+static const char * const UART9_TXD_groups[] = {
+	"GPIO11_6", "GPIO13_5", "GPIO17_6",
+};
+
 
 /* Mux functions that can be used by a mux */
 
 enum asm9260_mux {
 	ASM9260_MUX_NA = -1,
 
-	ASM9260_MUX_CAM,
-	ASM9260_MUX_CAN,
-	ASM9260_MUX_CT,
-	ASM9260_MUX_I2C,
-	ASM9260_MUX_I2S,
+	ASM9260_MUX_CAM_DAT0,
+	ASM9260_MUX_CAM_DAT1,
+	ASM9260_MUX_CAM_DAT2,
+	ASM9260_MUX_CAM_DAT3,
+	ASM9260_MUX_CAM_DAT4,
+	ASM9260_MUX_CAM_DAT5,
+	ASM9260_MUX_CAM_DAT6,
+	ASM9260_MUX_CAM_DAT7,
+	ASM9260_MUX_CAM_DAT8,
+	ASM9260_MUX_CAM_DAT9,
+	ASM9260_MUX_CAM_HREF,
+	ASM9260_MUX_CAM_MCLK,
+	ASM9260_MUX_CAM_PCLK,
+	ASM9260_MUX_CAM_VSYN,
+	ASM9260_MUX_CAN0_RX,
+	ASM9260_MUX_CAN0_TX,
+	ASM9260_MUX_CAN1_RX,
+	ASM9260_MUX_CAN1_TX,
+	ASM9260_MUX_CT0_CAP,
+	ASM9260_MUX_CT0_MAT0,
+	ASM9260_MUX_CT0_MAT1,
+	ASM9260_MUX_CT0_MAT2,
+	ASM9260_MUX_CT0_MAT3,
+	ASM9260_MUX_CT1_CAP,
+	ASM9260_MUX_CT1_MAT0,
+	ASM9260_MUX_CT1_MAT1,
+	ASM9260_MUX_CT1_MAT2,
+	ASM9260_MUX_CT1_MAT3,
+	ASM9260_MUX_CT2_CAP,
+	ASM9260_MUX_CT2_MAT0,
+	ASM9260_MUX_CT2_MAT1,
+	ASM9260_MUX_CT2_MAT2,
+	ASM9260_MUX_CT2_MAT3,
+	ASM9260_MUX_CT3_CAP,
+	ASM9260_MUX_CT3_MAT0,
+	ASM9260_MUX_CT3_MAT1,
+	ASM9260_MUX_CT3_MAT2,
+	ASM9260_MUX_CT3_MAT3,
+	ASM9260_MUX_I2C0_SCL,
+	ASM9260_MUX_I2C0_SDA,
+	ASM9260_MUX_I2C1_SCL,
+	ASM9260_MUX_I2C1_SDA,
+	ASM9260_MUX_I2S0_BCLK,
+	ASM9260_MUX_I2S0_LRC,
+	ASM9260_MUX_I2S0_MCLK,
+	ASM9260_MUX_I2S0_RX0,
+	ASM9260_MUX_I2S0_TX0,
+	ASM9260_MUX_I2S0_TX1,
+	ASM9260_MUX_I2S0_TX2,
+	ASM9260_MUX_I2S1_BCLK,
+	ASM9260_MUX_I2S1_LRC,
+	ASM9260_MUX_I2S1_MCLK,
+	ASM9260_MUX_I2S1_RX0,
+	ASM9260_MUX_I2S1_TX0,
+	ASM9260_MUX_I2S1_TX1,
+	ASM9260_MUX_I2S1_TX2,
 	ASM9260_MUX_JTAG,
-	ASM9260_MUX_LCD,
-	ASM9260_MUX_LCD_MCU,
-	ASM9260_MUX_MC,
-	ASM9260_MUX_MII,
-	ASM9260_MUX_NAND,
+	ASM9260_MUX_LCD_AC_OQ,
+	ASM9260_MUX_LCD_CP_OQ,
+	ASM9260_MUX_LCD_FP_OQ,
+	ASM9260_MUX_LCD_IF_BUSY,
+	ASM9260_MUX_LCD_IF_CS,
+	ASM9260_MUX_LCD_IF_DAT0,
+	ASM9260_MUX_LCD_IF_DAT1,
+	ASM9260_MUX_LCD_IF_DAT10,
+	ASM9260_MUX_LCD_IF_DAT11,
+	ASM9260_MUX_LCD_IF_DAT12,
+	ASM9260_MUX_LCD_IF_DAT13,
+	ASM9260_MUX_LCD_IF_DAT14,
+	ASM9260_MUX_LCD_IF_DAT15,
+	ASM9260_MUX_LCD_IF_DAT2,
+	ASM9260_MUX_LCD_IF_DAT3,
+	ASM9260_MUX_LCD_IF_DAT4,
+	ASM9260_MUX_LCD_IF_DAT5,
+	ASM9260_MUX_LCD_IF_DAT6,
+	ASM9260_MUX_LCD_IF_DAT7,
+	ASM9260_MUX_LCD_IF_DAT8,
+	ASM9260_MUX_LCD_IF_DAT9,
+	ASM9260_MUX_LCD_IF_RS,
+	ASM9260_MUX_LCD_IF_WR,
+	ASM9260_MUX_LCD_LP_OQ,
+	ASM9260_MUX_LCD_PIXEL_OQ0,
+	ASM9260_MUX_LCD_PIXEL_OQ1,
+	ASM9260_MUX_LCD_PIXEL_OQ10,
+	ASM9260_MUX_LCD_PIXEL_OQ11,
+	ASM9260_MUX_LCD_PIXEL_OQ12,
+	ASM9260_MUX_LCD_PIXEL_OQ13,
+	ASM9260_MUX_LCD_PIXEL_OQ14,
+	ASM9260_MUX_LCD_PIXEL_OQ15,
+	ASM9260_MUX_LCD_PIXEL_OQ16,
+	ASM9260_MUX_LCD_PIXEL_OQ17,
+	ASM9260_MUX_LCD_PIXEL_OQ18,
+	ASM9260_MUX_LCD_PIXEL_OQ19,
+	ASM9260_MUX_LCD_PIXEL_OQ2,
+	ASM9260_MUX_LCD_PIXEL_OQ20,
+	ASM9260_MUX_LCD_PIXEL_OQ21,
+	ASM9260_MUX_LCD_PIXEL_OQ22,
+	ASM9260_MUX_LCD_PIXEL_OQ23,
+	ASM9260_MUX_LCD_PIXEL_OQ3,
+	ASM9260_MUX_LCD_PIXEL_OQ4,
+	ASM9260_MUX_LCD_PIXEL_OQ5,
+	ASM9260_MUX_LCD_PIXEL_OQ6,
+	ASM9260_MUX_LCD_PIXEL_OQ7,
+	ASM9260_MUX_LCD_PIXEL_OQ8,
+	ASM9260_MUX_LCD_PIXEL_OQ9,
+	ASM9260_MUX_MCI0,
+	ASM9260_MUX_MCI1,
+	ASM9260_MUX_MCI2,
+	ASM9260_MUX_MCIABORT,
+	ASM9260_MUX_MCOA0,
+	ASM9260_MUX_MCOA1,
+	ASM9260_MUX_MCOA2,
+	ASM9260_MUX_MCOB0,
+	ASM9260_MUX_MCOB1,
+	ASM9260_MUX_MCOB2,
+	ASM9260_MUX_MII_COL,
+	ASM9260_MUX_MII_CRS,
+	ASM9260_MUX_MII_PPS_OUT,
+	ASM9260_MUX_MII_RXD2,
+	ASM9260_MUX_MII_RXD3,
+	ASM9260_MUX_MII_RX_ER,
+	ASM9260_MUX_MII_TX_CLK,
+	ASM9260_MUX_MII_TXD2,
+	ASM9260_MUX_MII_TXD3,
+	ASM9260_MUX_NAND_ALE,
+	ASM9260_MUX_NAND_CE0N,
+	ASM9260_MUX_NAND_CE1N,
+	ASM9260_MUX_NAND_CLE,
+	ASM9260_MUX_NAND_D0,
+	ASM9260_MUX_NAND_D1,
+	ASM9260_MUX_NAND_D2,
+	ASM9260_MUX_NAND_D3,
+	ASM9260_MUX_NAND_D4,
+	ASM9260_MUX_NAND_D5,
+	ASM9260_MUX_NAND_D6,
+	ASM9260_MUX_NAND_D7,
+	ASM9260_MUX_NAND_RDY0,
+	ASM9260_MUX_NAND_RDY1,
+	ASM9260_MUX_NAND_REN,
+	ASM9260_MUX_NAND_WEN,
 	ASM9260_MUX_OUTCLK,
-	ASM9260_MUX_QEI,
-	ASM9260_MUX_QSPI,
-	ASM9260_MUX_RMII,
-	ASM9260_MUX_SD,
-	ASM9260_MUX_SPI,
-	ASM9260_MUX_UART,
+	ASM9260_MUX_QEI_A,
+	ASM9260_MUX_QEI_B,
+	ASM9260_MUX_QEI_INDEX,
+	ASM9260_MUX_QSPI0_DAT0,
+	ASM9260_MUX_QSPI0_DAT1,
+	ASM9260_MUX_QSPI0_DAT2,
+	ASM9260_MUX_QSPI0_DAT3,
+	ASM9260_MUX_QSPI0_SCK,
+	ASM9260_MUX_QSPI0_SEL,
+	ASM9260_MUX_RMII_CRS_DV,
+	ASM9260_MUX_RMII_MDC,
+	ASM9260_MUX_RMII_MDIO,
+	ASM9260_MUX_RMII_REFCLK,
+	ASM9260_MUX_RMII_RXD0,
+	ASM9260_MUX_RMII_RXD1,
+	ASM9260_MUX_RMII_TXD0,
+	ASM9260_MUX_RMII_TXD1,
+	ASM9260_MUX_RMII_TX_EN,
+	ASM9260_MUX_SD0_CLK,
+	ASM9260_MUX_SD0_CMD,
+	ASM9260_MUX_SD0_DAT0,
+	ASM9260_MUX_SD0_DAT1,
+	ASM9260_MUX_SD0_DAT2,
+	ASM9260_MUX_SD0_DAT3,
+	ASM9260_MUX_SPI0_MISO,
+	ASM9260_MUX_SPI0_MOSI,
+	ASM9260_MUX_SPI0_SCK,
+	ASM9260_MUX_SPI0_SEL,
+	ASM9260_MUX_SPI1_MISO,
+	ASM9260_MUX_SPI1_MOSI,
+	ASM9260_MUX_SPI1_SCK,
+	ASM9260_MUX_SPI1_SEL,
+	ASM9260_MUX_UART0_CTS,
+	ASM9260_MUX_UART0_DCD,
+	ASM9260_MUX_UART0_DSR,
+	ASM9260_MUX_UART0_DTR,
+	ASM9260_MUX_UART0_RI,
+	ASM9260_MUX_UART0_RTS,
+	ASM9260_MUX_UART0_RXD,
+	ASM9260_MUX_UART0_TXD,
+	ASM9260_MUX_UART1_CLK,
+	ASM9260_MUX_UART1_CTS,
+	ASM9260_MUX_UART1_RTS,
+	ASM9260_MUX_UART1_RXD,
+	ASM9260_MUX_UART1_TXD,
+	ASM9260_MUX_UART2_CTS,
+	ASM9260_MUX_UART2_RTS,
+	ASM9260_MUX_UART2_RXD,
+	ASM9260_MUX_UART2_TXD,
+	ASM9260_MUX_UART3_CLK,
+	ASM9260_MUX_UART3_CTS,
+	ASM9260_MUX_UART3_RTS,
+	ASM9260_MUX_UART3_RXD,
+	ASM9260_MUX_UART3_TXD,
+	ASM9260_MUX_UART4_CLK,
+	ASM9260_MUX_UART4_CTS,
+	ASM9260_MUX_UART4_RTS,
+	ASM9260_MUX_UART4_RXD,
+	ASM9260_MUX_UART4_TXD,
+	ASM9260_MUX_UART5_CLK,
+	ASM9260_MUX_UART5_CTS,
+	ASM9260_MUX_UART5_RTS,
+	ASM9260_MUX_UART5_RXD,
+	ASM9260_MUX_UART5_TXD,
+	ASM9260_MUX_UART6_CLK,
+	ASM9260_MUX_UART6_CTS,
+	ASM9260_MUX_UART6_RTS,
+	ASM9260_MUX_UART6_RXD,
+	ASM9260_MUX_UART6_TXD,
+	ASM9260_MUX_UART7_CTS,
+	ASM9260_MUX_UART7_RTS,
+	ASM9260_MUX_UART7_RXD,
+	ASM9260_MUX_UART7_TXD,
+	ASM9260_MUX_UART8_RXD,
+	ASM9260_MUX_UART8_TXD,
+	ASM9260_MUX_UART9_RXD,
+	ASM9260_MUX_UART9_TXD,
 };
 
 #define FUNCTION(mux, fname, group)			\
@@ -590,31 +1527,227 @@ enum asm9260_mux {
 		.groups = group##_groups,		\
 		.ngroups = ARRAY_SIZE(group##_groups),	\
 	}
-/* For intermediate functions with submuxes */
-#define NULL_FUNCTION(mux, fname)			\
-	[(ASM9260_MUX_ ## mux)] = {			\
-		.name = #fname,				\
-	}
 
 /* Must correlate with enum asm9260_mux */
 static const struct asm9260_function asm9260_functions[] = {
-	/*	 FUNCTION	function name	pingroups */
-	FUNCTION(PERIP,		perip,		perip),
-	FUNCTION(SDH,		sdh,		sdh_sdio),
-	FUNCTION(SDIO,		sdio,		sdh_sdio),
-	FUNCTION(SPI1_CS2,	spi1_cs2,	spi1_cs2),
-	FUNCTION(PDM_DAC,	pdm_dac,	pdm_dac),
-	FUNCTION(USB_VBUS,	usb_vbus,	usb_vbus),
-	FUNCTION(AFE,		afe,		afe),
-	FUNCTION(TS_OUT_0,	ts_out_0,	afe),
-	FUNCTION(DAC,		ext_dac,	tft),
-	FUNCTION(NOT_IQADC_STB,	not_iqadc_stb,	tft),
-	FUNCTION(IQDAC_STB,	iqdac_stb,	tft),
-	FUNCTION(TFT,		tft,		tft),
-	NULL_FUNCTION(EXT_DAC,	_ext_dac),
-	FUNCTION(TS_OUT_1,	ts_out_1,	tft),
-	FUNCTION(LCD_TRACE,	lcd_trace,	tft),
-	FUNCTION(PHY_RINGOSC,	phy_ringosc,	tft),
+	FUNCTION(CAM_DAT0),
+	FUNCTION(CAM_DAT1),
+	FUNCTION(CAM_DAT2),
+	FUNCTION(CAM_DAT3),
+	FUNCTION(CAM_DAT4),
+	FUNCTION(CAM_DAT5),
+	FUNCTION(CAM_DAT6),
+	FUNCTION(CAM_DAT7),
+	FUNCTION(CAM_DAT8),
+	FUNCTION(CAM_DAT9),
+	FUNCTION(CAM_HREF),
+	FUNCTION(CAM_MCLK),
+	FUNCTION(CAM_PCLK),
+	FUNCTION(CAM_VSYN),
+	FUNCTION(CAN0_RX),
+	FUNCTION(CAN0_TX),
+	FUNCTION(CAN1_RX),
+	FUNCTION(CAN1_TX),
+	FUNCTION(CT0_CAP),
+	FUNCTION(CT0_MAT0),
+	FUNCTION(CT0_MAT1),
+	FUNCTION(CT0_MAT2),
+	FUNCTION(CT0_MAT3),
+	FUNCTION(CT1_CAP),
+	FUNCTION(CT1_MAT0),
+	FUNCTION(CT1_MAT1),
+	FUNCTION(CT1_MAT2),
+	FUNCTION(CT1_MAT3),
+	FUNCTION(CT2_CAP),
+	FUNCTION(CT2_MAT0),
+	FUNCTION(CT2_MAT1),
+	FUNCTION(CT2_MAT2),
+	FUNCTION(CT2_MAT3),
+	FUNCTION(CT3_CAP),
+	FUNCTION(CT3_MAT0),
+	FUNCTION(CT3_MAT1),
+	FUNCTION(CT3_MAT2),
+	FUNCTION(CT3_MAT3),
+	FUNCTION(I2C0_SCL),
+	FUNCTION(I2C0_SDA),
+	FUNCTION(I2C1_SCL),
+	FUNCTION(I2C1_SDA),
+	FUNCTION(I2S0_BCLK),
+	FUNCTION(I2S0_LRC),
+	FUNCTION(I2S0_MCLK),
+	FUNCTION(I2S0_RX0),
+	FUNCTION(I2S0_TX0),
+	FUNCTION(I2S0_TX1),
+	FUNCTION(I2S0_TX2),
+	FUNCTION(I2S1_BCLK),
+	FUNCTION(I2S1_LRC),
+	FUNCTION(I2S1_MCLK),
+	FUNCTION(I2S1_RX0),
+	FUNCTION(I2S1_TX0),
+	FUNCTION(I2S1_TX1),
+	FUNCTION(I2S1_TX2),
+	FUNCTION(JTAG),
+	FUNCTION(LCD_AC_OQ),
+	FUNCTION(LCD_CP_OQ),
+	FUNCTION(LCD_FP_OQ),
+	FUNCTION(LCD_IF_BUSY),
+	FUNCTION(LCD_IF_CS),
+	FUNCTION(LCD_IF_DAT0),
+	FUNCTION(LCD_IF_DAT1),
+	FUNCTION(LCD_IF_DAT10),
+	FUNCTION(LCD_IF_DAT11),
+	FUNCTION(LCD_IF_DAT12),
+	FUNCTION(LCD_IF_DAT13),
+	FUNCTION(LCD_IF_DAT14),
+	FUNCTION(LCD_IF_DAT15),
+	FUNCTION(LCD_IF_DAT2),
+	FUNCTION(LCD_IF_DAT3),
+	FUNCTION(LCD_IF_DAT4),
+	FUNCTION(LCD_IF_DAT5),
+	FUNCTION(LCD_IF_DAT6),
+	FUNCTION(LCD_IF_DAT7),
+	FUNCTION(LCD_IF_DAT8),
+	FUNCTION(LCD_IF_DAT9),
+	FUNCTION(LCD_IF_RS),
+	FUNCTION(LCD_IF_WR),
+	FUNCTION(LCD_LP_OQ),
+	FUNCTION(LCD_PIXEL_OQ0),
+	FUNCTION(LCD_PIXEL_OQ1),
+	FUNCTION(LCD_PIXEL_OQ10),
+	FUNCTION(LCD_PIXEL_OQ11),
+	FUNCTION(LCD_PIXEL_OQ12),
+	FUNCTION(LCD_PIXEL_OQ13),
+	FUNCTION(LCD_PIXEL_OQ14),
+	FUNCTION(LCD_PIXEL_OQ15),
+	FUNCTION(LCD_PIXEL_OQ16),
+	FUNCTION(LCD_PIXEL_OQ17),
+	FUNCTION(LCD_PIXEL_OQ18),
+	FUNCTION(LCD_PIXEL_OQ19),
+	FUNCTION(LCD_PIXEL_OQ2),
+	FUNCTION(LCD_PIXEL_OQ20),
+	FUNCTION(LCD_PIXEL_OQ21),
+	FUNCTION(LCD_PIXEL_OQ22),
+	FUNCTION(LCD_PIXEL_OQ23),
+	FUNCTION(LCD_PIXEL_OQ3),
+	FUNCTION(LCD_PIXEL_OQ4),
+	FUNCTION(LCD_PIXEL_OQ5),
+	FUNCTION(LCD_PIXEL_OQ6),
+	FUNCTION(LCD_PIXEL_OQ7),
+	FUNCTION(LCD_PIXEL_OQ8),
+	FUNCTION(LCD_PIXEL_OQ9),
+	FUNCTION(MCI0),
+	FUNCTION(MCI1),
+	FUNCTION(MCI2),
+	FUNCTION(MCIABORT),
+	FUNCTION(MCOA0),
+	FUNCTION(MCOA1),
+	FUNCTION(MCOA2),
+	FUNCTION(MCOB0),
+	FUNCTION(MCOB1),
+	FUNCTION(MCOB2),
+	FUNCTION(MII_COL),
+	FUNCTION(MII_CRS),
+	FUNCTION(MII_PPS_OUT),
+	FUNCTION(MII_RXD2),
+	FUNCTION(MII_RXD3),
+	FUNCTION(MII_RX_ER),
+	FUNCTION(MII_TX_CLK),
+	FUNCTION(MII_TXD2),
+	FUNCTION(MII_TXD3),
+	FUNCTION(NAND_ALE),
+	FUNCTION(NAND_CE0N),
+	FUNCTION(NAND_CE1N),
+	FUNCTION(NAND_CLE),
+	FUNCTION(NAND_D0),
+	FUNCTION(NAND_D1),
+	FUNCTION(NAND_D2),
+	FUNCTION(NAND_D3),
+	FUNCTION(NAND_D4),
+	FUNCTION(NAND_D5),
+	FUNCTION(NAND_D6),
+	FUNCTION(NAND_D7),
+	FUNCTION(NAND_RDY0),
+	FUNCTION(NAND_RDY1),
+	FUNCTION(NAND_REN),
+	FUNCTION(NAND_WEN),
+	FUNCTION(OUTCLK),
+	FUNCTION(QEI_A),
+	FUNCTION(QEI_B),
+	FUNCTION(QEI_INDEX),
+	FUNCTION(QSPI0_DAT0),
+	FUNCTION(QSPI0_DAT1),
+	FUNCTION(QSPI0_DAT2),
+	FUNCTION(QSPI0_DAT3),
+	FUNCTION(QSPI0_SCK),
+	FUNCTION(QSPI0_SEL),
+	FUNCTION(RMII_CRS_DV),
+	FUNCTION(RMII_MDC),
+	FUNCTION(RMII_MDIO),
+	FUNCTION(RMII_REFCLK),
+	FUNCTION(RMII_RXD0),
+	FUNCTION(RMII_RXD1),
+	FUNCTION(RMII_TXD0),
+	FUNCTION(RMII_TXD1),
+	FUNCTION(RMII_TX_EN),
+	FUNCTION(SD0_CLK),
+	FUNCTION(SD0_CMD),
+	FUNCTION(SD0_DAT0),
+	FUNCTION(SD0_DAT1),
+	FUNCTION(SD0_DAT2),
+	FUNCTION(SD0_DAT3),
+	FUNCTION(SPI0_MISO),
+	FUNCTION(SPI0_MOSI),
+	FUNCTION(SPI0_SCK),
+	FUNCTION(SPI0_SEL),
+	FUNCTION(SPI1_MISO),
+	FUNCTION(SPI1_MOSI),
+	FUNCTION(SPI1_SCK),
+	FUNCTION(SPI1_SEL),
+	FUNCTION(UART0_CTS),
+	FUNCTION(UART0_DCD),
+	FUNCTION(UART0_DSR),
+	FUNCTION(UART0_DTR),
+	FUNCTION(UART0_RI),
+	FUNCTION(UART0_RTS),
+	FUNCTION(UART0_RXD),
+	FUNCTION(UART0_TXD),
+	FUNCTION(UART1_CLK),
+	FUNCTION(UART1_CTS),
+	FUNCTION(UART1_RTS),
+	FUNCTION(UART1_RXD),
+	FUNCTION(UART1_TXD),
+	FUNCTION(UART2_CTS),
+	FUNCTION(UART2_RTS),
+	FUNCTION(UART2_RXD),
+	FUNCTION(UART2_TXD),
+	FUNCTION(UART3_CLK),
+	FUNCTION(UART3_CTS),
+	FUNCTION(UART3_RTS),
+	FUNCTION(UART3_RXD),
+	FUNCTION(UART3_TXD),
+	FUNCTION(UART4_CLK),
+	FUNCTION(UART4_CTS),
+	FUNCTION(UART4_RTS),
+	FUNCTION(UART4_RXD),
+	FUNCTION(UART4_TXD),
+	FUNCTION(UART5_CLK),
+	FUNCTION(UART5_CTS),
+	FUNCTION(UART5_RTS),
+	FUNCTION(UART5_RXD),
+	FUNCTION(UART5_TXD),
+	FUNCTION(UART6_CLK),
+	FUNCTION(UART6_CTS),
+	FUNCTION(UART6_RTS),
+	FUNCTION(UART6_RXD),
+	FUNCTION(UART6_TXD),
+	FUNCTION(UART7_CTS),
+	FUNCTION(UART7_RTS),
+	FUNCTION(UART7_RXD),
+	FUNCTION(UART7_TXD),
+	FUNCTION(UART8_RXD),
+	FUNCTION(UART8_TXD),
+	FUNCTION(UART9_RXD),
+	FUNCTION(UART9_TXD),
 };
 
 /* Sub muxes */
@@ -703,115 +1836,115 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
 //	MUX_PG(tft,      TFT,      EXT_DAC,  TS_OUT_1, LCD_TRACE, PHY_RINGOSC, IF_CTL,  0, 3),
 
 	/*     pg,		f0,	f1,	f2,	f3,	f4,	f5,	f6, */
-	MUX_PG(GPIO0_0,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_1,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_2,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_3,		UART,	I2S,	SPI,	JTAG,	NA,	NA,	NA),
-	MUX_PG(GPIO0_4,		UART,	I2S,	SPI,	JTAG,	I2C,	NA,	NA),
-	MUX_PG(GPIO1_4,		CT,	UART,	LCD_MCU,SPI,	MII,	LCD,	NA),
-	MUX_PG(GPIO1_5,		UART,	LCD_MCU,SPI,	RMII,	LCD,	NA,	NA),
-	MUX_PG(GPIO1_6,		UART,	LCD_MCU,SPI,	RMII,	LCD,	I2C,	NA),
-	MUX_PG(GPIO1_7,		UART,	LCD_MCU,SPI,	RMII,	LCD,	I2C,	NA),
-	MUX_PG(GPIO2_0,		CT,	UART,	LCD_MCU,SPI,	MII,	LCD,	CAN),
-	MUX_PG(GPIO2_1,		CT,	UART,	LCD_MCU,SPI,	MII,	LCD,	CAN),
-	MUX_PG(GPIO2_2,		CT,	UART,	LCD_MCU,SPI,	MII,	LCD,	NA),
-	MUX_PG(GPIO2_3,		CT,	UART,	LCD_MCU,SPI,	MII,	LCD,	NA),
-	MUX_PG(GPIO2_4,		CT,	UART,	LCD_MCU,MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO2_5,		UART,	LCD_MCU,MII,	LCD,	OUTCLK,	NA,	NA),
-	MUX_PG(GPIO2_6,		UART,	LCD_MCU,MII,	LCD,	CAN,	NA,	NA),
-	MUX_PG(GPIO2_7,		UART,	LCD_MCU,MII,	LCD,	CAN,	NA,	NA),
-	MUX_PG(GPIO3_0,		CT,	UART,	LCD_MCU,SD,	RMII,	LCD,	NA),
-	MUX_PG(GPIO3_1,		CT,	UART,	LCD_MCU,SD,	RMII,	LCD,	NA),
-	MUX_PG(GPIO3_2,		CT,	UART,	LCD_MCU,SD,	RMII,	LCD,	CAN),
-	MUX_PG(GPIO3_3,		CT,	UART,	LCD_MCU,SD,	RMII,	LCD,	CAN),
-	MUX_PG(GPIO3_4,		CT,	UART,	LCD_MCU,SD,	RMII,	LCD,	OUTCLK),
-	MUX_PG(GPIO3_5,		UART,	LCD_MCU,SD,	RMII,	LCD,	I2C,	NA),
-	MUX_PG(GPIO3_6,		UART,	LCD_MCU,RMII,	LCD,	I2C,	NA,	NA),
-	MUX_PG(GPIO3_7,		UART,	LCD_MCU,RMII,	LCD,	NA,	NA,	NA),
-	MUX_PG(GPIO4_0,		CT,	UART,	QSPI,	MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO4_1,		CT,	UART,	QSPI,	MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO4_2,		CT,	UART,	QSPI,	MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO4_3,		CT,	UART,	QSPI,	MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO4_4,		CT,	UART,	QSPI,	MII,	LCD,	NA,	NA),
-	MUX_PG(GPIO4_5,		UART,	QSPI,	MII,	LCD,	NA,	NA,	NA),
-	MUX_PG(GPIO4_6,		MII,	LCD,	I2C,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO4_7,		MII,	LCD,	I2C,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO5_0,		MC,	UART,	I2S,	SD,	RMII,	NA,	NA),
-	MUX_PG(GPIO5_1,		MC,	UART,	I2S,	SD,	RMII,	NA,	NA),
-	MUX_PG(GPIO5_2,		MC,	UART,	I2S,	SD,	RMII,	CAN,	NA),
-	MUX_PG(GPIO5_3,		MC,	UART,	I2S,	SD,	RMII,	CAN,	NA),
-	MUX_PG(GPIO5_4,		MC,	UART,	I2S,	SD,	RMII,	NA,	NA),
-	MUX_PG(GPIO8_1,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_2,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_3,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_4,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_5,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_6,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO8_7,		UART,	CAM,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO9_0,		CT,	UART,	CAM,	RMII,	I2C,	NA,	NA),
-	MUX_PG(GPIO9_1,		CT,	UART,	CAM,	RMII,	I2C,	NA,	NA),
-	MUX_PG(GPIO9_2,		CT,	UART,	CAM,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO9_3,		CT,	UART,	CAM,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO9_4,		CT,	UART,	CAM,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO9_5,		UART,	CAM,	RMII,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO10_0,	CT,	UART,	I2S,	SPI,	NA,	NA,	NA),
-	MUX_PG(GPIO10_1,	CT,	UART,	I2S,	SPI,	RMII,	NA,	NA),
-	MUX_PG(GPIO10_2,	CT,	UART,	I2S,	SPI,	RMII,	NA,	NA),
-	MUX_PG(GPIO10_3,	CT,	UART,	I2S,	SPI,	CAN,	NA,	NA),
-	MUX_PG(GPIO10_4,	CT,	UART,	I2S,	SPI,	RMII,	NA,	NA),
-	MUX_PG(GPIO10_5,	UART,	I2S,	SPI,	RMII,	CAN,	NA,	NA),
-	MUX_PG(GPIO10_6,	UART,	I2S,	SPI,	RMII,	CAN,	NA,	NA),
-	MUX_PG(GPIO10_7,	UART,	CAM,	SPI,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO11_0,	CT,	UART,	I2S,	QSPI,	NAND,	NA,	NA),
-	MUX_PG(GPIO11_1,	CT,	UART,	I2S,	QSPI,	NAND,	NA,	NA),
-	MUX_PG(GPIO11_2,	CT,	UART,	I2S,	QSPI,	NAND,	NA,	NA),
-	MUX_PG(GPIO11_3,	CT,	UART,	I2S,	QSPI,	NAND,	NA,	NA),
-	MUX_PG(GPIO11_4,	CT,	UART,	I2S,	QSPI,	NAND,	NA,	NA),
-	MUX_PG(GPIO11_5,	UART,	I2S,	QSPI,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO11_6,	UART,	I2S,	NAND,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO11_7,	UART,	CAM,	NAND,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO12_0,	CT,	UART,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO12_1,	CT,	UART,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO12_2,	CT,	UART,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO12_3,	CT,	UART,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO12_4,	CT,	UART,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO12_5,	UART,	SD,	NAND,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO12_6,	UART,	CAM,	NAND,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO12_7,	CAM,	NAND,	I2C,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO13_4,	MC,	UART,	SPI,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO13_5,	MC,	UART,	SPI,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO13_6,	MC,	UART,	SPI,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO13_7,	MC,	SPI,	NAND,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO14_0,	MC,	UART,	I2S,	SD,	NAND,	NA,	NA),
-	MUX_PG(GPIO14_1,	MC,	UART,	I2S,	SD,	NAND,	NA,	NA),
-	MUX_PG(GPIO14_2,	UART,	I2S,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO14_3,	UART,	I2S,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO14_4,	UART,	I2S,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO14_5,	UART,	I2S,	SD,	NAND,	NA,	NA,	NA),
-	MUX_PG(GPIO15_0,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_1,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_2,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_3,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_4,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_5,	UART,	I2S,	SD,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO15_6,	UART,	I2S,	RMII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO15_7,	UART,	RMII,	NA,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_0,	CT,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_1,	CT,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_2,	CT,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_3,	CT,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_4,	CT,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_5,	QEI,	UART,	MII,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO16_6,	QEI,	UART,	MII,	CAN,	NA,	NA,	NA),
-	MUX_PG(GPIO16_7,	QEI,	UART,	MII,	CAN,	NA,	NA,	NA),
-	MUX_PG(GPIO17_0,	CT,	UART,	I2S,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO17_1,	CT,	UART,	I2S,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO17_2,	CT,	UART,	I2S,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO17_3,	CT,	UART,	I2S,	I2C,	NA,	NA,	NA),
-	MUX_PG(GPIO17_4,	CT,	UART,	I2S,	NA,	NA,	NA,	NA),
-	MUX_PG(GPIO17_5,	QEI,	UART,	I2S,	RMII,	NA,	NA,	NA),
-	MUX_PG(GPIO17_6,	QEI,	UART,	I2S,	MII,	NA,	NA,	NA),
-	MUX_PG(GPIO17_7,	QEI,	UART,	MII,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO0_0,	UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_1,	UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_2,	UART1_RXD,	I2S0_LRC,	SPI1_MISO,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_3,	UART1_RTS,	I2S0_RX0,	SPI1_MOSI,	JTAG,	NA,	NA,	NA),
+	MUX_PG(GPIO0_4,	UART1_CTS,	I2S0_TX0,	SPI0_SCK,	JTAG,	I2C0_SCL,	NA,	NA),
+	MUX_PG(GPIO1_4,	CT0_CAP,	UART0_DTR,	LCD_IF_BUSY,	SPI0_SCK,	MII_PPS_OUT,	LCD_CP_OQ,	NA),
+	MUX_PG(GPIO1_5,	UART0_DSR,	LCD_IF_WR,	SPI0_SEL,	RMII_REFCLK,	LCD_FP_OQ,	NA,	NA),
+	MUX_PG(GPIO1_6,	UART0_DCD,	LCD_IF_RS,	SPI0_MISO,	RMII_REFCLK,	LCD_AC_OQ,	I2C1_SCL,	NA),
+	MUX_PG(GPIO1_7,	UART0_RI,	LCD_IF_CS,	SPI0_MOSI,	RMII_REFCLK,	LCD_LP_OQ,	I2C1_SDA,	NA),
+	MUX_PG(GPIO2_0,	CT1_MAT0,	UART2_RTS,	LCD_IF_DAT0,	SPI1_SCK,	MII_RXD2,	LCD_PIXEL_OQ0,	CAN0_TX),
+	MUX_PG(GPIO2_1,	CT1_MAT1,	UART2_CTS,	LCD_IF_DAT1,	SPI1_SEL,	MII_RXD3,	LCD_PIXEL_OQ1,	CAN0_RX),
+	MUX_PG(GPIO2_2,	CT1_MAT2,	UART3_CLK,	LCD_IF_DAT2,	SPI1_MISO,	MII_TXD2,	LCD_PIXEL_OQ2,	NA),
+	MUX_PG(GPIO2_3,	CT1_MAT3,	UART3_TXD,	LCD_IF_DAT3,	SPI1_MOSI,	MII_TXD3,	LCD_PIXEL_OQ3,	NA),
+	MUX_PG(GPIO2_4,	CT1_CAP,	UART3_RXD,	LCD_IF_DAT4,	MII_TX_CLK,	LCD_PIXEL_OQ4,	NA,	NA),
+	MUX_PG(GPIO2_5,	UART3_RTS,	LCD_IF_DAT5,	MII_CRS,	LCD_PIXEL_OQ5,	OUTCLK,	NA,	NA),
+	MUX_PG(GPIO2_6,	UART3_CTS,	LCD_IF_DAT6,	MII_COL,	LCD_PIXEL_OQ6,	CAN1_TX,	NA,	NA),
+	MUX_PG(GPIO2_7,	UART4_CLK,	LCD_IF_DAT7,	MII_RX_ER,	LCD_PIXEL_OQ7,	CAN1_RX,	NA,	NA),
+	MUX_PG(GPIO3_0,	CT2_MAT0,	UART4_TXD,	LCD_IF_DAT8,	SD0_CLK,	RMII_MDC,	LCD_PIXEL_OQ8,	NA),
+	MUX_PG(GPIO3_1,	CT2_MAT1,	UART4_RXD,	LCD_IF_DAT9,	SD0_CMD,	RMII_MDIO,	LCD_PIXEL_OQ9,	NA),
+	MUX_PG(GPIO3_2,	CT2_MAT2,	UART4_RTS,	LCD_IF_DAT10,	SD0_DAT0,	RMII_CRS_DV,	LCD_PIXEL_OQ10,	CAN1_TX),
+	MUX_PG(GPIO3_3,	CT2_MAT3,	UART4_CTS,	LCD_IF_DAT11,	SD0_DAT1,	RMII_RXD0,	LCD_PIXEL_OQ11,	CAN1_RX),
+	MUX_PG(GPIO3_4,	CT2_CAP,	UART5_CLK,	LCD_IF_DAT12,	SD0_DAT2,	RMII_RXD1,	LCD_PIXEL_OQ12,	OUTCLK),
+	MUX_PG(GPIO3_5,	UART5_TXD,	LCD_IF_DAT13,	SD0_DAT3,	RMII_TX_EN,	LCD_PIXEL_OQ13,	I2C0_SCL,	NA),
+	MUX_PG(GPIO3_6,	UART5_RXD,	LCD_IF_DAT14,	RMII_TXD0,	LCD_PIXEL_OQ14,	I2C0_SDA,	NA,	NA),
+	MUX_PG(GPIO3_7,	UART5_RTS,	LCD_IF_DAT15,	RMII_TXD1,	LCD_PIXEL_OQ15,	NA,	NA,	NA),
+	MUX_PG(GPIO4_0,	CT3_MAT0,	UART5_CTS,	QSPI0_SCK,	MII_RXD2,	LCD_PIXEL_OQ16,	NA,	NA),
+	MUX_PG(GPIO4_1,	CT3_MAT1,	UART6_CLK,	QSPI0_SEL,	MII_RXD3,	LCD_PIXEL_OQ17,	NA,	NA),
+	MUX_PG(GPIO4_2,	CT3_MAT2,	UART6_TXD,	QSPI0_DAT0,	MII_TXD2,	LCD_PIXEL_OQ18,	NA,	NA),
+	MUX_PG(GPIO4_3,	CT3_MAT3,	UART6_RXD,	QSPI0_DAT1,	MII_TXD3,	LCD_PIXEL_OQ19,	NA,	NA),
+	MUX_PG(GPIO4_4,	CT3_CAP,	UART6_RTS,	QSPI0_DAT2,	MII_TX_CLK,	LCD_PIXEL_OQ20,	NA,	NA),
+	MUX_PG(GPIO4_5,	UART6_CTS,	QSPI0_DAT3,	MII_CRS,	LCD_PIXEL_OQ21,	NA,	NA,	NA),
+	MUX_PG(GPIO4_6,	MII_COL,	LCD_PIXEL_OQ22,	I2C1_SCL,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO4_7,	MII_RX_ER,	LCD_PIXEL_OQ23,	I2C1_SDA,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO5_0,	MCIABORT,	UART7_TXD,	I2S1_MCLK,	SD0_CLK,	RMII_MDC,	NA,	NA),
+	MUX_PG(GPIO5_1,	MCI0,	UART7_RXD,	I2S1_BCLK,	SD0_CMD,	RMII_MDIO,	NA,	NA),
+	MUX_PG(GPIO5_2,	MCOA0,	UART7_RTS,	I2S1_LRC,	SD0_DAT0,	RMII_CRS_DV,	CAN0_TX,	NA),
+	MUX_PG(GPIO5_3,	MCOB0,	UART7_CTS,	I2S1_RX0,	SD0_DAT1,	RMII_RXD0,	CAN0_RX,	NA),
+	MUX_PG(GPIO5_4,	MCI1,	UART8_TXD,	I2S1_TX0,	SD0_DAT2,	RMII_RXD1,	NA,	NA),
+	MUX_PG(GPIO8_1,	UART2_TXD,	CAM_PCLK,	MII_RXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_2,	UART2_RXD,	CAM_VSYN,	MII_TXD2,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_3,	UART2_RTS,	CAM_HREF,	MII_TXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_4,	UART2_CTS,	CAM_DAT0,	MII_TX_CLK,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_5,	UART3_CLK,	CAM_DAT1,	MII_CRS,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_6,	UART3_TXD,	CAM_DAT2,	MII_COL,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO8_7,	UART3_RXD,	CAM_DAT3,	MII_RX_ER,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO9_0,	CT0_MAT0,	UART3_RTS,	CAM_DAT4,	RMII_MDC,	I2C0_SCL,	NA,	NA),
+	MUX_PG(GPIO9_1,	CT0_MAT1,	UART3_CTS,	CAM_DAT5,	RMII_MDIO,	I2C0_SDA,	NA,	NA),
+	MUX_PG(GPIO9_2,	CT0_MAT2,	UART4_CLK,	CAM_DAT6,	RMII_CRS_DV,	NA,	NA,	NA),
+	MUX_PG(GPIO9_3,	CT0_MAT3,	UART4_TXD,	CAM_DAT7,	RMII_RXD0,	NA,	NA,	NA),
+	MUX_PG(GPIO9_4,	CT0_CAP,	UART4_RXD,	CAM_DAT8,	RMII_RXD1,	NA,	NA,	NA),
+	MUX_PG(GPIO9_5,	UART4_RTS,	CAM_DAT9,	RMII_TX_EN,	I2C1_SCL,	NA,	NA,	NA),
+	MUX_PG(GPIO10_0,	CT1_MAT0,	UART5_TXD,	I2S0_MCLK,	SPI0_SCK,	NA,	NA,	NA),
+	MUX_PG(GPIO10_1,	CT1_MAT1,	UART5_RXD,	I2S0_BCLK,	SPI0_SEL,	RMII_REFCLK,	NA,	NA),
+	MUX_PG(GPIO10_2,	CT1_MAT2,	UART5_RTS,	I2S0_LRC,	SPI0_MISO,	RMII_REFCLK,	NA,	NA),
+	MUX_PG(GPIO10_3,	CT1_MAT3,	UART5_CTS,	I2S0_RX0,	SPI0_MOSI,	CAN0_RX,	NA,	NA),
+	MUX_PG(GPIO10_4,	CT1_CAP,	UART6_TXD,	I2S0_TX0,	SPI1_SCK,	RMII_REFCLK,	NA,	NA),
+	MUX_PG(GPIO10_5,	UART6_RXD,	I2S0_TX1,	SPI1_SEL,	RMII_REFCLK,	CAN1_RX,	NA,	NA),
+	MUX_PG(GPIO10_6,	UART6_RTS,	I2S0_TX2,	SPI1_MISO,	RMII_REFCLK,	CAN1_TX,	NA,	NA),
+	MUX_PG(GPIO10_7,	UART6_CTS,	CAM_MCLK,	SPI1_MOSI,	RMII_REFCLK,	NA,	NA,	NA),
+	MUX_PG(GPIO11_0,	CT2_MAT0,	UART7_TXD,	I2S1_MCLK,	QSPI0_SCK,	NAND_REN,	NA,	NA),
+	MUX_PG(GPIO11_1,	CT2_MAT1,	UART7_RXD,	I2S1_BCLK,	QSPI0_SEL,	NAND_WEN,	NA,	NA),
+	MUX_PG(GPIO11_2,	CT2_MAT2,	UART7_RTS,	I2S1_LRC,	QSPI0_DAT0,	NAND_ALE,	NA,	NA),
+	MUX_PG(GPIO11_3,	CT2_MAT3,	UART7_CTS,	I2S1_RX0,	QSPI0_DAT1,	NAND_CLE,	NA,	NA),
+	MUX_PG(GPIO11_4,	CT2_CAP,	UART8_TXD,	I2S1_TX0,	QSPI0_DAT2,	NAND_RDY0,	NA,	NA),
+	MUX_PG(GPIO11_5,	UART8_RXD,	I2S1_TX1,	QSPI0_DAT3,	NAND_RDY1,	NA,	NA,	NA),
+	MUX_PG(GPIO11_6,	UART9_TXD,	I2S1_TX2,	NAND_CE0N,	I2C0_SCL,	NA,	NA,	NA),
+	MUX_PG(GPIO11_7,	UART9_RXD,	CAM_MCLK,	NAND_CE1N,	I2C0_SDA,	NA,	NA,	NA),
+	MUX_PG(GPIO12_0,	CT3_MAT0,	UART1_CLK,	SD0_CLK,	NAND_D0,	NA,	NA,	NA),
+	MUX_PG(GPIO12_1,	CT3_MAT1,	UART1_TXD,	SD0_CMD,	NAND_D1,	NA,	NA,	NA),
+	MUX_PG(GPIO12_2,	CT3_MAT2,	UART1_RXD,	SD0_DAT0,	NAND_D2,	NA,	NA,	NA),
+	MUX_PG(GPIO12_3,	CT3_MAT3,	UART1_RTS,	SD0_DAT1,	NAND_D3,	NA,	NA,	NA),
+	MUX_PG(GPIO12_4,	CT3_CAP,	UART1_CTS,	SD0_DAT2,	NAND_D4,	NA,	NA,	NA),
+	MUX_PG(GPIO12_5,	UART8_TXD,	SD0_DAT3,	NAND_D5,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO12_6,	UART8_RXD,	CAM_MCLK,	NAND_D6,	I2C1_SCL,	NA,	NA,	NA),
+	MUX_PG(GPIO12_7,	CAM_MCLK,	NAND_D7,	I2C1_SDA,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO13_4,	MCI1,	UART2_CTS,	SPI1_SCK,	NAND_RDY0,	NA,	NA,	NA),
+	MUX_PG(GPIO13_5,	MCOA1,	UART9_TXD,	SPI1_SEL,	NAND_RDY1,	NA,	NA,	NA),
+	MUX_PG(GPIO13_6,	MCOB1,	UART9_RXD,	SPI1_MISO,	NAND_CE0N,	NA,	NA,	NA),
+	MUX_PG(GPIO13_7,	MCI2,	SPI1_MOSI,	NAND_CE1N,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO14_0,	MCOA2,	UART0_TXD,	I2S0_MCLK,	SD0_CLK,	NAND_D0,	NA,	NA),
+	MUX_PG(GPIO14_1,	MCOB2,	UART0_RXD,	I2S0_BCLK,	SD0_CMD,	NAND_D1,	NA,	NA),
+	MUX_PG(GPIO14_2,	UART0_RTS,	I2S0_LRC,	SD0_DAT0,	NAND_D2,	NA,	NA,	NA),
+	MUX_PG(GPIO14_3,	UART0_CTS,	I2S0_RX0,	SD0_DAT1,	NAND_D3,	NA,	NA,	NA),
+	MUX_PG(GPIO14_4,	UART0_DTR,	I2S0_TX0,	SD0_DAT2,	NAND_D4,	NA,	NA,	NA),
+	MUX_PG(GPIO14_5,	UART0_DSR,	I2S0_TX1,	SD0_DAT3,	NAND_D5,	NA,	NA,	NA),
+	MUX_PG(GPIO15_0,	UART4_TXD,	I2S0_MCLK,	SD0_CLK,	RMII_MDC,	NA,	NA,	NA),
+	MUX_PG(GPIO15_1,	UART4_RXD,	I2S0_BCLK,	SD0_CMD,	RMII_MDIO,	NA,	NA,	NA),
+	MUX_PG(GPIO15_2,	UART5_TXD,	I2S0_LRC,	SD0_DAT0,	RMII_CRS_DV,	NA,	NA,	NA),
+	MUX_PG(GPIO15_3,	UART5_RXD,	I2S0_RX0,	SD0_DAT1,	RMII_RXD0,	NA,	NA,	NA),
+	MUX_PG(GPIO15_4,	UART6_TXD,	I2S0_TX0,	SD0_DAT2,	RMII_RXD1,	NA,	NA,	NA),
+	MUX_PG(GPIO15_5,	UART6_RXD,	I2S0_TX1,	SD0_DAT3,	RMII_TX_EN,	NA,	NA,	NA),
+	MUX_PG(GPIO15_6,	UART7_TXD,	I2S0_TX2,	RMII_TXD0,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO15_7,	UART7_RXD,	RMII_TXD1,	NA,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_0,	CT2_MAT0,	UART4_TXD,	MII_RXD2,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_1,	CT2_MAT1,	UART4_RXD,	MII_RXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_2,	CT2_MAT2,	UART5_TXD,	MII_TXD2,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_3,	CT2_MAT3,	UART5_RXD,	MII_TXD3,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_4,	CT2_CAP,	UART6_TXD,	MII_TX_CLK,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_5,	QEI_A,	UART6_RXD,	MII_CRS,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO16_6,	QEI_B,	UART6_RTS,	MII_COL,	CAN1_TX,	NA,	NA,	NA),
+	MUX_PG(GPIO16_7,	QEI_INDEX,	UART6_CTS,	MII_RX_ER,	CAN1_RX,	NA,	NA,	NA),
+	MUX_PG(GPIO17_0,	CT3_MAT0,	UART7_TXD,	I2S1_MCLK,	RMII_REFCLK,	NA,	NA,	NA),
+	MUX_PG(GPIO17_1,	CT3_MAT1,	UART7_RXD,	I2S1_BCLK,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO17_2,	CT3_MAT2,	UART7_RTS,	I2S1_LRC,	I2C1_SCL,	NA,	NA,	NA),
+	MUX_PG(GPIO17_3,	CT3_MAT3,	UART7_CTS,	I2S1_RX0,	I2C1_SDA,	NA,	NA,	NA),
+	MUX_PG(GPIO17_4,	CT3_CAP,	UART8_TXD,	I2S1_TX0,	NA,	NA,	NA,	NA),
+	MUX_PG(GPIO17_5,	QEI_A,	UART8_RXD,	I2S1_TX1,	RMII_REFCLK,	NA,	NA,	NA),
+	MUX_PG(GPIO17_6,	QEI_B,	UART9_TXD,	I2S1_TX2,	MII_PPS_OUT,	NA,	NA,	NA),
+	MUX_PG(GPIO17_7,	QEI_INDEX,	UART9_RXD,	MII_PPS_OUT,	NA,	NA,	NA,	NA),
 };
 
 /*

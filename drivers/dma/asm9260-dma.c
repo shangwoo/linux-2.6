@@ -212,7 +212,7 @@ static void asm9260_dma_reset_chan(struct asm9260_dma_chan *asm9260_chan)
 				HW_APBX_CHn_DEBUG1(asm9260_dma, chan_id);
 
 		/*
-		 * On i.MX28 APBX, the DMA channel can stop working if we reset
+		 * On asm9260 APBX, the DMA channel can stop working if we reset
 		 * the channel while it is in READ_FLUSH (0x08) state.
 		 * We wait here until we leave the state. Then we trigger the
 		 * reset. Waiting a maximum of 50ms, the kernel shouldn't crash

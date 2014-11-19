@@ -34,13 +34,13 @@
 #include "dmaengine.h"
 
 /*
- * NOTE: The term "PIO" throughout the mxs-dma implementation means
- * PIO mode of mxs apbh-dma and apbx-dma.  With this working mode,
+ * NOTE: The term "PIO" throughout the asm9260-dma implementation means
+ * PIO mode of asm9260 apbh-dma and apbx-dma.  With this working mode,
  * dma can program the controller registers of peripheral devices.
  */
 
-#define dma_is_apbh(asm9260_dma)	((asm9260_dma)->type == MXS_DMA_APBH)
-#define apbh_is_old(asm9260_dma)	((asm9260_dma)->dev_id == IMX23_DMA)
+#define dma_is_apbh(asm9260_dma)	((asm9260_dma)->type == ASM9260_DMA_APBH)
+#define apbh_is_old(asm9260_dma)	((asm9260_dma)->dev_id == ASM9260_DMA)
 
 #define HW_APBHX_CTRL0				0x000
 #define BM_APBH_CTRL0_APB_BURST8_EN		(1 << 29)
@@ -90,10 +90,10 @@
 
 #define BF_CCW(value, field)	(((value) << BP_CCW_##field) & BM_CCW_##field)
 
-#define MXS_DMA_CMD_NO_XFER	0
-#define MXS_DMA_CMD_WRITE	1
-#define MXS_DMA_CMD_READ	2
-#define MXS_DMA_CMD_DMA_SENSE	3	/* not implemented */
+#define ASM9260_DMA_CMD_NO_XFER	0
+#define ASM9260_DMA_CMD_WRITE	1
+#define ASM9260_DMA_CMD_READ	2
+#define ASM9260_DMA_CMD_DMA_SENSE	3	/* not implemented */
 
 struct asm9260_dma_ccw {
 	u32		next;
@@ -101,8 +101,8 @@ struct asm9260_dma_ccw {
 	u16		xfer_bytes;
 #define MAX_XFER_BYTES	0xff00
 	u32		bufaddr;
-#define MXS_PIO_WORDS	16
-	u32		pio_words[MXS_PIO_WORDS];
+#define ASM9260_PIO_WORDS	16
+	u32		pio_words[ASM9260_PIO_WORDS];
 };
 
 #define CCW_BLOCK_SIZE	(4 * PAGE_SIZE)
@@ -120,20 +120,20 @@ struct asm9260_dma_chan {
 	enum dma_status			status;
 	unsigned int			flags;
 	bool				reset;
-#define MXS_DMA_SG_LOOP			(1 << 0)
-#define MXS_DMA_USE_SEMAPHORE		(1 << 1)
+#define ASM9260_DMA_SG_LOOP			(1 << 0)
+#define ASM9260_DMA_USE_SEMAPHORE		(1 << 1)
 };
 
-#define MXS_DMA_CHANNELS		16
-#define MXS_DMA_CHANNELS_MASK		0xffff
+#define ASM9260_DMA_CHANNELS		16
+#define ASM9260_DMA_CHANNELS_MASK		0xffff
 
 enum asm9260_dma_devtype {
-	MXS_DMA_APBH,
-	MXS_DMA_APBX,
+	ASM9260_DMA_APBH,
+	ASM9260_DMA_APBX,
 };
 
 enum asm9260_dma_id {
-	IMX23_DMA,
+	ASM9260_DMA,
 };
 
 struct asm9260_dma_engine {
@@ -143,7 +143,7 @@ struct asm9260_dma_engine {
 	struct clk			*clk;
 	struct dma_device		dma_device;
 	struct device_dma_parameters	dma_parms;
-	struct asm9260_dma_chan		asm9260_chans[MXS_DMA_CHANNELS];
+	struct asm9260_dma_chan		asm9260_chans[ASM9260_DMA_CHANNELS];
 	struct platform_device		*pdev;
 	unsigned int			nr_channels;
 };
@@ -155,20 +155,20 @@ struct asm9260_dma_type {
 
 static struct asm9260_dma_type asm9260_dma_types[] = {
 	{
-		.id = IMX23_DMA,
-		.type = MXS_DMA_APBH,
+		.id = ASM9260_DMA,
+		.type = ASM9260_DMA_APBH,
 	}, {
-		.id = IMX23_DMA,
-		.type = MXS_DMA_APBX,
+		.id = ASM9260_DMA,
+		.type = ASM9260_DMA_APBX,
 	}
 };
 
 static struct platform_device_id asm9260_dma_ids[] = {
 	{
-		.name = "imx23-dma-apbh",
+		.name = "asm9260-dma-apbh",
 		.driver_data = (kernel_ulong_t) &asm9260_dma_types[0],
 	}, {
-		.name = "imx23-dma-apbx",
+		.name = "asm9260-dma-apbx",
 		.driver_data = (kernel_ulong_t) &asm9260_dma_types[1],
 	}, {
 		/* end of list */
@@ -176,8 +176,8 @@ static struct platform_device_id asm9260_dma_ids[] = {
 };
 
 static const struct of_device_id asm9260_dma_dt_ids[] = {
-	{ .compatible = "fsl,imx23-dma-apbh", .data = &asm9260_dma_ids[0], },
-	{ .compatible = "fsl,imx23-dma-apbx", .data = &asm9260_dma_ids[1], },
+	{ .compatible = "alphascale,asm9260-dma-apbh", .data = &asm9260_dma_ids[0], },
+	{ .compatible = "alphascale,asm9260-dma-apbx", .data = &asm9260_dma_ids[1], },
 	{ /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, asm9260_dma_dt_ids);
@@ -193,14 +193,14 @@ static void asm9260_dma_reset_chan(struct asm9260_dma_chan *asm9260_chan)
 	int chan_id = asm9260_chan->chan.chan_id;
 
 	/*
-	 * mxs dma channel resets can cause a channel stall. To recover from a
+	 * asm9260 dma channel resets can cause a channel stall. To recover from a
 	 * channel stall, we have to reset the whole DMA engine. To avoid this,
 	 * we use cyclic DMA with semaphores, that are enhanced in
 	 * asm9260_dma_int_handler. To reset the channel, we can simply stop writing
 	 * into the semaphore counter.
 	 */
-	if (asm9260_chan->flags & MXS_DMA_USE_SEMAPHORE &&
-			asm9260_chan->flags & MXS_DMA_SG_LOOP) {
+	if (asm9260_chan->flags & ASM9260_DMA_USE_SEMAPHORE &&
+			asm9260_chan->flags & ASM9260_DMA_SG_LOOP) {
 		asm9260_chan->reset = true;
 	} else if (dma_is_apbh(asm9260_dma) && apbh_is_old(asm9260_dma)) {
 		writel(1 << (chan_id + BP_APBH_CTRL0_RESET_CHANNEL),
@@ -245,8 +245,8 @@ static void asm9260_dma_enable_chan(struct asm9260_dma_chan *asm9260_chan)
 		asm9260_dma->base + HW_APBHX_CHn_NXTCMDAR(asm9260_dma, chan_id));
 
 	/* write 1 to SEMA to kick off the channel */
-	if (asm9260_chan->flags & MXS_DMA_USE_SEMAPHORE &&
-			asm9260_chan->flags & MXS_DMA_SG_LOOP) {
+	if (asm9260_chan->flags & ASM9260_DMA_USE_SEMAPHORE &&
+			asm9260_chan->flags & ASM9260_DMA_SG_LOOP) {
 		/* A cyclic DMA consists of at least 2 segments, so initialize
 		 * the semaphore with 2 so we have enough time to add 1 to the
 		 * semaphore if we need to */
@@ -339,14 +339,14 @@ static irqreturn_t asm9260_dma_int_handler(int irq, void *dev_id)
 
 	/* error status */
 	err = readl(asm9260_dma->base + HW_APBHX_CTRL2);
-	err &= (1 << (MXS_DMA_CHANNELS + chan)) | (1 << chan);
+	err &= (1 << (ASM9260_DMA_CHANNELS + chan)) | (1 << chan);
 
 	/*
 	 * error status bit is in the upper 16 bits, error irq bit in the lower
 	 * 16 bits. We transform it into a simpler error code:
 	 * err: 0x00 = no error, 0x01 = TERMINATION, 0x02 = BUS_ERROR
 	 */
-	err = (err >> (MXS_DMA_CHANNELS + chan)) + (err >> chan);
+	err = (err >> (ASM9260_DMA_CHANNELS + chan)) + (err >> chan);
 
 	/* Clear error irq */
 	writel((1 << chan),
@@ -370,9 +370,9 @@ static irqreturn_t asm9260_dma_int_handler(int irq, void *dev_id)
 		asm9260_chan->status = DMA_ERROR;
 		asm9260_dma_reset_chan(asm9260_chan);
 	} else if (asm9260_chan->status != DMA_COMPLETE) {
-		if (asm9260_chan->flags & MXS_DMA_SG_LOOP) {
+		if (asm9260_chan->flags & ASM9260_DMA_SG_LOOP) {
 			asm9260_chan->status = DMA_IN_PROGRESS;
-			if (asm9260_chan->flags & MXS_DMA_USE_SEMAPHORE)
+			if (asm9260_chan->flags & ASM9260_DMA_USE_SEMAPHORE)
 				writel(1, asm9260_dma->base +
 					HW_APBHX_CHn_SEMA(asm9260_dma, chan));
 		} else {
@@ -408,7 +408,7 @@ static int asm9260_dma_alloc_chan_resources(struct dma_chan *chan)
 
 	if (asm9260_chan->chan_irq != NO_IRQ) {
 		ret = request_irq(asm9260_chan->chan_irq, asm9260_dma_int_handler,
-					0, "mxs-dma", asm9260_dma);
+					0, "asm9260-dma", asm9260_dma);
 		if (ret)
 			goto err_irq;
 	}
@@ -530,7 +530,7 @@ static struct dma_async_tx_descriptor *asm9260_dma_prep_slave_sg(
 		ccw->bits |= CCW_HALT_ON_TERM;
 		ccw->bits |= CCW_TERM_FLUSH;
 		ccw->bits |= BF_CCW(sg_len, PIO_NUM);
-		ccw->bits |= BF_CCW(MXS_DMA_CMD_NO_XFER, COMMAND);
+		ccw->bits |= BF_CCW(ASM9260_DMA_CMD_NO_XFER, COMMAND);
 	} else {
 		for_each_sg(sgl, sg, sg_len, i) {
 			if (sg_dma_len(sg) > MAX_XFER_BYTES) {
@@ -550,7 +550,7 @@ static struct dma_async_tx_descriptor *asm9260_dma_prep_slave_sg(
 			ccw->bits |= CCW_HALT_ON_TERM;
 			ccw->bits |= CCW_TERM_FLUSH;
 			ccw->bits |= BF_CCW(direction == DMA_DEV_TO_MEM ?
-					MXS_DMA_CMD_WRITE : MXS_DMA_CMD_READ,
+					ASM9260_DMA_CMD_WRITE : ASM9260_DMA_CMD_READ,
 					COMMAND);
 
 			if (i + 1 == sg_len) {
@@ -585,8 +585,8 @@ static struct dma_async_tx_descriptor *asm9260_dma_prep_dma_cyclic(
 		return NULL;
 
 	asm9260_chan->status = DMA_IN_PROGRESS;
-	asm9260_chan->flags |= MXS_DMA_SG_LOOP;
-	asm9260_chan->flags |= MXS_DMA_USE_SEMAPHORE;
+	asm9260_chan->flags |= ASM9260_DMA_SG_LOOP;
+	asm9260_chan->flags |= ASM9260_DMA_USE_SEMAPHORE;
 
 	if (num_periods > NUM_CCW) {
 		dev_err(asm9260_dma->dma_device.dev,
@@ -620,7 +620,7 @@ static struct dma_async_tx_descriptor *asm9260_dma_prep_dma_cyclic(
 		ccw->bits |= CCW_TERM_FLUSH;
 		ccw->bits |= CCW_DEC_SEM;
 		ccw->bits |= BF_CCW(direction == DMA_DEV_TO_MEM ?
-				MXS_DMA_CMD_WRITE : MXS_DMA_CMD_READ, COMMAND);
+				ASM9260_DMA_CMD_WRITE : ASM9260_DMA_CMD_READ, COMMAND);
 
 		dma_addr += period_len;
 		buf += period_len;
@@ -668,7 +668,7 @@ static enum dma_status asm9260_dma_tx_status(struct dma_chan *chan,
 	u32 residue = 0;
 
 	if (asm9260_chan->status == DMA_IN_PROGRESS &&
-			asm9260_chan->flags & MXS_DMA_SG_LOOP) {
+			asm9260_chan->flags & ASM9260_DMA_SG_LOOP) {
 		struct asm9260_dma_ccw *last_ccw;
 		u32 bar;
 
@@ -714,7 +714,7 @@ static int __init asm9260_dma_init(struct asm9260_dma_engine *asm9260_dma)
 	}
 
 	/* enable irq for all the channels */
-	writel(MXS_DMA_CHANNELS_MASK << MXS_DMA_CHANNELS,
+	writel(ASM9260_DMA_CHANNELS_MASK << ASM9260_DMA_CHANNELS,
 		asm9260_dma->base + HW_APBHX_CTRL1 + STMP_OFFSET_REG_SET);
 
 err_out:
@@ -813,7 +813,7 @@ static int __init asm9260_dma_probe(struct platform_device *pdev)
 	INIT_LIST_HEAD(&asm9260_dma->dma_device.channels);
 
 	/* Initialize channel parameters */
-	for (i = 0; i < MXS_DMA_CHANNELS; i++) {
+	for (i = 0; i < ASM9260_DMA_CHANNELS; i++) {
 		struct asm9260_dma_chan *asm9260_chan = &asm9260_dma->asm9260_chans[i];
 
 		asm9260_chan->asm9260_dma = asm9260_dma;
@@ -868,7 +868,7 @@ static int __init asm9260_dma_probe(struct platform_device *pdev)
 
 static struct platform_driver asm9260_dma_driver = {
 	.driver		= {
-		.name	= "mxs-dma",
+		.name	= "asm9260-dma",
 		.of_match_table = asm9260_dma_dt_ids,
 	},
 	.id_table	= asm9260_dma_ids,

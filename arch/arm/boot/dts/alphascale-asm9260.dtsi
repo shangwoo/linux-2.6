@@ -130,5 +130,27 @@
 			clocks = <&acc CLKID_AHB_TIMER0>;
 			interrupts = <29>;
 		};
+
+		dma0_apbh: dma0_apbh@80100000 {
+			compatible = "alphascale,asm9260-dma-apbh";
+			reg = <0x80100000 0x400>;
+			#dma-cells = <1>;
+			dma-channels = <8>;
+			clocks = <&acc CLKID_AHB_DMA0>;
+			/*interrupts = <15>;*/
+			status = "disabled";
+		};
+
+		dma1_apbh: dma1_apbh@80200000 {
+			compatible = "alphascale,asm9260-dma-apbh";
+			reg = <0x80200000 0x400>;
+			#dma-cells = <1>;
+			dma-channels = <8>;
+			clocks = <&acc CLKID_AHB_DMA1>;
+			/*interrupts = <15>;*/
+			status = "disabled";
+		};
+
+
 	};
 };

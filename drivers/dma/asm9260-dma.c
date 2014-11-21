@@ -44,11 +44,11 @@
 
 #define chan_offst(c, reg)	((c) * 0x58 + (reg))
 
-/* Source Address Register */
+/* 31:0. Source Address Register */
 #define HW_SARn(c)		chan_offst((c), 0x00)
-/* Destination Address Register */
+/* 31:0. Destination Address Register */
 #define HW_DARn(c)		chan_offst((c), 0x08)
-/* Link Pointer Register */
+/* 31:2. Link Pointer Register. The start address of the next chain. */
 #define HW_LLPn(c)		chan_offst((c), 0x10)
 /* Control Register */
 #define HW_CTLn(c)		chan_offst((c), 0x18)
@@ -88,26 +88,33 @@
 #define HW_STATUS_INT		0x360
 
 /* Source Software Transaction Request Register */
-#define HW_REQSRCREG		0x368
+#define HW_REQSRC		0x368
 /* Destination Software Transaction Request Register */
-#define HW_REQDSTREG		0x370
+#define HW_REQDST		0x370
 /* Single Source Transaction Request Register */
-#define HW_SGLREQSRCREG		0x378
+#define HW_SGLREQSRC		0x378
 /* Single Destination Transaction Request Register */
-#define HW_SGLREQDSTREG		0x380
+#define HW_SGLREQDST		0x380
 /* Last Source Transaction Request Register */
-#define HW_LSTSRCREG		0x388
+#define HW_LSTSRC		0x388
 /* Last Destination Transaction Request Register */
-#define HW_LSTDSTREG		0x390
+#define HW_LSTDST		0x390
 
 /* DMA Configuration Register */
-#define HW_DMACFGREG		0x398
+#define HW_DMACFG		0x398
+#define BM_DMACFG_EN		BIT(0)
+
 /* DMA Channel Enable Register */
-#define HW_CHENREG		0x3a0
+#define HW_CHEN			0x3a0
+/* Allow write permission to BM_CHENn bits */
+#define BM_CHEN_WEn(c)		(1 << ((c) + 8))
+/* Start transmission. Self cleared if transmission is completed */
+#define BM_CHENn(c)		(1 << (c))
+
 /* DMA ID Register */
-#define HW_IDREG		0x3a8
+#define HW_ID			0x3a8
 /* DMA Test Register */
-#define HW_TESTREG		0x3b0
+#define HW_TEST			0x3b0
 
 
 #define HW_APBHX_CTRL0				0x000

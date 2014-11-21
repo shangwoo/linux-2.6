@@ -42,6 +42,58 @@
 #define dma_is_apbh(asm9260_dma)	((asm9260_dma)->type == ASM9260_DMA_APBH)
 #define apbh_is_old(asm9260_dma)	((asm9260_dma)->dev_id == ASM9260_DMA)
 
+#define chan_offst(c, reg)		((c) * 0x58 + (reg))
+
+#define HW_DMA_SAR(c)		chan_offst((c), 0x00)
+#define HW_DMA_DAR(c)		chan_offst((c), 0x08)
+#define HW_DMA_LLP(c)		chan_offst((c), 0x10)
+#define HW_DMA_CTL(c)		chan_offst((c), 0x18)
+#define HW_DMA_SSTAT(c)		chan_offst((c), 0x20)
+#define HW_DMA_DSTAT(c)		chan_offst((c), 0x28)
+#define HW_DMA_SSTATAR(c)	chan_offst((c), 0x30)
+#define HW_DMA_DSTATAR(c)	chan_offst((c), 0x38)
+#define HW_DMA_CFG(c)		chan_offst((c), 0x40)
+#define HW_DMA_SGR(c)		chan_offst((c), 0x48)
+#define HW_DMA_DSR(c)		chan_offst((c), 0x50)
+
+#define HW_DMA_RAW_TFR		0x2c0
+#define HW_DMA_RAW_BLOCK	0x2c8
+#define HW_DMA_RAW_SRCTRAN	0x2d0
+#define HW_DMA_RAW_DSTTRAN	0x2d8
+#define HW_DMA_RAW_ERR		0x2e0
+
+#define HW_DMA_STATUS_TFR	0x2e8
+#define HW_DMA_STATUS_BLOCK	0x2f0
+#define HW_DMA_STATUS_SRCTRAN	0x2f8
+#define HW_DMA_STATUS_DSTTRAN	0x300
+#define HW_DMA_STATUS_ERR	0x308
+
+#define HW_DMA_MASK_TFR		0x310
+#define HW_DMA_MASK_BLOCK	0x318
+#define HW_DMA_MASK_SRCTRAN	0x320
+#define HW_DMA_MASK_DSTTRAN	0x328
+#define HW_DMA_MASK_ERR		0x330
+
+#define HW_DMA_CLEAR_TFR	0x338
+#define HW_DMA_CLEAR_BLOCK	0x340
+#define HW_DMA_CLEAR_SRCTRAN	0x348
+#define HW_DMA_CLEAR_DSTTRAN	0x350
+#define HW_DMA_CLEAR_ERR	0x358
+
+#define HW_DMA_STATUS_INT	0x360
+
+#define HW_DMA_REQSRCREG	0x368
+#define HW_DMA_REQDSTREG	0x370
+#define HW_DMA_SGLREQSRCREG	0x378
+#define HW_DMA_SGLREQDSTREG	0x380
+#define HW_DMA_LSTSRCREG	0x388
+#define HW_DMA_LSTDSTREG	0x390
+
+#define HW_DMA_DMACFGREG	0x398
+#define HW_DMA_CHENREG		0x3a0
+
+
+
 #define HW_APBHX_CTRL0				0x000
 #define BM_APBH_CTRL0_APB_BURST8_EN		(1 << 29)
 #define BM_APBH_CTRL0_APB_BURST_EN		(1 << 28)

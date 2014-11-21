@@ -42,56 +42,72 @@
 #define dma_is_apbh(asm9260_dma)	((asm9260_dma)->type == ASM9260_DMA_APBH)
 #define apbh_is_old(asm9260_dma)	((asm9260_dma)->dev_id == ASM9260_DMA)
 
-#define chan_offst(c, reg)		((c) * 0x58 + (reg))
+#define chan_offst(c, reg)	((c) * 0x58 + (reg))
 
-#define HW_DMA_SAR(c)		chan_offst((c), 0x00)
-#define HW_DMA_DAR(c)		chan_offst((c), 0x08)
-#define HW_DMA_LLP(c)		chan_offst((c), 0x10)
-#define HW_DMA_CTL(c)		chan_offst((c), 0x18)
-#define HW_DMA_SSTAT(c)		chan_offst((c), 0x20)
-#define HW_DMA_DSTAT(c)		chan_offst((c), 0x28)
-#define HW_DMA_SSTATAR(c)	chan_offst((c), 0x30)
-#define HW_DMA_DSTATAR(c)	chan_offst((c), 0x38)
-#define HW_DMA_CFG(c)		chan_offst((c), 0x40)
-#define HW_DMA_SGR(c)		chan_offst((c), 0x48)
-#define HW_DMA_DSR(c)		chan_offst((c), 0x50)
+/* Source Address Register */
+#define HW_SARn(c)		chan_offst((c), 0x00)
+/* Destination Address Register */
+#define HW_DARn(c)		chan_offst((c), 0x08)
+/* Link Pointer Register */
+#define HW_LLPn(c)		chan_offst((c), 0x10)
+/* Control Register */
+#define HW_CTLn(c)		chan_offst((c), 0x18)
+#define HW_SSTATn(c)		chan_offst((c), 0x20)
+#define HW_DSTATn(c)		chan_offst((c), 0x28)
+#define HW_SSTATARn(c)		chan_offst((c), 0x30)
+#define HW_DSTATARn(c)		chan_offst((c), 0x38)
+/* Configuration Register */
+#define HW_CFGn(c)		chan_offst((c), 0x40)
+#define HW_SGRn(c)		chan_offst((c), 0x48)
+#define HW_DSRn(c)		chan_offst((c), 0x50)
 
-#define HW_DMA_RAW_TFR		0x2c0
-#define HW_DMA_RAW_BLOCK	0x2c8
-#define HW_DMA_RAW_SRCTRAN	0x2d0
-#define HW_DMA_RAW_DSTTRAN	0x2d8
-#define HW_DMA_RAW_ERR		0x2e0
+#define HW_RAW_TFR		0x2c0
+#define HW_RAW_BLOCK		0x2c8
+#define HW_RAW_SRCTRAN		0x2d0
+#define HW_RAW_DSTTRAN		0x2d8
+#define HW_RAW_ERR		0x2e0
 
-#define HW_DMA_STATUS_TFR	0x2e8
-#define HW_DMA_STATUS_BLOCK	0x2f0
-#define HW_DMA_STATUS_SRCTRAN	0x2f8
-#define HW_DMA_STATUS_DSTTRAN	0x300
-#define HW_DMA_STATUS_ERR	0x308
+#define HW_STATUS_TFR		0x2e8
+#define HW_STATUS_BLOCK		0x2f0
+#define HW_STATUS_SRCTRAN	0x2f8
+#define HW_STATUS_DSTTRAN	0x300
+#define HW_STATUS_ERR		0x308
 
-#define HW_DMA_MASK_TFR		0x310
-#define HW_DMA_MASK_BLOCK	0x318
-#define HW_DMA_MASK_SRCTRAN	0x320
-#define HW_DMA_MASK_DSTTRAN	0x328
-#define HW_DMA_MASK_ERR		0x330
+#define HW_MASK_TFR		0x310
+#define HW_MASK_BLOCK		0x318
+#define HW_MASK_SRCTRAN		0x320
+#define HW_MASK_DSTTRAN		0x328
+#define HW_MASK_ERR		0x330
 
-#define HW_DMA_CLEAR_TFR	0x338
-#define HW_DMA_CLEAR_BLOCK	0x340
-#define HW_DMA_CLEAR_SRCTRAN	0x348
-#define HW_DMA_CLEAR_DSTTRAN	0x350
-#define HW_DMA_CLEAR_ERR	0x358
+#define HW_CLEAR_TFR		0x338
+#define HW_CLEAR_BLOCK		0x340
+#define HW_CLEAR_SRCTRAN	0x348
+#define HW_CLEAR_DSTTRAN	0x350
+#define HW_CLEAR_ERR		0x358
 
-#define HW_DMA_STATUS_INT	0x360
+#define HW_STATUS_INT		0x360
 
-#define HW_DMA_REQSRCREG	0x368
-#define HW_DMA_REQDSTREG	0x370
-#define HW_DMA_SGLREQSRCREG	0x378
-#define HW_DMA_SGLREQDSTREG	0x380
-#define HW_DMA_LSTSRCREG	0x388
-#define HW_DMA_LSTDSTREG	0x390
+/* Source Software Transaction Request Register */
+#define HW_REQSRCREG		0x368
+/* Destination Software Transaction Request Register */
+#define HW_REQDSTREG		0x370
+/* Single Source Transaction Request Register */
+#define HW_SGLREQSRCREG		0x378
+/* Single Destination Transaction Request Register */
+#define HW_SGLREQDSTREG		0x380
+/* Last Source Transaction Request Register */
+#define HW_LSTSRCREG		0x388
+/* Last Destination Transaction Request Register */
+#define HW_LSTDSTREG		0x390
 
-#define HW_DMA_DMACFGREG	0x398
-#define HW_DMA_CHENREG		0x3a0
-
+/* DMA Configuration Register */
+#define HW_DMACFGREG		0x398
+/* DMA Channel Enable Register */
+#define HW_CHENREG		0x3a0
+/* DMA ID Register */
+#define HW_IDREG		0x3a8
+/* DMA Test Register */
+#define HW_TESTREG		0x3b0
 
 
 #define HW_APBHX_CTRL0				0x000

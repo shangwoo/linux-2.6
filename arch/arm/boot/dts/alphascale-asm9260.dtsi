@@ -57,6 +57,7 @@
 			compatible = "alphascale,asm9260-dma";
 			reg = <0x80100000 0x1000>;
 			interrupts = <39>;
+			clocks = <&acc CLKID_AHB_DMA0>;
 			/* status = "disabled"; */
 
 			dma-channels = <8>;

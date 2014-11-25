@@ -1041,19 +1041,24 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_READ0:
 
 			nand_regs->nand_fifo_init = 1;
-			
+
 			asm9260_nand_controller_config(mtd);
 
 			if (column == 0)
 			{
-				nand_regs->nand_ecc_ctrl = (asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
-										| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
-				nand_regs->nand_ecc_offset = mtd->writesize + asm9260_nand_spare_data_size;
-				nand_regs->nand_spare_size = asm9260_nand_spare_data_size;
+				nand_regs->nand_ecc_ctrl =
+					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
+					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
+				nand_regs->nand_ecc_offset =
+					mtd->writesize + asm9260_nand_spare_data_size;
+				nand_regs->nand_spare_size =
+					asm9260_nand_spare_data_size;
 			}
 			else if (column == mtd->writesize)
 			{
-				nand_regs->nand_control = ((nand_regs->nand_control) & (~(ECC_EN << NAND_CTRL_ECC_EN))) | (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN);
+				nand_regs->nand_control = ((nand_regs->nand_control)
+						& (~(ECC_EN << NAND_CTRL_ECC_EN)))
+					| (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN);
 				nand_regs->nand_spare_size = mtd->oobsize;
 				nand_regs->nand_data_size = mtd->oobsize;
 			}
@@ -1063,7 +1068,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				break;
 			}
 
-			/*2\A1\A2ѡ\D4\F1chip\A3\AC\C5\E4\D6\C3NAND\B5\D8ַ*/
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
 
 			nand_regs->nand_addr0_l = addr[0];
@@ -1072,51 +1076,56 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 			if (column == 0)
 			{
-				/*DMA\C5\E4\D6ã\ACDMA\D3\D0\C1\BD\D6\D6ģʽ\A3\AC\C6\E4\D6\D0SFR managedģʽ\D4ڵ\A5\B8\F6DMA\B0\FC\C7\E9\BF\F6\CF\C2ʹ\D3\C3*/
-				nand_regs->nand_dma_addr = asm9260_nand_dma_read_buf_phy;
-				nand_regs->nand_dma_cnt  = mtd->writesize + asm9260_nand_spare_data_size;
-				nand_regs->nand_dma_ctrl = (DMA_START_EN<<NAND_DMA_CTRL_START)
-										 | (DMA_DIR_READ<<NAND_DMA_CTRL_DIR)
-										 | (DMA_MODE_SFR<<NAND_DMA_CTRL_MODE)
-										 | (DMA_BURST_INCR16<<NAND_DMA_CTRL_BURST);
+				nand_regs->nand_dma_addr =
+					asm9260_nand_dma_read_buf_phy;
+				nand_regs->nand_dma_cnt  =
+					mtd->writesize + asm9260_nand_spare_data_size;
+				nand_regs->nand_dma_ctrl =
+					(DMA_START_EN<<NAND_DMA_CTRL_START)
+					| (DMA_DIR_READ<<NAND_DMA_CTRL_DIR)
+					| (DMA_MODE_SFR<<NAND_DMA_CTRL_MODE)
+					| (DMA_BURST_INCR16<<NAND_DMA_CTRL_BURST);
 				nand_regs->nand_command  = (READ_PAGE_2<<NAND_CMD_CMD1)
-										 | (READ_PAGE_1<<NAND_CMD_CMD0)
-										 | (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-										 | (INPUT_SEL_DMA<<NAND_CMD_INPUT_SEL)
-										 | (SEQ10);
+					| (READ_PAGE_1<<NAND_CMD_CMD0)
+					| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
+					| (INPUT_SEL_DMA<<NAND_CMD_INPUT_SEL)
+					| (SEQ10);
 				break;
 			}
 #endif
-
-			/*3\A1\A2\B7\A2\C6\F0\C3\FC\C1\EE*/
 			nand_regs->nand_command = (READ_PAGE_2<<NAND_CMD_CMD1)
-								    | (READ_PAGE_1<<NAND_CMD_CMD0)
-								    | (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-								    | (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
-								    | (SEQ10);
-			
+				| (READ_PAGE_1<<NAND_CMD_CMD0)
+				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
+				| (SEQ10);
+
 			read_cache_byte_cnt = 0;
 			break;
 		case NAND_CMD_SEQIN:
 
-			/*1\A1\A2\B8\B4λFIFO\A3\AC\C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7*/
 			nand_regs->nand_fifo_init = 1;
 			asm9260_nand_controller_config(mtd);
 
 			if (column == 0)
 			{
-				nand_regs->nand_ecc_ctrl = (asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) | (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
-				nand_regs->nand_ecc_offset = mtd->writesize + asm9260_nand_spare_data_size;
-				nand_regs->nand_spare_size = asm9260_nand_spare_data_size;
+				nand_regs->nand_ecc_ctrl =
+					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD)
+					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
+				nand_regs->nand_ecc_offset =
+					mtd->writesize + asm9260_nand_spare_data_size;
+				nand_regs->nand_spare_size =
+					asm9260_nand_spare_data_size;
 			}
 			else if (column == mtd->writesize)
 			{
-				nand_regs->nand_control = ((((nand_regs->nand_control)) | (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)) & (~(ECC_EN << NAND_CTRL_ECC_EN))) 
-										& (~(SPARE_EN << NAND_CTRL_SPARE_EN));
+				nand_regs->nand_control =
+					((((nand_regs->nand_control))
+					  | (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN))
+					 & (~(ECC_EN << NAND_CTRL_ECC_EN)))
+					& (~(SPARE_EN << NAND_CTRL_SPARE_EN));
 				nand_regs->nand_data_size = mtd->oobsize;
 			}
  
-			/*2\A1\A2ѡ\D4\F1chip\A3\AC\C5\E4\D6\C3NAND\B5\D8ַ*/
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
@@ -1126,31 +1135,33 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			{
 				flag = 1;
 
-				/*DMA\C5\E4\D6ã\ACDMA\D3\D0\C1\BD\D6\D6ģʽ\A3\AC\C6\E4\D6\D0SFR managedģʽ\D4ڵ\A5\B8\F6DMA\B0\FC\C7\E9\BF\F6\CF\C2ʹ\D3\C3*/
-				nand_regs->nand_dma_addr = asm9260_nand_dma_write_buf_phy;
-				nand_regs->nand_dma_cnt  = mtd->writesize + asm9260_nand_spare_data_size;
+				nand_regs->nand_dma_addr =
+					asm9260_nand_dma_write_buf_phy;
+				nand_regs->nand_dma_cnt =
+					mtd->writesize + asm9260_nand_spare_data_size;
 				break;
 			}
 #endif
 
-			/*3\A1\A2\B7\A2\C6\F0\C3\FC\C1\EE*/
 			nand_regs->nand_command = (PROGRAM_PAGE_2 << NAND_CMD_CMD1)
-								    | (PROGRAM_PAGE_1 << NAND_CMD_CMD0)
-								    | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-								    | (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-								    | (SEQ12);
+				| (PROGRAM_PAGE_1 << NAND_CMD_CMD0)
+				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
+				| (SEQ12);
 
 			break;
 		case NAND_CMD_STATUS:
-			
+
 			asm9260_nand_controller_config(mtd);
-			nand_regs->nand_control = ((((nand_regs->nand_control) & (~(SPARE_EN << NAND_CTRL_SPARE_EN))) & (~(ECC_EN<< NAND_CTRL_ECC_EN))) 
-									| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN));
+			nand_regs->nand_control = ((((nand_regs->nand_control)
+							& (~(SPARE_EN << NAND_CTRL_SPARE_EN)))
+						& (~(ECC_EN<< NAND_CTRL_ECC_EN)))
+					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN));
 			nand_regs->nand_data_size = 1;
 			nand_regs->nand_command = (READ_STATUS<<NAND_CMD_CMD0) |
-							          (ADDR_SEL_0<<NAND_CMD_ADDR_SEL) |
-							          (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL) |
-							          (SEQ1);
+				(ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
+				| (SEQ1);
 
 			read_cache_byte_cnt = 0;
 			break;
@@ -1162,20 +1173,25 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_h = addr[1];
 
 			asm9260_nand_controller_config(mtd);
-			nand_regs->nand_control = (nand_regs->nand_control) & ((~(ECC_EN << NAND_CTRL_ECC_EN)) & (~(SPARE_EN << NAND_CTRL_SPARE_EN)));
+			nand_regs->nand_control =
+				(nand_regs->nand_control)
+				& ((~(ECC_EN << NAND_CTRL_ECC_EN))
+						& (~(SPARE_EN << NAND_CTRL_SPARE_EN)));
 
 			nand_regs->nand_command = (ERASE_BLOCK_2<<NAND_CMD_CMD1)
-									| (ERASE_BLOCK_1<<NAND_CMD_CMD0)
-									| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-									| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
-									| (SEQ14);
+				| (ERASE_BLOCK_1<<NAND_CMD_CMD0)
+				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
+				| (SEQ14);
 			break;
 
 		default:
 			printk("don't support this command : 0x%x!\n", command);
 	}
 
-	if((command == NAND_CMD_RESET) || (command == NAND_CMD_READID) || (command == NAND_CMD_STATUS) || (command == NAND_CMD_ERASE1))
+	if ((command == NAND_CMD_RESET) || (command == NAND_CMD_READID)
+			|| (command == NAND_CMD_STATUS)
+			|| (command == NAND_CMD_ERASE1))
 	{
 		ret = !asm9260_nand_dev_ready(0);
 		if (ret)
@@ -1184,7 +1200,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	else if ((command == NAND_CMD_READ0))
 	{
 #ifdef	CONFIG_MTD_NAND_ASAP9260_DMA
-	
+
 		if (column == 0)
 		{
 			ret = !asm9260_nand_dev_ready(0);
@@ -1230,7 +1246,7 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 {
 	uint16_t this_word = 0;
 	uint16_t *val_tmp = (uint16_t *)read_cache;
-		
+
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
 		*read_val = ioread32(&nand_regs->nand_fifo_data);
@@ -1265,7 +1281,8 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 }
 
 
-static void asm9260_nand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
+static void asm9260_nand_write_buf(struct mtd_info *mtd,
+		const uint8_t *buf, int len)
 {
 	u32 i;
 	u32 *tmpbuf = (u32 *)buf;
@@ -1277,9 +1294,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int
 	}
 
 	for (i = 0; i < (len >> 2); i++)
-	{
 		nand_regs->nand_fifo_data = tmpbuf[i];
-	}
 
 }
 
@@ -1292,14 +1307,17 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int
  *
  * Default verify function for 8bit buswith
  */
-static int asm9260_nand_verify_buf(struct mtd_info *mtd, const uint8_t *buf, int len)
+static int asm9260_nand_verify_buf(struct mtd_info *mtd,
+		const uint8_t *buf, int len)
 {
 	int i;
 
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
-	memcpy(asm9260_nand_verify_buffer, asm9260_nand_dma_read_buf_virt, mtd->writesize + mtd->oobsize);
+	memcpy(asm9260_nand_verify_buffer, asm9260_nand_dma_read_buf_virt,
+			mtd->writesize + mtd->oobsize);
 #else
-	asm9260_nand_read_buf(mtd, asm9260_nand_verify_buffer, mtd->writesize + asm9260_nand_spare_data_size);
+	asm9260_nand_read_buf(mtd, asm9260_nand_verify_buffer,
+			mtd->writesize + asm9260_nand_spare_data_size);
 #endif
 
 	for (i = 0; i < len; i++)
@@ -1320,7 +1338,8 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 {
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 	memcpy(asm9260_nand_dma_write_buf_virt, buf, mtd->writesize);  // copy data to buf
-	memcpy(asm9260_nand_dma_write_buf_virt + mtd->writesize, chip->oob_poi, mtd->oobsize);  // copy data to oobbuf                                                
+	memcpy(asm9260_nand_dma_write_buf_virt + mtd->writesize, chip->oob_poi,
+			mtd->oobsize);  // copy data to oobbuf                                                
 #else
 	uint8_t *temp_ptr;
 	temp_ptr = (uint8_t *)buf;
@@ -1338,7 +1357,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 {
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 	memcpy(buf, asm9260_nand_dma_read_buf_virt, mtd->writesize);  // copy data to buf
-	memcpy(chip->oob_poi, asm9260_nand_dma_read_buf_virt + mtd->writesize, mtd->oobsize);  // copy data to oobbuf                                                
+	memcpy(chip->oob_poi, asm9260_nand_dma_read_buf_virt + mtd->writesize,
+			mtd->oobsize);  // copy data to oobbuf                                                
 #else
 	uint8_t *temp_ptr;
 	temp_ptr = buf;
@@ -1369,7 +1389,7 @@ static int asm9260_nand_wait(struct mtd_info *mtd, struct nand_chip *chip)
 	ret = !asm9260_nand_dma_ready();
 	if (ret != 0)
 		printk("ASM9260 dma not ready\n");
-	
+
 	ret = asm9260_nand_dma_error();
 	if (ret != 0)
 		printk("ASM9260 dma error\n");
@@ -1397,20 +1417,19 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 #endif
 	nand_chip->dev_ready   = asm9260_nand_dev_ready;
 	nand_chip->chip_delay  = 100;
-	nand_chip->waitfunc    = asm9260_nand_wait;	
+	nand_chip->waitfunc    = asm9260_nand_wait;
 
 #ifdef CONFIG_MTD_NAND_ASM9260_HWECC
 	nand_chip->ecc.mode = NAND_ECC_HW;
-#else 
+#else
 	nand_chip->ecc.mode = NAND_ECC_NONE;
 #endif
-	
+
 	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
 	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
 	nand_chip->ecc.calculate = NULL;
 	nand_chip->ecc.correct   = NULL;
 	nand_chip->ecc.hwctl     = NULL;
-	
 }
 
 int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
@@ -1420,11 +1439,15 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 
 	for (i=(ARRAY_SIZE(ecc_info_table) - 1); i>=0; i--)
 	{
-		if ((nand_oob_size - ecc_info_table[i].ecc_bytes_per_sector * (nand_page_size >> 9)) > (28 + 2))
+		if ((nand_oob_size - ecc_info_table[i].ecc_bytes_per_sector
+					* (nand_page_size >> 9)) > (28 + 2))
 		{
-			asm9260_nand_ecc_correction_ability = ecc_info_table[i].ecc_cap;
-			asm9260_nand_acceptable_err_level = ecc_info_table[i].ecc_threshold;
-			ecc_bytes = ecc_info_table[i].ecc_bytes_per_sector * (nand_page_size >> 9);
+			asm9260_nand_ecc_correction_ability =
+				ecc_info_table[i].ecc_cap;
+			asm9260_nand_acceptable_err_level =
+				ecc_info_table[i].ecc_threshold;
+			ecc_bytes = ecc_info_table[i].ecc_bytes_per_sector
+				* (nand_page_size >> 9);
 			break;
 		}
 	}
@@ -1548,58 +1571,76 @@ static int asm9260_nand_probe(struct platform_device *dev)
 		/* set ECC page size and oob layout */
 		switch (asm9260_mtd->writesize) {
 			case 2048:
-				asm9260_nand->ecc.bytes  = asm9260_ecc_cap_select(2048, asm9260_mtd->oobsize);
-				asm9260_nand->ecc.layout = &asm9260_nand_oob_64;	
+				asm9260_nand->ecc.bytes  =
+					asm9260_ecc_cap_select(2048,
+							asm9260_mtd->oobsize);
+				asm9260_nand->ecc.layout = &asm9260_nand_oob_64;
 				asm9260_nand->ecc.strength = 4;
 				break;
-				
+
 			case 4096:
-				asm9260_nand->ecc.bytes  = asm9260_ecc_cap_select(4096, asm9260_mtd->oobsize);
-				
-				if (asm9260_mtd->oobsize == 128) { 
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_128;
+				asm9260_nand->ecc.bytes =
+					asm9260_ecc_cap_select(4096,
+							asm9260_mtd->oobsize);
+
+				if (asm9260_mtd->oobsize == 128) {
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_128;
 					asm9260_nand->ecc.strength = 6;
 				} else if (asm9260_mtd->oobsize == 218) {
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_218;
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_218;
 					asm9260_nand->ecc.strength = 14;
 				} else if (asm9260_mtd->oobsize == 224) {
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_224;
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_224;
 					asm9260_nand->ecc.strength = 14;
 				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",asm9260_mtd->oobsize);
+					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+							asm9260_mtd->oobsize);
 
 				break;
-				
+
 			case 8192:
-				asm9260_nand->ecc.bytes = asm9260_ecc_cap_select(8192, asm9260_mtd->oobsize);
+				asm9260_nand->ecc.bytes =
+					asm9260_ecc_cap_select(8192,
+							asm9260_mtd->oobsize);
 
 				if (asm9260_mtd->oobsize == 256) {
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_256;
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_256;
 					asm9260_nand->ecc.strength = 8;
 				} else if (asm9260_mtd->oobsize == 436) {
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_436;
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_436;
 					asm9260_nand->ecc.strength = 14;
 				} else if (asm9260_mtd->oobsize == 448) {
-					asm9260_nand->ecc.layout = &asm9260_nand_oob_448;
+					asm9260_nand->ecc.layout =
+						&asm9260_nand_oob_448;
 					asm9260_nand->ecc.strength = 16;
 				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",asm9260_mtd->oobsize);
-				
+					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+							asm9260_mtd->oobsize);
 				break;
 
 			default:
-				printk("!!! NAND Warning !!  Unsupported Page size [%d] !!!!\n",asm9260_mtd->writesize);
+				printk("!!! NAND Warning !!  Unsupported Page size [%d] !!!!\n",
+						asm9260_mtd->writesize);
 				break;
 		}
 	}
 	else
 		printk("CONFIG_MTD_NAND_ASM9260_HWECC must be chosen in menuconfig!");
-	
-	asm9260_nand_spare_data_size = asm9260_mtd->oobsize - asm9260_nand->ecc.bytes;
-	DBG("asm9260_nand_spare_data_size : 0x%x. \n", asm9260_nand_spare_data_size);
+
+	asm9260_nand_spare_data_size = asm9260_mtd->oobsize -
+		asm9260_nand->ecc.bytes;
+	DBG("asm9260_nand_spare_data_size : 0x%x. \n",
+			asm9260_nand_spare_data_size);
 
 #ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-	asm9260_nand_verify_buffer = kzalloc(asm9260_mtd->writesize + asm9260_mtd->oobsize, GFP_KERNEL);
+	asm9260_nand_verify_buffer =
+		kzalloc(asm9260_mtd->writesize + asm9260_mtd->oobsize,
+				GFP_KERNEL);
 	if (!asm9260_nand_verify_buffer) {
 		printk(KERN_ERR "asm9260_nand_verify_buffer: failed to allocate mtd_info storage\n");
 		goto err_verify_buffer_alloc;
@@ -1607,18 +1648,21 @@ static int asm9260_nand_probe(struct platform_device *dev)
 #endif
 
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
-	asm9260_nand_dma_buf_virt = dma_alloc_coherent(NULL, (asm9260_mtd->writesize + asm9260_mtd->oobsize) * 2, 
-													&asm9260_nand_dma_buf_phy, GFP_KERNEL);
+	asm9260_nand_dma_buf_virt = dma_alloc_coherent(NULL,
+			(asm9260_mtd->writesize + asm9260_mtd->oobsize) * 2,
+			&asm9260_nand_dma_buf_phy, GFP_KERNEL);
 	if (!asm9260_nand_dma_buf_virt)
 	{
 		printk(KERN_ERR "asm9260_nand: failed to allocate dma buffer storage\n");
 		goto err_dma_buffer_alloc;
 	}
-	
+
 	asm9260_nand_dma_read_buf_virt = asm9260_nand_dma_buf_virt;
 	asm9260_nand_dma_read_buf_phy  = asm9260_nand_dma_buf_phy;
-	asm9260_nand_dma_write_buf_virt = asm9260_nand_dma_buf_virt + (asm9260_mtd->writesize + asm9260_mtd->oobsize);
-	asm9260_nand_dma_write_buf_phy  = asm9260_nand_dma_buf_phy + (asm9260_mtd->writesize + asm9260_mtd->oobsize);
+	asm9260_nand_dma_write_buf_virt = asm9260_nand_dma_buf_virt +
+		(asm9260_mtd->writesize + asm9260_mtd->oobsize);
+	asm9260_nand_dma_write_buf_phy  = asm9260_nand_dma_buf_phy +
+		(asm9260_mtd->writesize + asm9260_mtd->oobsize);
 #endif
 
 	/* second phase scan */
@@ -1644,7 +1688,8 @@ static int asm9260_nand_probe(struct platform_device *dev)
 	asm9260_mtd->name = "NAND";
 #ifdef CONFIG_MTD_PARTITIONS
 #ifdef CONFIG_MTD_CMDLINE_PARTS
-	num_partitions = parse_mtd_partitions(asm9260_mtd, part_probes, &partitions, 0);
+	num_partitions = parse_mtd_partitions(asm9260_mtd,
+			part_probes, &partitions, 0);
 #endif
 	if (num_partitions <= 0)
 	{
@@ -1662,7 +1707,9 @@ static int asm9260_nand_probe(struct platform_device *dev)
 
 err_scan_tail:
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
-	dma_free_coherent(NULL, (asm9260_mtd->writesize + asm9260_mtd->oobsize) * 2, asm9260_nand_dma_buf_virt, asm9260_nand_dma_buf_phy);
+	dma_free_coherent(NULL,
+			(asm9260_mtd->writesize + asm9260_mtd->oobsize) * 2,
+			asm9260_nand_dma_buf_virt, asm9260_nand_dma_buf_phy);
 err_dma_buffer_alloc:
 #endif
 #ifdef CONFIG_MTD_NAND_VERIFY_WRITE
@@ -1673,7 +1720,7 @@ err_scan_ident:
 	kfree(asm9260_mtd);
 err_mtd_info_alloc:
 	kfree(asm9260_nand);
-	
+
 	return res;
 }
 
@@ -1724,7 +1771,6 @@ static struct platform_driver asm9260_nand_driver = {
 static int __init asm9260_nand_init(void)
 {
 	printk("ASM9260 NAND Driver, (c) 2012 Alphascale.\n");
-	
 	return platform_driver_register(&asm9260_nand_driver);
 }
 

@@ -381,82 +381,82 @@ Modification: 	Tidy up code.
 
 
 struct asm9260_nand_regs{
-	volatile uint32_t nand_command;          
-	volatile uint32_t nand_control;          
-	volatile uint32_t nand_status;           
-	volatile uint32_t nand_int_mask;         
-	volatile uint32_t nand_int_status;       
-	volatile uint32_t nand_ecc_ctrl;         
-	volatile uint32_t nand_ecc_offset;       
-	volatile uint32_t nand_addr0_l;          
+	volatile uint32_t nand_command;
+	volatile uint32_t nand_control;
+	volatile uint32_t nand_status;
+	volatile uint32_t nand_int_mask;
+	volatile uint32_t nand_int_status;
+	volatile uint32_t nand_ecc_ctrl;
+	volatile uint32_t nand_ecc_offset;
+	volatile uint32_t nand_addr0_l;
 	volatile uint32_t nand_addr1_l;
-	volatile uint32_t nand_addr0_h;          
-	volatile uint32_t nand_addr1_h;          
+	volatile uint32_t nand_addr0_h;
+	volatile uint32_t nand_addr1_h;
 	volatile uint32_t nand_rsvd0;
-	volatile uint32_t nand_spare_size;    
+	volatile uint32_t nand_spare_size;
 	volatile uint32_t nand_rsvd1;
 	volatile uint32_t nand_protect;
 	volatile uint32_t nand_rsvd2;
-	volatile uint32_t nand_lookup_en;        
-	volatile uint32_t nand_lookup0;          
-	volatile uint32_t nand_lookup1;          
-	volatile uint32_t nand_lookup2;          
-	volatile uint32_t nand_lookup3;          
-	volatile uint32_t nand_lookup4;          
-	volatile uint32_t nand_lookup5;          
-	volatile uint32_t nand_lookup6;          
-	volatile uint32_t nand_lookup7;          
-	volatile uint32_t nand_dma_addr;         
-	volatile uint32_t nand_dma_cnt;          
+	volatile uint32_t nand_lookup_en;
+	volatile uint32_t nand_lookup0;
+	volatile uint32_t nand_lookup1;
+	volatile uint32_t nand_lookup2;
+	volatile uint32_t nand_lookup3;
+	volatile uint32_t nand_lookup4;
+	volatile uint32_t nand_lookup5;
+	volatile uint32_t nand_lookup6;
+	volatile uint32_t nand_lookup7;
+	volatile uint32_t nand_dma_addr;
+	volatile uint32_t nand_dma_cnt;
 	volatile uint32_t nand_dma_ctrl;
 	volatile uint32_t nand_rsvd3;
 	volatile uint32_t nand_rsvd4;
 	volatile uint32_t nand_rsvd5;
 	volatile uint32_t nand_rsvd6;
-	volatile uint32_t nand_mem_ctrl;         
-	volatile uint32_t nand_data_size;        
-	volatile uint32_t nand_read_status;      
-	volatile uint32_t nand_time_seq_0;       
-	volatile uint32_t nand_timings_asyn;     
-	volatile uint32_t nand_timings_syn;      
-	volatile uint32_t nand_fifo_data;        
-	volatile uint32_t nand_time_mode;        
-	volatile uint32_t nand_dma_addr_offset;  
+	volatile uint32_t nand_mem_ctrl;
+	volatile uint32_t nand_data_size;
+	volatile uint32_t nand_read_status;
+	volatile uint32_t nand_time_seq_0;
+	volatile uint32_t nand_timings_asyn;
+	volatile uint32_t nand_timings_syn;
+	volatile uint32_t nand_fifo_data;
+	volatile uint32_t nand_time_mode;
+	volatile uint32_t nand_dma_addr_offset;
 	volatile uint32_t nand_rsvd7;
 	volatile uint32_t nand_rsvd8;
 	volatile uint32_t nand_rsvd9;
-	volatile uint32_t nand_fifo_init;        
-	volatile uint32_t nand_generic_seq_ctrl; 
-	volatile uint32_t nand_err_cnt00;        
-	volatile uint32_t nand_err_cnt01;        
-	volatile uint32_t nand_err_cnt10;        
-	volatile uint32_t nand_err_cnt11;        
-	volatile uint32_t nand_time_seq_1;       
+	volatile uint32_t nand_fifo_init;
+	volatile uint32_t nand_generic_seq_ctrl;
+	volatile uint32_t nand_err_cnt00;
+	volatile uint32_t nand_err_cnt01;
+	volatile uint32_t nand_err_cnt10;
+	volatile uint32_t nand_err_cnt11;
+	volatile uint32_t nand_time_seq_1;
 };
 
 /*2KB--4*512B, correction ability: 4bit--7Byte ecc*/
 static struct nand_ecclayout asm9260_nand_oob_64 = {
- 	.eccbytes = 28,
- 	.eccpos =  {
- 			36, 37, 38, 39, 40, 41, 42,
+	.eccbytes = 28,
+	.eccpos =  {
+			36, 37, 38, 39, 40, 41, 42,
 			43, 44, 45, 46, 47, 48, 49,
 			50, 51, 52, 53, 54, 55, 56,
 			57, 58, 59, 60, 61, 62, 63},
- 	.oobfree = {{2, 34}}
+	.oobfree = {{2, 34}}
 };
 
 /*4KB--8*512B, correction ability: 6bit--10Byte ecc*/
 static struct nand_ecclayout asm9260_nand_oob_128 = {
 	.eccbytes = 8*10,
 	.eccpos = {
-			48, 49, 50,	51, 52, 53, 54, 55, 56, 57,	
-			58, 59, 60, 61, 62, 63,	64, 65, 66, 67, 
-			68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 
-			78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 
-			
-			88, 89, 90, 91, 92,	93, 94, 95, 96, 97, 
-			98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 
-			108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 
+			48, 49, 50,	51, 52, 53, 54, 55, 56, 57,
+			58, 59, 60, 61, 62, 63,	64, 65, 66, 67,
+			68, 69, 70, 71, 72, 73, 74, 75, 76, 77,
+			78, 79, 80, 81, 82, 83, 84, 85, 86, 87,
+
+			88, 89, 90, 91, 92,	93, 94, 95, 96, 97,
+			98, 99, 100, 101, 102, 103, 104, 105, 106, 107,
+			108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
 			118, 119, 120, 121, 122, 123, 124, 125, 126, 127},
 	.oobfree = {
 			{.offset = 2,
@@ -465,19 +465,19 @@ static struct nand_ecclayout asm9260_nand_oob_128 = {
 
 /*4KB--8*512B, correction ability: 14bit--23Byte ecc*/
 static struct nand_ecclayout asm9260_nand_oob_218 = {
-	.eccbytes = 8*23,  
+	.eccbytes = 8*23,
 	.eccpos = {
-			34, 35, 36, 37, 38, 39, 40, 41, 
-			42, 43, 44, 45, 46, 47, 48, 49, 
-			50,	51, 52, 53, 54, 55, 56, 57,	
-			58, 59, 60, 61, 62, 63,	64, 65, 
-			66, 67, 68, 69, 70, 71, 72, 73, 
-			74, 75, 76, 77, 78, 79, 80, 81, 
-			82, 83, 84, 85, 86, 87, 88, 89, 
-			90, 91, 92,	93, 94, 95, 96, 97, 
-			98, 99, 100, 101, 102, 103, 104, 105, 
-			106, 107, 108, 109, 110, 111, 112, 113, 
-			114, 115, 116, 117, 118, 119, 120, 121, 
+			34, 35, 36, 37, 38, 39, 40, 41,
+			42, 43, 44, 45, 46, 47, 48, 49,
+			50,	51, 52, 53, 54, 55, 56, 57,
+			58, 59, 60, 61, 62, 63,	64, 65,
+			66, 67, 68, 69, 70, 71, 72, 73,
+			74, 75, 76, 77, 78, 79, 80, 81,
+			82, 83, 84, 85, 86, 87, 88, 89,
+			90, 91, 92,	93, 94, 95, 96, 97,
+			98, 99, 100, 101, 102, 103, 104, 105,
+			106, 107, 108, 109, 110, 111, 112, 113,
+			114, 115, 116, 117, 118, 119, 120, 121,
 			122, 123, 124, 125, 126, 127, 128, 129, 
 			130, 131, 132, 133, 134, 135, 136, 137, 
 			138, 139, 140, 141, 142, 143, 144, 145, 
@@ -722,14 +722,11 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 	printk("asm9260_cmd_ctrl count %d\n", ++count);
 }
 
-/*
-* \B5ȴ\FDNAND\BF\D8\D6\C6\C6\F7ready
-*/
 static int asm9260_nand_controller_ready(void)
 {
 	int ret = 1;
 	int waittime = 0;
-	int timeout = 0x1000000;	
+	int timeout = 0x1000000;
 
 	while ((nand_regs->nand_status) & ASM9260T_NAND_CTRL_BUSY)
 	{
@@ -743,9 +740,6 @@ static int asm9260_nand_controller_ready(void)
 	return ret;
 }
 
-/*
-* \B5ȴ\FDNAND\C9豸ready
-*/
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 {
 	int ret = 1;
@@ -764,37 +758,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	return ret;
 }
 
-#if 0
-static int asm9260_nand_ecc_check(void)
-{
-	int ret = 0;
-	uint32_t ecc_status = 0;
-	
-	ecc_status = nand_regs->nand_ecc_ctrl;
-	if (ecc_status & 0x01)
-	{
-		DBG("NAND_ERR_CORRECT!!!\r\n");
-		ret = ASM9260_NAND_ERR_CORRECT;
-	}
-	if (ecc_status & 0x02)
-	{
-		DBG("NAND_ERR_UNCORRECT!!!\r\n");
-		ret = ASM9260_NAND_ERR_UNCORRECT;
-	}
-	if (ecc_status & 0x04)
-	{
-		DBG("NAND_ERR_OVER!!!\r\n");
-		ret = ASM9260_NAND_ERR_OVER;
-	}
-
-	return ret;
-}
-#endif
-
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
-/*
-* \B5ȴ\FDDMA\B4\AB\CA\E4\CD\EA\B3\C9
-*/
 static int asm9260_nand_dma_ready(void)
 {
 	int ret = 1;
@@ -813,9 +777,6 @@ static int asm9260_nand_dma_ready(void)
 	return ret;
 }
 
-/*
-* \BC\EC\B2\E9DMA\B4\AB\CA\E4\CAǷ\F1\B7\A2\C9\FA\B4\ED\CE\F3
-*/
 static int asm9260_nand_dma_error(void)
 {
 	int ret = 0;
@@ -824,7 +785,6 @@ static int asm9260_nand_dma_error(void)
 	{
 		return ASM9260T_NAND_DMA_ERROR;
 	}
-	
 	return ret;
 }
 #endif
@@ -850,9 +810,7 @@ static void asm9260_nand_pin_mux(void)
     set_pin_mux(12,7,5);
 }
 #endif
-/*
-* NANDоƬ\B8\B4λ
-*/
+
 int asm9260_nand_reset(uint8_t nChip)
 {
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK | nChip);
@@ -865,9 +823,6 @@ int asm9260_nand_reset(uint8_t nChip)
 	return !asm9260_nand_dev_ready(asm9260_mtd);
 }
 
-/*
-* \C9\E8\D6\C3NAND\BF\D8\D6\C6\C6\F7ʱ\D0\F2
-*/
 static int asm9260_nand_timing_config(void)
 {
 	int ret = 0;
@@ -881,44 +836,33 @@ static int asm9260_nand_timing_config(void)
 	uint32_t trr = 0;
 	uint32_t twb = 0;
 
-	/*default config before read id*/
+	/* default config before read id */
+	nand_regs->nand_control = (ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
+		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
+		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
+		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
+		| (PROT_DIS << NAND_CTRL_PORT_EN)
+		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
+		| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
+		| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
+		| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
+		| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
+		| (ECC_DIS << NAND_CTRL_ECC_EN)
+		| (INT_DIS << NAND_CTRL_INT_EN)
+		| (SPARE_DIS << NAND_CTRL_SPARE_EN)
+		| (ADDR_CYCLE_1);
 
-	nand_regs->nand_control = (ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1) 		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
-						   | (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)	| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
-						   | (PROT_DIS << NAND_CTRL_PORT_EN) 			| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
-						   | (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH) 		 	| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
-						   | (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE) 		| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-						   | (ECC_DIS << NAND_CTRL_ECC_EN) 				| (INT_DIS << NAND_CTRL_INT_EN)
-						   | (SPARE_DIS << NAND_CTRL_SPARE_EN) 			| (ADDR_CYCLE_1);
-	
-
-	// init timing registers
-//	trwh = 8;
-//	trwp = 8;
-
-//	nand_regs->nand_timings_asyn = (trwh << 4) | (trwp);
-
-//	ret = asm9260_nand_reset(0);
-//	if (ret != 0)
-//	{
-//		return ret;
-//	}
-	
 	trwh = 1; //TWH;
 	trwp = 1; //TWP;
 	nand_regs->nand_timings_asyn = (trwh << 4) | (trwp);
 
 	twhr = 2;
 	trhw = 4;
-	nand_regs->nand_time_seq_0 = (twhr << 24) |
-						         (trhw << 16) |
-						         (tadl << 8)  |
-						         (tccs);
+	nand_regs->nand_time_seq_0 = (twhr << 24) | (trhw << 16)
+		| (tadl << 8) | (tccs);
 
-	nand_regs->nand_time_seq_1 = (tsync << 16) |
-						         (trr << 9) |
-						         (twb);
-	
+	nand_regs->nand_time_seq_1 = (tsync << 16) | (trr << 9) | (twb);
+
 	return ret;
 }
 
@@ -927,27 +871,19 @@ static int asm9260_nand_inithw(uint8_t nChip)
 	int ret = 0;
 
 
-	//asm9260_nand_pin_mux();				/*\C9\E8\D6\C3PIN Mux*/
+	//asm9260_nand_pin_mux();
 
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK |  nChip);
-	nand_regs->nand_mem_ctrl = (1UL << (nChip+8)) ^ (nand_regs->nand_mem_ctrl);
-	
+	nand_regs->nand_mem_ctrl = (1UL << (nChip + 8)) ^ (nand_regs->nand_mem_ctrl);
 
-	ret = asm9260_nand_timing_config();		/*\C9\E8\D6\C3NAND\BF\D8\D6\C6\C6\F7ʱ\D0\F2*/
+	ret = asm9260_nand_timing_config();
 	if (ret != 0)
-	{
 		return ret;
-	}
-	
-	ret = asm9260_nand_reset(nChip);	/*\B8\B4λ*/
+
+	ret = asm9260_nand_reset(nChip);
 
 	return ret;
 }
-
-
-/*
-* \C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7
-*/
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
@@ -960,63 +896,57 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		count = 0;
 		page_shift = __ffs(page_size);
 		block_shift = __ffs(mtd->erasesize) - page_shift;
-		
-		col_cycles  = 2;	//Ŀǰ\CB\F9\D3\D0֧\B3\D6NAND\B5\C4col_cycles\B6\BCΪ2
-		addr_cycles = col_cycles + (((chip_size >> page_size) > 65536) ? 3 : 2);
+
+		col_cycles  = 2;
+		addr_cycles = col_cycles +
+			(((chip_size >> page_size) > 65536) ? 3 : 2);
 		row_cycles  = addr_cycles - col_cycles;
 		DBG("page_shift: 0x%x.\n", page_shift);
 		DBG("block_shift: 0x%x.\n", block_shift);
 		DBG("col_cycles: 0x%x.\n", col_cycles);
 		DBG("addr_cycles: 0x%x.\n", addr_cycles);
 	}
-	
-	nand_regs->nand_control = (EN_STATUS << NAND_CTRL_DIS_STATUS)				| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
-						    | (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)	 		| (addr_cycles << NAND_CTRL_ADDR_CYCLE1)
-						    | (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR) 	| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
-					 	    | (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)	 	| (PROT_DIS << NAND_CTRL_PORT_EN)
-						    | (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)			 	| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
-						    | (DATA_SIZE_FULL_PAGE << NAND_CTRL_CUSTOM_SIZE_EN) 	| (((page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
-						    | (((block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)	 | (ECC_EN<< NAND_CTRL_ECC_EN)
-						    | (INT_DIS << NAND_CTRL_INT_EN)				 	| (SPARE_EN << NAND_CTRL_SPARE_EN)
-						    | (addr_cycles);
+
+	nand_regs->nand_control = (EN_STATUS << NAND_CTRL_DIS_STATUS)
+		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
+		| (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)
+		| (addr_cycles << NAND_CTRL_ADDR_CYCLE1)
+		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
+		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
+		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
+		| (PROT_DIS << NAND_CTRL_PORT_EN)
+		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
+		| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
+		| (DATA_SIZE_FULL_PAGE << NAND_CTRL_CUSTOM_SIZE_EN)
+		| (((page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
+		| (((block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
+		| (ECC_EN<< NAND_CTRL_ECC_EN)
+		| (INT_DIS << NAND_CTRL_INT_EN)
+		| (SPARE_EN << NAND_CTRL_SPARE_EN)
+		| (addr_cycles);
 
 }
 
-
-/*******************************************************************************
-*\BA\AF\CA\FD\C3\FB:	asm9260_nand_make_addr_lp
-*\B9\A6\C4\DC:		\C9\E8\D6ý\ABҪ\B7\A2\CB͵\BD\BF\D8\D6\C6\C6\F7\B5ĵ\D8ַ\A3\AC\BF\D8\D6\C6\C6\F7\BD\AB\B5\D8ַ\B4\A6\C0\ED\BA\F3\B7\A2\CB͸\F8NAND\A1\A3
-*\CA\E4\C8\EB\B2\CE\CA\FD:	nPage--NANDҳ\CA\FD
-*			oob_flag--\C9\E8\D6õ\C4\C8\E7\B9\FB\CA\C7OOB\B5ĵ\D8ַ\A3\AC\B8ò\CE\CA\FD\D0\E8Ϊ1\A3\AC\B7\F1\D4\F2Ϊ0
-*\CA\E4\B3\F6\B2\CE\CA\FD:	pAddr--\C9\E8\D6ú\F3\B5\D8ַ\B5ı\A3\B4洦
-*\B7\B5\BB\D8ֵ:	\CE\DE
-*NOTE:		1\A1\A2\B5\F7\D3÷\BD\D0豣֤\B4\E6\B7ŵ\D8ַ\B5\C4\C4ڴ棬
-*			\B8\C3\C7\FD\B6\AF\C9\EA\C7\EB\C1\CBȫ\BE\D6\CA\FD\D7\E9NandAddr[32]ר\D3\C3\D3\DA\C9\E8\D6õ\D8ַ\B5Ĵ\E6\B7\C5
-*			2\A1\A2\B2\C1\B3\FDʱ\A3\AC\BF\D8\D6\C6\C6\F7\BB\E1\D7Զ\AFȡ\D0е\D8ַ\B7\A2\B8\F8NAND\A3\AC\D2\F2\B4˲\BB\D0\E8Ҫ\BD\F8\D0\D0ר\C3ŵĴ\A6\C0\ED
-*******************************************************************************/
-static void asm9260_nand_make_addr_lp(struct mtd_info *mtd, uint32_t nPage, uint32_t nColumn, uint8_t *pAddr)
+static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
+		uint32_t nPage, uint32_t nColumn, uint8_t *pAddr)
 {
 	int i = 0;
 	uint32_t row_addr = nPage;
 
-	//\C7\E5\BF\D5
 	memset(pAddr, 0, 32);
 
-	//\C9\E8\D6\C3\C1е\D8ַ
 	for (i=0; i<col_cycles; i++)
 	{
 		pAddr[i] = (uint8_t)(nColumn & 0xFF);
 		nColumn = nColumn >> 8;
 	}
-	
-	//\C9\E8\D6\C3\D0е\D8ַ,\C6\E4ʵ\BE\CD\CA\C7nPageҳ\BA\C5
+
 	for (i = col_cycles; i < addr_cycles; i++)
 	{
-		pAddr[i] = (uint8_t)(row_addr & 0xFF);		//\D7ֽ\DA\D1\DA\C2\EB
-		row_addr = row_addr >> 8;				//\D7ֽ\DAλ\CA\FD
+		pAddr[i] = (uint8_t)(row_addr & 0xFF);
+		row_addr = row_addr >> 8;
 	}
 }
-
 
 /**
  * nand_command_lp - [DEFAULT] Send command to NAND large page device
@@ -1045,7 +975,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	ret = !asm9260_nand_dev_ready(0);
 	if (ret)
 		DBG("wait for device ready timeout.\n");
-	
+
 	switch (command)
 	{
 		case NAND_CMD_PAGEPROG:
@@ -1054,16 +984,17 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			if (flag == 1)
 			{
 				flag = 0;
-				nand_regs->nand_dma_ctrl = (DMA_START_EN<<NAND_DMA_CTRL_START)
-										 | (DMA_DIR_WRITE<<NAND_DMA_CTRL_DIR)
-										 | (DMA_MODE_SFR<<NAND_DMA_CTRL_MODE)
-										 | (DMA_BURST_INCR16<<NAND_DMA_CTRL_BURST);
-				nand_regs->nand_command  = (PROGRAM_PAGE_2<<NAND_CMD_CMD1)
-										 | (PROGRAM_PAGE_1<<NAND_CMD_CMD0)
-										 | (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-										 | (INPUT_SEL_DMA<<NAND_CMD_INPUT_SEL)
-										 | (SEQ12);
-
+				nand_regs->nand_dma_ctrl =
+					(DMA_START_EN<<NAND_DMA_CTRL_START)
+					| (DMA_DIR_WRITE<<NAND_DMA_CTRL_DIR)
+					| (DMA_MODE_SFR<<NAND_DMA_CTRL_MODE)
+					| (DMA_BURST_INCR16<<NAND_DMA_CTRL_BURST);
+				nand_regs->nand_command =
+					(PROGRAM_PAGE_2<<NAND_CMD_CMD1)
+					| (PROGRAM_PAGE_1<<NAND_CMD_CMD0)
+					| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
+					| (INPUT_SEL_DMA<<NAND_CMD_INPUT_SEL)
+					| (SEQ12);
 				break;
 			}
 #endif
@@ -1071,37 +1002,44 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_CACHEDPROG:
 		case NAND_CMD_ERASE2:
 			break;
-			
+
 		case NAND_CMD_RESET:
 			nand_regs->nand_command = (RESET << NAND_CMD_CMD0)
-							        | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-							        | (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-							        | (SEQ0);
+				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
+				| (SEQ0);
 			break;
 
 		case NAND_CMD_READID:
-			nand_regs->nand_control   = (ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1) 		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
-									  | (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)	| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
-									  | (PROT_DIS << NAND_CTRL_PORT_EN) 			| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
-									  | (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH) 		 	| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
-									  | (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE) 		| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-									  | (ECC_DIS << NAND_CTRL_ECC_EN) 				| (INT_DIS << NAND_CTRL_INT_EN)
-									  | (SPARE_DIS << NAND_CTRL_SPARE_EN) 			| (ADDR_CYCLE_1); 
+			nand_regs->nand_control =
+				(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
+				| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
+				| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
+				| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
+				| (PROT_DIS << NAND_CTRL_PORT_EN)
+				| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
+				| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
+				| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
+				| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
+				| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
+				| (ECC_DIS << NAND_CTRL_ECC_EN)
+				| (INT_DIS << NAND_CTRL_INT_EN)
+				| (SPARE_DIS << NAND_CTRL_SPARE_EN)
+				| (ADDR_CYCLE_1);
 			nand_regs->nand_fifo_init = 1;	//reset FIFO
 			nand_regs->nand_data_size = 8;	//ID 4 Bytes
-			nand_regs->nand_addr0_l   = column;
-			nand_regs->nand_command   = (READ_ID << NAND_CMD_CMD0)
-									  | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-									  | (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-									  | (SEQ1);
+			nand_regs->nand_addr0_l = column;
+			nand_regs->nand_command = (READ_ID << NAND_CMD_CMD0)
+				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
+				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
+				| (SEQ1);
 
 			read_cache_byte_cnt = 0;
-			
+
 			break;
 
 		case NAND_CMD_READ0:
 
-			/*1\A1\A2\B8\B4λFIFO\A3\AC\C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7*/
 			nand_regs->nand_fifo_init = 1;
 			
 			asm9260_nand_controller_config(mtd);

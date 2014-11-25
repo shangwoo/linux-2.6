@@ -55,9 +55,9 @@ Modification: 	Tidy up code.
 #include <linux/mtd/nand.h>
 #include <linux/mtd/nand_ecc.h>
 #include <linux/mtd/partitions.h>
-#include <mach/system.h>
-#include <mach/pincontrol.h>
-#include <mach/dma.h>
+//#include <mach/system.h>
+//#include <mach/pincontrol.h>
+//#include <mach/dma.h>
 #include <asm/hardware/iomd.h>
 #include <asm/io.h>
 #include <asm/irq.h>
@@ -817,6 +817,7 @@ static int asm9260_nand_dma_error(void)
 }
 #endif
 
+#if 0
 static void asm9260_nand_pin_mux(void)
 {
 	/*set pin assign*/
@@ -836,7 +837,7 @@ static void asm9260_nand_pin_mux(void)
     set_pin_mux(12,6,5);
     set_pin_mux(12,7,5);
 }
-
+#endif
 /*
 * NANDоƬ\B8\B4λ
 */
@@ -913,11 +914,8 @@ static int asm9260_nand_inithw(uint8_t nChip)
 {
 	int ret = 0;
 
-	/*open clk*/
-    as3310_writel(ASM9260T_NAND_CLK_EN, HW_AHBCLKCTRL1 + 4);  // open nand pclk
-    as3310_writel(ASM9260T_NAND_CLK_DIV, HW_NANDCLKDIV);      // set nand clk to 1/2 pclk
 
-	asm9260_nand_pin_mux();				/*\C9\E8\D6\C3PIN Mux*/
+	//asm9260_nand_pin_mux();				/*\C9\E8\D6\C3PIN Mux*/
 
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK |  nChip);
 	nand_regs->nand_mem_ctrl = (1UL << (nChip+8)) ^ (nand_regs->nand_mem_ctrl);
@@ -1484,6 +1482,42 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 	return ecc_bytes;
 }
 
+static int asm9260_get_dt_clks(
+		struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	int clk_idx = 0, err;
+	struct clk *clk;
+	struct clk *clk_ahb;
+
+	clk = of_clk_get(np, clk_idx);
+	if (IS_ERR(clk))
+		goto out_err;
+
+	/* configure AHB clock */
+	clk_idx = 1;
+	clk_ahb = of_clk_get(np, clk_idx);
+	if (IS_ERR(clk_ahb))
+		goto out_err;
+
+	err = clk_prepare_enable(clk_ahb);
+	if (err)
+		dev_err(&pdev->dev, "Failed to enable ahb_clk!\n");
+
+	err = clk_set_rate(clk, clk_get_rate(clk_ahb));
+	if (err)
+		dev_err(&pdev->dev, "Failed to set rate!\n");
+
+	err = clk_prepare_enable(clk);
+	if (err)
+		dev_err(&pdev->dev, "Failed to enable clk!\n");
+
+	return 0;
+out_err:
+	dev_err(&pdev->dev, "%s: Failed to get clk (%i)\n", __func__, clk_idx);
+	return 1;
+}
+
 static int asm9260_nand_probe(struct platform_device *dev)
 {
 	struct platform_device *pdev = dev;
@@ -1538,6 +1572,8 @@ static int asm9260_nand_probe(struct platform_device *dev)
 		printk(KERN_ERR "asm9260_nand: failed to allocate mtd_info storage\n");
 		goto err_mtd_info_alloc;
 	}
+
+	asm9260_get_dt_clks(dev);
 
 	/* initialise the hardware */
 	res = asm9260_nand_inithw(0);

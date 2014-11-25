@@ -62,8 +62,8 @@ Modification: 	Tidy up code.
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/mach-types.h>
-#include <mach/uart_reg.h>
-#include <mach/asm9260_nand.h>
+//#include <mach/uart_reg.h>
+//#include <mach/asm9260_nand.h>
 
 // ================== Definitions ====================
 
@@ -711,7 +711,7 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 }
 
 /*
-* µÈ´ıNAND¿ØÖÆÆ÷ready
+* \B5È´\FDNAND\BF\D8\D6\C6\C6\F7ready
 */
 static int asm9260_nand_controller_ready(void)
 {
@@ -732,7 +732,7 @@ static int asm9260_nand_controller_ready(void)
 }
 
 /*
-* µÈ´ıNANDÉè±¸ready
+* \B5È´\FDNAND\C9è±¸ready
 */
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 {
@@ -781,7 +781,7 @@ static int asm9260_nand_ecc_check(void)
 
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 /*
-* µÈ´ıDMA´«ÊäÍê³É
+* \B5È´\FDDMA\B4\AB\CA\E4\CD\EA\B3\C9
 */
 static int asm9260_nand_dma_ready(void)
 {
@@ -802,7 +802,7 @@ static int asm9260_nand_dma_ready(void)
 }
 
 /*
-* ¼ì²éDMA´«ÊäÊÇ·ñ·¢Éú´íÎó
+* \BC\EC\B2\E9DMA\B4\AB\CA\E4\CAÇ·\F1\B7\A2\C9\FA\B4\ED\CE\F3
 */
 static int asm9260_nand_dma_error(void)
 {
@@ -838,7 +838,7 @@ static void asm9260_nand_pin_mux(void)
 }
 
 /*
-* NANDĞ¾Æ¬¸´Î»
+* NANDĞ¾Æ¬\B8\B4Î»
 */
 int asm9260_nand_reset(uint8_t nChip)
 {
@@ -853,7 +853,7 @@ int asm9260_nand_reset(uint8_t nChip)
 }
 
 /*
-* ÉèÖÃNAND¿ØÖÆÆ÷Ê±Ğò
+* \C9\E8\D6\C3NAND\BF\D8\D6\C6\C6\F7Ê±\D0\F2
 */
 static int asm9260_nand_timing_config(void)
 {
@@ -917,26 +917,26 @@ static int asm9260_nand_inithw(uint8_t nChip)
     as3310_writel(ASM9260T_NAND_CLK_EN, HW_AHBCLKCTRL1 + 4);  // open nand pclk
     as3310_writel(ASM9260T_NAND_CLK_DIV, HW_NANDCLKDIV);      // set nand clk to 1/2 pclk
 
-	asm9260_nand_pin_mux();				/*ÉèÖÃPIN Mux*/
+	asm9260_nand_pin_mux();				/*\C9\E8\D6\C3PIN Mux*/
 
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK |  nChip);
 	nand_regs->nand_mem_ctrl = (1UL << (nChip+8)) ^ (nand_regs->nand_mem_ctrl);
 	
 
-	ret = asm9260_nand_timing_config();		/*ÉèÖÃNAND¿ØÖÆÆ÷Ê±Ğò*/
+	ret = asm9260_nand_timing_config();		/*\C9\E8\D6\C3NAND\BF\D8\D6\C6\C6\F7Ê±\D0\F2*/
 	if (ret != 0)
 	{
 		return ret;
 	}
 	
-	ret = asm9260_nand_reset(nChip);	/*¸´Î»*/
+	ret = asm9260_nand_reset(nChip);	/*\B8\B4Î»*/
 
 	return ret;
 }
 
 
 /*
-* ÅäÖÃNAND¿ØÖÆÆ÷
+* \C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7
 */
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
@@ -951,7 +951,7 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		page_shift = __ffs(page_size);
 		block_shift = __ffs(mtd->erasesize) - page_shift;
 		
-		col_cycles  = 2;	//Ä¿Ç°ËùÓĞÖ§³ÖNANDµÄcol_cycles¶¼Îª2
+		col_cycles  = 2;	//Ä¿Ç°\CB\F9\D3\D0Ö§\B3\D6NAND\B5\C4col_cycles\B6\BCÎª2
 		addr_cycles = col_cycles + (((chip_size >> page_size) > 65536) ? 3 : 2);
 		row_cycles  = addr_cycles - col_cycles;
 		DBG("page_shift: 0x%x.\n", page_shift);
@@ -974,36 +974,36 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 
 
 /*******************************************************************************
-*º¯ÊıÃû:	asm9260_nand_make_addr_lp
-*¹¦ÄÜ:		ÉèÖÃ½«Òª·¢ËÍµ½¿ØÖÆÆ÷µÄµØÖ·£¬¿ØÖÆÆ÷½«µØÖ·´¦Àíºó·¢ËÍ¸øNAND¡£
-*ÊäÈë²ÎÊı:	nPage--NANDÒ³Êı
-*			oob_flag--ÉèÖÃµÄÈç¹ûÊÇOOBµÄµØÖ·£¬¸Ã²ÎÊıĞèÎª1£¬·ñÔòÎª0
-*Êä³ö²ÎÊı:	pAddr--ÉèÖÃºóµØÖ·µÄ±£´æ´¦
-*·µ»ØÖµ:	ÎŞ
-*NOTE:		1¡¢µ÷ÓÃ·½Ğè±£Ö¤´æ·ÅµØÖ·µÄÄÚ´æ£¬
-*			¸ÃÇı¶¯ÉêÇëÁËÈ«¾ÖÊı×éNandAddr[32]×¨ÓÃÓÚÉèÖÃµØÖ·µÄ´æ·Å
-*			2¡¢²Á³ıÊ±£¬¿ØÖÆÆ÷»á×Ô¶¯È¡ĞĞµØÖ··¢¸øNAND£¬Òò´Ë²»ĞèÒª½øĞĞ×¨ÃÅµÄ´¦Àí
+*\BA\AF\CA\FD\C3\FB:	asm9260_nand_make_addr_lp
+*\B9\A6\C4\DC:		\C9\E8\D6Ã½\ABÒª\B7\A2\CBÍµ\BD\BF\D8\D6\C6\C6\F7\B5Äµ\D8Ö·\A3\AC\BF\D8\D6\C6\C6\F7\BD\AB\B5\D8Ö·\B4\A6\C0\ED\BA\F3\B7\A2\CBÍ¸\F8NAND\A1\A3
+*\CA\E4\C8\EB\B2\CE\CA\FD:	nPage--NANDÒ³\CA\FD
+*			oob_flag--\C9\E8\D6Ãµ\C4\C8\E7\B9\FB\CA\C7OOB\B5Äµ\D8Ö·\A3\AC\B8Ã²\CE\CA\FD\D0\E8Îª1\A3\AC\B7\F1\D4\F2Îª0
+*\CA\E4\B3\F6\B2\CE\CA\FD:	pAddr--\C9\E8\D6Ãº\F3\B5\D8Ö·\B5Ä±\A3\B4æ´¦
+*\B7\B5\BB\D8Öµ:	\CE\DE
+*NOTE:		1\A1\A2\B5\F7\D3Ã·\BD\D0è±£Ö¤\B4\E6\B7Åµ\D8Ö·\B5\C4\C4Ú´æ£¬
+*			\B8\C3\C7\FD\B6\AF\C9\EA\C7\EB\C1\CBÈ«\BE\D6\CA\FD\D7\E9NandAddr[32]×¨\D3\C3\D3\DA\C9\E8\D6Ãµ\D8Ö·\B5Ä´\E6\B7\C5
+*			2\A1\A2\B2\C1\B3\FDÊ±\A3\AC\BF\D8\D6\C6\C6\F7\BB\E1\D7Ô¶\AFÈ¡\D0Ğµ\D8Ö·\B7\A2\B8\F8NAND\A3\AC\D2\F2\B4Ë²\BB\D0\E8Òª\BD\F8\D0\D0×¨\C3ÅµÄ´\A6\C0\ED
 *******************************************************************************/
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd, uint32_t nPage, uint32_t nColumn, uint8_t *pAddr)
 {
 	int i = 0;
 	uint32_t row_addr = nPage;
 
-	//Çå¿Õ
+	//\C7\E5\BF\D5
 	memset(pAddr, 0, 32);
 
-	//ÉèÖÃÁĞµØÖ·
+	//\C9\E8\D6\C3\C1Ğµ\D8Ö·
 	for (i=0; i<col_cycles; i++)
 	{
 		pAddr[i] = (uint8_t)(nColumn & 0xFF);
 		nColumn = nColumn >> 8;
 	}
 	
-	//ÉèÖÃĞĞµØÖ·,ÆäÊµ¾ÍÊÇnPageÒ³ºÅ
+	//\C9\E8\D6\C3\D0Ğµ\D8Ö·,\C6\E4Êµ\BE\CD\CA\C7nPageÒ³\BA\C5
 	for (i = col_cycles; i < addr_cycles; i++)
 	{
-		pAddr[i] = (uint8_t)(row_addr & 0xFF);		//×Ö½ÚÑÚÂë
-		row_addr = row_addr >> 8;				//×Ö½ÚÎ»Êı
+		pAddr[i] = (uint8_t)(row_addr & 0xFF);		//\D7Ö½\DA\D1\DA\C2\EB
+		row_addr = row_addr >> 8;				//\D7Ö½\DAÎ»\CA\FD
 	}
 }
 
@@ -1091,7 +1091,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 		case NAND_CMD_READ0:
 
-			/*1¡¢¸´Î»FIFO£¬ÅäÖÃNAND¿ØÖÆÆ÷*/
+			/*1\A1\A2\B8\B4Î»FIFO\A3\AC\C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7*/
 			nand_regs->nand_fifo_init = 1;
 			
 			asm9260_nand_controller_config(mtd);
@@ -1115,7 +1115,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				break;
 			}
 
-			/*2¡¢Ñ¡Ôñchip£¬ÅäÖÃNANDµØÖ·*/
+			/*2\A1\A2Ñ¡\D4\F1chip\A3\AC\C5\E4\D6\C3NAND\B5\D8Ö·*/
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
 
 			nand_regs->nand_addr0_l = addr[0];
@@ -1124,7 +1124,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 #ifdef CONFIG_MTD_NAND_ASAP9260_DMA
 			if (column == 0)
 			{
-				/*DMAÅäÖÃ£¬DMAÓĞÁ½ÖÖÄ£Ê½£¬ÆäÖĞSFR managedÄ£Ê½ÔÚµ¥¸öDMA°üÇé¿öÏÂÊ¹ÓÃ*/
+				/*DMA\C5\E4\D6Ã£\ACDMA\D3\D0\C1\BD\D6\D6Ä£Ê½\A3\AC\C6\E4\D6\D0SFR managedÄ£Ê½\D4Úµ\A5\B8\F6DMA\B0\FC\C7\E9\BF\F6\CF\C2Ê¹\D3\C3*/
 				nand_regs->nand_dma_addr = asm9260_nand_dma_read_buf_phy;
 				nand_regs->nand_dma_cnt  = mtd->writesize + asm9260_nand_spare_data_size;
 				nand_regs->nand_dma_ctrl = (DMA_START_EN<<NAND_DMA_CTRL_START)
@@ -1140,7 +1140,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			}
 #endif
 
-			/*3¡¢·¢ÆğÃüÁî*/
+			/*3\A1\A2\B7\A2\C6\F0\C3\FC\C1\EE*/
 			nand_regs->nand_command = (READ_PAGE_2<<NAND_CMD_CMD1)
 								    | (READ_PAGE_1<<NAND_CMD_CMD0)
 								    | (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
@@ -1151,7 +1151,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			break;
 		case NAND_CMD_SEQIN:
 
-			/*1¡¢¸´Î»FIFO£¬ÅäÖÃNAND¿ØÖÆÆ÷*/
+			/*1\A1\A2\B8\B4Î»FIFO\A3\AC\C5\E4\D6\C3NAND\BF\D8\D6\C6\C6\F7*/
 			nand_regs->nand_fifo_init = 1;
 			asm9260_nand_controller_config(mtd);
 
@@ -1168,7 +1168,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				nand_regs->nand_data_size = mtd->oobsize;
 			}
  
-			/*2¡¢Ñ¡Ôñchip£¬ÅäÖÃNANDµØÖ·*/
+			/*2\A1\A2Ñ¡\D4\F1chip\A3\AC\C5\E4\D6\C3NAND\B5\D8Ö·*/
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
@@ -1178,14 +1178,14 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			{
 				flag = 1;
 
-				/*DMAÅäÖÃ£¬DMAÓĞÁ½ÖÖÄ£Ê½£¬ÆäÖĞSFR managedÄ£Ê½ÔÚµ¥¸öDMA°üÇé¿öÏÂÊ¹ÓÃ*/
+				/*DMA\C5\E4\D6Ã£\ACDMA\D3\D0\C1\BD\D6\D6Ä£Ê½\A3\AC\C6\E4\D6\D0SFR managedÄ£Ê½\D4Úµ\A5\B8\F6DMA\B0\FC\C7\E9\BF\F6\CF\C2Ê¹\D3\C3*/
 				nand_regs->nand_dma_addr = asm9260_nand_dma_write_buf_phy;
 				nand_regs->nand_dma_cnt  = mtd->writesize + asm9260_nand_spare_data_size;
 				break;
 			}
 #endif
 
-			/*3¡¢·¢ÆğÃüÁî*/
+			/*3\A1\A2\B7\A2\C6\F0\C3\FC\C1\EE*/
 			nand_regs->nand_command = (PROGRAM_PAGE_2 << NAND_CMD_CMD1)
 								    | (PROGRAM_PAGE_1 << NAND_CMD_CMD0)
 								    | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
@@ -1487,13 +1487,22 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 static int asm9260_nand_probe(struct platform_device *dev)
 {
 	struct platform_device *pdev = dev;
+	struct device_node *np = ofdev->dev.of_node;
+	struct resource res;
 	//struct resource *mem_res, *irq_res;
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
 #ifdef CONFIG_MTD_PARTITIONS
 	struct asm9260_nand_data *asm9260_default_mtd_part;
 #endif
+	int err = 0;
 	int res = 0;
+
+	nand_regs = of_io_request_and_map(np, 0, np->name);
+        if (!nand_regs) {
+                printk("%s: unable to map resource", np->full_name);
+		return -EINVAL;
+	}
 
 #if 0
 	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
@@ -1516,7 +1525,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 #endif	
 
 	//asm9260_default_mtd_part = pdev->dev.platform_data;
-	nand_regs = (struct asm9260_nand_regs *)(NAND_BASE_ADDR);
+	//nand_regs = (struct asm9260_nand_regs *)(NAND_BASE_ADDR);
 
 	asm9260_nand = kzalloc(sizeof(struct nand_chip), GFP_KERNEL);
 	if (!asm9260_nand) {
@@ -1706,6 +1715,16 @@ static int asm9260_nand_resume(struct platform_device *dev )
 	return 0;
 }
 
+static const struct of_device_id asm9260_nand_match[] =
+{
+	{
+		.compatible   = "alphascale,asm9260-nand",
+	},
+	{},
+};
+
+MODULE_DEVICE_TABLE(of, pasemi_nand_match);
+
 static struct platform_driver asm9260_nand_driver = {
 	.probe		= asm9260_nand_probe,
 	.remove		= asm9260_nand_remove,
@@ -1714,6 +1733,7 @@ static struct platform_driver asm9260_nand_driver = {
 	.driver		= {
 		.name	= "asm9260-nand",
 		.owner	= THIS_MODULE,
+		.of_match_table = asm9260_nand_match,
 	},
 };
 

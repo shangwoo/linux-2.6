@@ -65,6 +65,18 @@ Modification: 	Tidy up code.
 //#include <mach/uart_reg.h>
 //#include <mach/asm9260_nand.h>
 
+#include <linux/module.h>
+#include <linux/clk.h>
+#include <linux/clocksource.h>
+#include <linux/clockchips.h>
+#include <linux/io.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_irq.h>
+#include <linux/bitops.h>
+#include <linux/of_platform.h>
+
+
 // ================== Definitions ====================
 
 // timing parameters
@@ -1520,16 +1532,13 @@ out_err:
 
 static int asm9260_nand_probe(struct platform_device *dev)
 {
-	struct platform_device *pdev = dev;
-	struct device_node *np = ofdev->dev.of_node;
-	struct resource res;
+	struct device_node *np = dev->dev.of_node;
 	//struct resource *mem_res, *irq_res;
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
 #ifdef CONFIG_MTD_PARTITIONS
 	struct asm9260_nand_data *asm9260_default_mtd_part;
 #endif
-	int err = 0;
 	int res = 0;
 
 	nand_regs = of_io_request_and_map(np, 0, np->name);
@@ -1759,7 +1768,7 @@ static const struct of_device_id asm9260_nand_match[] =
 	{},
 };
 
-MODULE_DEVICE_TABLE(of, pasemi_nand_match);
+MODULE_DEVICE_TABLE(of, asm9260_nand_match);
 
 static struct platform_driver asm9260_nand_driver = {
 	.probe		= asm9260_nand_probe,

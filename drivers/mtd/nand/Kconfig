@@ -518,7 +518,7 @@ config MTD_NAND_XWAY
 
 config MTD_NAND_ASM9260
        tristate "NAND Flash support for ASM9260 SoC"
-       depends on MACH_AS9260
+       depends on MACH_ASM9260
        default y
        help
          This enables the NAND flash controller on the ASM9260 SoCs,
@@ -541,7 +541,7 @@ config MTD_NAND_ASM9260_HWECC
          using NAND. 
 
 config MTD_NAND_ASAP9260_DMA
-       bool "ASAP9260 NAND DMA"
+       bool "ASM9260 NAND DMA"
        depends on MTD_NAND_ASM9260
        default y
        help

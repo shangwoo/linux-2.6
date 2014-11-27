@@ -170,6 +170,7 @@
 			reg = <0x80600000 0x100>;
 			clocks = <&acc CLKID_SYS_NAND>, <&acc CLKID_AHB_NAND>;
 			interrupts = <14>;
+			status = "disabled";
 		};
 
 	};

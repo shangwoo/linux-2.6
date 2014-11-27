@@ -1455,8 +1455,7 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 	return ecc_bytes;
 }
 
-static int asm9260_get_dt_clks(
-		struct platform_device *pdev)
+static int asm9260_nand_get_dt_clks(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
 	int clk_idx = 0, err;
@@ -1543,7 +1542,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 		goto err_mtd_info_alloc;
 	}
 
-	asm9260_get_dt_clks(dev);
+	asm9260_nand_get_dt_clks(dev);
 
 	/* initialise the hardware */
 	res = asm9260_nand_inithw(0);

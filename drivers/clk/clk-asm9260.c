@@ -134,6 +134,20 @@ static const struct asm9260_div_clk asm9260_div_clks[] __initconst = {
 	{ CLKID_SYS_UART7,	"uart7_div", "uart_gate", HW_UART7CLKDIV },
 	{ CLKID_SYS_UART8,	"uart8_div", "uart_gate", HW_UART8CLKDIV },
 	{ CLKID_SYS_UART9,	"uart9_div", "uart_gate", HW_UART9CLKDIV },
+
+	{ CLKID_SYS_SPI0,	"spi0_div",	"main_gate", HW_SPI0CLKDIV },
+	{ CLKID_SYS_SPI1,	"spi1_div",	"main_gate", HW_SPI1CLKDIV },
+	{ CLKID_SYS_QUADSPI,	"quadspi_div",	"main_gate", HW_QUADSPICLKDIV },
+	{ CLKID_SYS_SSP0,	"ssp0_div",	"main_gate", HW_SSP0CLKDIV },
+	{ CLKID_SYS_NAND,	"nand_div",	"main_gate", HW_NANDCLKDIV },
+	{ CLKID_SYS_TRACE,	"trace_div",	"main_gate", HW_TRACECLKDIV },
+	{ CLKID_SYS_CAMM,	"camm_div",	"main_gate", HW_CAMMCLKDIV },
+	{ CLKID_SYS_MAC,	"mac_div",	"main_gate", HW_MACCLKDIV },
+	{ CLKID_SYS_LCD,	"lcd_div",	"main_gate", HW_LCDCLKDIV },
+	{ CLKID_SYS_ADCANA,	"adcana_div",	"main_gate", HW_ADCANACLKDIV },
+
+	{ CLKID_SYS_WDT,	"wdt_div",	"wdt_gate",    HW_WDTCLKDIV },
+	{ CLKID_SYS_CLKOUT,	"clkout_div",	"clkout_gate", HW_CLKOUTCLKDIV },
 };
 
 static const struct asm9260_gate_data asm9260_mux_gates[] __initconst = {

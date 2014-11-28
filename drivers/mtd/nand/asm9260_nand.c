@@ -434,6 +434,14 @@ struct asm9260_nand_regs{
 	volatile uint32_t nand_time_seq_1;
 };
 
+struct asm9260_nand_priv {
+	struct mtd_info mtd;
+	struct nand_chip nand;
+	struct device *dev;
+
+	void __iomem *base;
+};
+
 /*2KB--4*512B, correction ability: 4bit--7Byte ecc*/
 static struct nand_ecclayout asm9260_nand_oob_64 = {
 	.eccbytes = 28,
@@ -699,7 +707,7 @@ static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
 	if (chip == -1)
 	{
-		nand_regs->nand_mem_ctrl = ASM9260T_NAND_WP_STATE_MASK;		
+		nand_regs->nand_mem_ctrl = ASM9260T_NAND_WP_STATE_MASK;
 	}
 	else
 	{
@@ -1093,8 +1101,10 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 {
 	uint8_t this_byte;
 
+	printk("%s:%i", __func__, __LINE__);
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
+	printk("!!!!\n");
 		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
@@ -1110,8 +1120,10 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 	uint16_t this_word = 0;
 	uint16_t *val_tmp = (uint16_t *)read_cache;
 
+	printk("%s:%i", __func__, __LINE__);
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
+	printk("!!!!\n");
 		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
@@ -1324,15 +1336,21 @@ out_err:
 	return 1;
 }
 
-static int asm9260_nand_probe(struct platform_device *dev)
+static int asm9260_nand_probe(struct platform_device *pdev)
 {
-	struct device_node *np = dev->dev.of_node;
+	struct asm9260_nand_priv *priv;
+	struct device_node *np = pdev->dev.of_node;
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
 #ifdef CONFIG_MTD_PARTITIONS
 	struct asm9260_nand_data *asm9260_default_mtd_part;
 #endif
 	int res = 0;
+
+	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
+			GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
 
 	nand_regs = of_io_request_and_map(np, 0, np->name);
         if (!nand_regs) {
@@ -1352,7 +1370,7 @@ static int asm9260_nand_probe(struct platform_device *dev)
 		goto err_mtd_info_alloc;
 	}
 
-	asm9260_nand_get_dt_clks(dev);
+	asm9260_nand_get_dt_clks(pdev);
 
 	/* initialise the hardware */
 	res = asm9260_nand_inithw(0);
@@ -1510,7 +1528,7 @@ err_mtd_info_alloc:
 }
 
 
-static int asm9260_nand_remove(struct platform_device *dev)
+static int asm9260_nand_remove(struct platform_device *pdev)
 {
 	nand_release(asm9260_mtd);
 	kfree(asm9260_nand);
@@ -1520,12 +1538,12 @@ static int asm9260_nand_remove(struct platform_device *dev)
 }
 
 
-static int asm9260_nand_suspend(struct platform_device *dev , pm_message_t state)
+static int asm9260_nand_suspend(struct platform_device *pdev , pm_message_t state)
 {
 	return 0;
 }
 
-static int asm9260_nand_resume(struct platform_device *dev )
+static int asm9260_nand_resume(struct platform_device *pdev )
 {
 	return 0;
 }

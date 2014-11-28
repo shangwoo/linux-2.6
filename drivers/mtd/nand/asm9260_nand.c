@@ -1493,7 +1493,6 @@ out_err:
 static int asm9260_nand_probe(struct platform_device *dev)
 {
 	struct device_node *np = dev->dev.of_node;
-	//struct resource *mem_res, *irq_res;
 	struct mtd_partition *partitions = NULL;
 	int num_partitions = 0;
 #ifdef CONFIG_MTD_PARTITIONS
@@ -1506,29 +1505,6 @@ static int asm9260_nand_probe(struct platform_device *dev)
                 printk("%s: unable to map resource", np->full_name);
 		return -EINVAL;
 	}
-
-#if 0
-	mem_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!mem_res) {
-		printk(KERN_ERR "asm9260_nand: can't get I/O resource mem\n");
-		return -ENXIO;
-	}
-
-	irq_res = platform_get_resource(pdev, IORESOURCE_IRQ, 0);
-	if (!irq_res) {
-		printk(KERN_ERR "asm9260_nand: can't get irq resource\n");
-		return -ENXIO;;
-	}
-	
-	nand_regs = ioremap(mem_res->start, mem_res->end - mem_res->start + 1);
-	if (nand_regs == NULL) {
-		printk(KERN_ERR "asm9260_nand: ioremap failed\n");
-		return -EIO;
-	}
-#endif	
-
-	//asm9260_default_mtd_part = pdev->dev.platform_data;
-	//nand_regs = (struct asm9260_nand_regs *)(NAND_BASE_ADDR);
 
 	asm9260_nand = kzalloc(sizeof(struct nand_chip), GFP_KERNEL);
 	if (!asm9260_nand) {

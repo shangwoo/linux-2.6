@@ -92,33 +92,7 @@ Modification: 	Tidy up code.
 #define  TCAD  0x0
 
 // cmd parameters
-#define  RESET                        0xFF
-#define  SYNC_RESET                   0xFC
-
-#define  READ_ID                      0x90
-
-#define  READ_STATUS                  0x70
-#define  READ_STATUS_ENHANCE          0x78
-
-#define  CHANGE_WRITE_COLUMN          0x85
-#define  CHANGE_ROW_ADDRESS           0x85
-
-#define  READ_PAGE_1                  0x00
-#define  READ_PAGE_2                  0x30
-
-#define  PROGRAM_PAGE_1               0x80
-#define  PROGRAM_PAGE_2               0x10
-
-#define  PROGRAM_PAGE1                0x80
-
-#define  WRITE_PAGE                   0x10
-#define  WRITE_PAGE_CACHE             0x15
-#define  WRITE_MULTIPLANE             0x11
-
-#define  ERASE_BLOCK_1                0x60
-#define  ERASE_BLOCK_2                0xD0
-
-
+//ok
 
 // seq parameter
 #define  SEQ1     0x21   // 6'b100001
@@ -673,8 +647,6 @@ struct ecc_info ecc_info_table[8] = {
 #define ASM9260_NAND_ERR_UNCORRECT	2
 #define ASM9260_NAND_ERR_OVER		3
 
-#define  NAND_BASE_ADDR         	0xF0600000
-
 #ifdef CONFIG_MTD_NAND_ASM9260_DEBUG
 #define DBG(x...) printk("ASM9260_NAND_DBG: " x)
 #else
@@ -805,7 +777,7 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, uint8_t nChip)
 		return ret;
 
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK | nChip);
-	nand_regs->nand_command  = (RESET << NAND_CMD_CMD0)
+	nand_regs->nand_command  = (NAND_CMD_RESET << NAND_CMD_CMD0)
 					        | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 					        | (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
 					        | (SEQ0);
@@ -909,7 +881,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			break;
 
 		case NAND_CMD_RESET:
-			nand_regs->nand_command = (RESET << NAND_CMD_CMD0)
+			nand_regs->nand_command = (NAND_CMD_RESET << NAND_CMD_CMD0)
 				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
 				| (SEQ0);
@@ -934,7 +906,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_fifo_init = 1;	//reset FIFO
 			nand_regs->nand_data_size = 8;	//ID 4 Bytes
 			nand_regs->nand_addr0_l = column;
-			nand_regs->nand_command = (READ_ID << NAND_CMD_CMD0)
+			nand_regs->nand_command = (NAND_CMD_READID << NAND_CMD_CMD0)
 				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
 				| (SEQ1);
@@ -978,8 +950,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
 
-			nand_regs->nand_command = (READ_PAGE_2<<NAND_CMD_CMD1)
-				| (READ_PAGE_1<<NAND_CMD_CMD0)
+			nand_regs->nand_command = (NAND_CMD_READSTART << NAND_CMD_CMD1)
+				| (NAND_CMD_READ0 << NAND_CMD_CMD0)
 				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
 				| (SEQ10);
@@ -1015,8 +987,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
 
-			nand_regs->nand_command = (PROGRAM_PAGE_2 << NAND_CMD_CMD1)
-				| (PROGRAM_PAGE_1 << NAND_CMD_CMD0)
+			nand_regs->nand_command = (NAND_CMD_PAGEPROG << NAND_CMD_CMD1)
+				| (NAND_CMD_SEQIN << NAND_CMD_CMD0)
 				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
 				| (SEQ12);
@@ -1030,7 +1002,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 						& (~(ECC_EN<< NAND_CTRL_ECC_EN)))
 					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN));
 			nand_regs->nand_data_size = 1;
-			nand_regs->nand_command = (READ_STATUS<<NAND_CMD_CMD0) |
+			nand_regs->nand_command = (NAND_CMD_STATUS << NAND_CMD_CMD0) |
 				(ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
 				| (SEQ1);
@@ -1050,8 +1022,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				& ((~(ECC_EN << NAND_CTRL_ECC_EN))
 						& (~(SPARE_EN << NAND_CTRL_SPARE_EN)));
 
-			nand_regs->nand_command = (ERASE_BLOCK_2<<NAND_CMD_CMD1)
-				| (ERASE_BLOCK_1<<NAND_CMD_CMD0)
+			nand_regs->nand_command = (NAND_CMD_ERASE2 << NAND_CMD_CMD1)
+				| (NAND_CMD_ERASE1 << NAND_CMD_CMD0)
 				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
 				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
 				| (SEQ14);

@@ -439,6 +439,9 @@ struct asm9260_nand_priv {
 	struct nand_chip nand;
 	struct device *dev;
 
+	struct clk *clk;
+	struct clk *clk_ahb;
+
 	void __iomem *base;
 };
 
@@ -1244,38 +1247,36 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 	return ecc_bytes;
 }
 
-static int asm9260_nand_get_dt_clks(struct platform_device *pdev)
+static int asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 {
-	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np = priv->dev->of_node;
 	int clk_idx = 0, err;
-	struct clk *clk;
-	struct clk *clk_ahb;
 
-	clk = of_clk_get(np, clk_idx);
-	if (IS_ERR(clk))
+	priv->clk = of_clk_get(np, clk_idx);
+	if (IS_ERR(priv->clk))
 		goto out_err;
 
 	/* configure AHB clock */
 	clk_idx = 1;
-	clk_ahb = of_clk_get(np, clk_idx);
-	if (IS_ERR(clk_ahb))
+	priv->clk_ahb = of_clk_get(np, clk_idx);
+	if (IS_ERR(priv->clk_ahb))
 		goto out_err;
 
-	err = clk_prepare_enable(clk_ahb);
+	err = clk_prepare_enable(priv->clk_ahb);
 	if (err)
-		dev_err(&pdev->dev, "Failed to enable ahb_clk!\n");
+		dev_err(priv->dev, "Failed to enable ahb_clk!\n");
 
-	err = clk_set_rate(clk, clk_get_rate(clk_ahb));
+	err = clk_set_rate(priv->clk, clk_get_rate(priv->clk_ahb));
 	if (err)
-		dev_err(&pdev->dev, "Failed to set rate!\n");
+		dev_err(priv->dev, "Failed to set rate!\n");
 
-	err = clk_prepare_enable(clk);
+	err = clk_prepare_enable(priv->clk);
 	if (err)
-		dev_err(&pdev->dev, "Failed to enable clk!\n");
+		dev_err(priv->dev, "Failed to enable clk!\n");
 
 	return 0;
 out_err:
-	dev_err(&pdev->dev, "%s: Failed to get clk (%i)\n", __func__, clk_idx);
+	dev_err(priv->dev, "%s: Failed to get clk (%i)\n", __func__, clk_idx);
 	return 1;
 }
 
@@ -1298,10 +1299,16 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	priv->dev = &pdev->dev;
 	nand = &priv->nand;
-	mtd = &priv->mtd;
+	nand->priv = priv;
 
-	asm9260_nand_get_dt_clks(pdev);
+	mtd = &priv->mtd;
+	mtd->priv = nand;
+	mtd->owner = THIS_MODULE;
+	mtd->name = dev_name(&pdev->dev);
+
+	asm9260_nand_get_dt_clks(priv);
 
 	/* initialise the hardware */
 	res = asm9260_nand_inithw(priv, 0);
@@ -1313,8 +1320,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-	mtd->priv = nand;
-	mtd->owner = THIS_MODULE;
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
@@ -1401,7 +1406,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		goto err_scan_tail;
 	}
 
-	mtd->name = dev_name(&pdev->dev);
 
 	res = mtd_device_parse_register(mtd, NULL,
 			&(struct mtd_part_parser_data) {

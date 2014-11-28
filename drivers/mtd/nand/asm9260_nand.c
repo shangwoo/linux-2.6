@@ -1492,6 +1492,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	res = mtd_device_register(mtd, partitions, num_partitions);
 #endif
 
+	platform_set_drvdata(pdev, priv);
 	return res;
 
 
@@ -1508,7 +1509,9 @@ err_scan_ident:
 
 static int asm9260_nand_remove(struct platform_device *pdev)
 {
-	nand_release(mtd);
+	struct asm9260_nand_priv *priv = platform_get_drvdata(pdev);
+
+	nand_release(&priv->mtd);
 
 	return 0;
 }

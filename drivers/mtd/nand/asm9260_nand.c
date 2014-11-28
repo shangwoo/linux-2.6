@@ -690,9 +690,6 @@ static uint32_t page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
 static uint32_t asm9260_nand_spare_data_size;
 static uint32_t asm9260_nand_acceptable_err_level = 0;
 static uint32_t asm9260_nand_ecc_correction_ability = 0;
-#ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-static uint8_t *asm9260_nand_verify_buffer = NULL;
-#endif
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
@@ -1082,10 +1079,8 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 {
 	uint8_t this_byte;
 
-	printk("%s:%i", __func__, __LINE__);
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-	printk("!!!!\n");
 		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
@@ -1101,10 +1096,8 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 	uint16_t this_word = 0;
 	uint16_t *val_tmp = (uint16_t *)read_cache;
 
-	printk("%s:%i", __func__, __LINE__);
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-	printk("!!!!\n");
 		*read_val = ioread32(&nand_regs->nand_fifo_data);
 		read_cache_byte_cnt = 4;
 	}
@@ -1153,35 +1146,6 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		nand_regs->nand_fifo_data = tmpbuf[i];
 
 }
-
-#ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-/**
- * nand_verify_buf - [DEFAULT] Verify chip data against buffer
- * @mtd:	MTD device structure
- * @buf:	buffer containing the data to compare
- * @len:	number of bytes to compare
- *
- * Default verify function for 8bit buswith
- */
-static int asm9260_nand_verify_buf(struct mtd_info *mtd,
-		const uint8_t *buf, int len)
-{
-	int i;
-
-	asm9260_nand_read_buf(mtd, asm9260_nand_verify_buffer,
-			mtd->writesize + asm9260_nand_spare_data_size);
-
-	for (i = 0; i < len; i++)
-	{
-		if (buf[i] != asm9260_nand_verify_buffer[i])
-		{
-			printk("nand verify buffer error!!  val i: 0x%x\n", i);
-			return -EFAULT;
-		}
-	}
-	return 0;
-}
-#endif
 
 static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, const uint8_t *buf,
@@ -1239,9 +1203,7 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->read_word   = asm9260_nand_read_word;
 	nand_chip->read_buf    = asm9260_nand_read_buf;
 	nand_chip->write_buf   = asm9260_nand_write_buf;
-#ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-	nand_chip->verify_buf  = asm9260_nand_verify_buf;
-#endif
+
 	nand_chip->dev_ready   = asm9260_nand_dev_ready;
 	nand_chip->chip_delay  = 100;
 	nand_chip->waitfunc    = asm9260_nand_wait;
@@ -1433,16 +1395,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	DBG("asm9260_nand_spare_data_size : 0x%x. \n",
 			asm9260_nand_spare_data_size);
 
-#ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-	asm9260_nand_verify_buffer =
-		kzalloc(mtd->writesize + mtd->oobsize,
-				GFP_KERNEL);
-	if (!asm9260_nand_verify_buffer) {
-		printk(KERN_ERR "asm9260_nand_verify_buffer: failed to allocate mtd_info storage\n");
-		goto err_verify_buffer_alloc;
-	}
-#endif
-
 	/* second phase scan */
 	if (nand_scan_tail(mtd)) {
 		res = -ENXIO;
@@ -1462,10 +1414,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 
 err_scan_tail:
-#ifdef CONFIG_MTD_NAND_VERIFY_WRITE
-	kfree(asm9260_nand_verify_buffer);
-err_verify_buffer_alloc:
-#endif
 err_scan_ident:
 
 	return res;

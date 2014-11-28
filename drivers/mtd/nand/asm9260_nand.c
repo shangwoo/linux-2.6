@@ -353,6 +353,7 @@ Modification: 	Tidy up code.
 
 
 
+#define HW_CMD		0x00
 
 struct asm9260_nand_regs{
 	volatile uint32_t nand_command;
@@ -685,6 +686,22 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 	printk("asm9260_cmd_ctrl count %d\n", ++count);
 }
 
+/* TODO: 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
+static void asm9260_nand_cmd(struct mtd_info *mtd,
+		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
+{
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
+	u32 val;
+
+	val = (cmd0 << NAND_CMD_CMD0) | (cmd1 << NAND_CMD_CMD1);
+	val |= (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
+		| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL);
+	val |= seq;
+
+	iowrite32(val, priv->base + HW_CMD);
+}
+
 static int asm9260_nand_controller_ready(void)
 {
 	int ret = 1;
@@ -777,10 +794,7 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, uint8_t nChip)
 		return ret;
 
 	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK | nChip);
-	nand_regs->nand_command  = (NAND_CMD_RESET << NAND_CMD_CMD0)
-					        | (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-					        | (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-					        | (SEQ0);
+	asm9260_nand_cmd(&priv->mtd, NAND_CMD_RESET, 0, 0, SEQ0);
 
 	return !asm9260_nand_dev_ready(&priv->mtd);
 }
@@ -881,10 +895,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			break;
 
 		case NAND_CMD_RESET:
-			nand_regs->nand_command = (NAND_CMD_RESET << NAND_CMD_CMD0)
-				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-				| (SEQ0);
+			asm9260_nand_cmd(mtd, NAND_CMD_RESET, 0, 0, SEQ0);
 			break;
 
 		case NAND_CMD_READID:
@@ -906,10 +917,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_fifo_init = 1;	//reset FIFO
 			nand_regs->nand_data_size = 8;	//ID 4 Bytes
 			nand_regs->nand_addr0_l = column;
-			nand_regs->nand_command = (NAND_CMD_READID << NAND_CMD_CMD0)
-				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-				| (SEQ1);
+			asm9260_nand_cmd(mtd, NAND_CMD_READID, 0, 0, SEQ1);
 
 			read_cache_byte_cnt = 0;
 
@@ -950,11 +958,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
 
-			nand_regs->nand_command = (NAND_CMD_READSTART << NAND_CMD_CMD1)
-				| (NAND_CMD_READ0 << NAND_CMD_CMD0)
-				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
-				| (SEQ10);
+			asm9260_nand_cmd(mtd, NAND_CMD_READ0,
+					NAND_CMD_READSTART, 0, SEQ10);
 
 			read_cache_byte_cnt = 0;
 			break;
@@ -987,11 +992,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_l = addr[0];
 			nand_regs->nand_addr0_h = addr[1];
 
-			nand_regs->nand_command = (NAND_CMD_PAGEPROG << NAND_CMD_CMD1)
-				| (NAND_CMD_SEQIN << NAND_CMD_CMD0)
-				| (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL)
-				| (SEQ12);
+			asm9260_nand_cmd(mtd, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
+					0, SEQ12);
 
 			break;
 		case NAND_CMD_STATUS:
@@ -1002,10 +1004,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 						& (~(ECC_EN<< NAND_CTRL_ECC_EN)))
 					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN));
 			nand_regs->nand_data_size = 1;
-			nand_regs->nand_command = (NAND_CMD_STATUS << NAND_CMD_CMD0) |
-				(ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
-				| (SEQ1);
+			asm9260_nand_cmd(mtd, NAND_CMD_STATUS, 0, 0, SEQ1);
 
 			read_cache_byte_cnt = 0;
 			break;
@@ -1022,11 +1021,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				& ((~(ECC_EN << NAND_CTRL_ECC_EN))
 						& (~(SPARE_EN << NAND_CTRL_SPARE_EN)));
 
-			nand_regs->nand_command = (NAND_CMD_ERASE2 << NAND_CMD_CMD1)
-				| (NAND_CMD_ERASE1 << NAND_CMD_CMD0)
-				| (ADDR_SEL_0<<NAND_CMD_ADDR_SEL)
-				| (INPUT_SEL_BIU<<NAND_CMD_INPUT_SEL)
-				| (SEQ14);
+			asm9260_nand_cmd(mtd, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
+					0, SEQ14);
 			break;
 
 		default:
@@ -1265,12 +1261,13 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	if (!priv)
 		return -ENOMEM;
 
-	nand_regs = of_io_request_and_map(np, 0, np->name);
-        if (!nand_regs) {
+	priv->base = of_io_request_and_map(np, 0, np->name);
+        if (!priv->base) {
                 printk("%s: unable to map resource", np->full_name);
 		return -EINVAL;
 	}
 
+	nand_regs = priv->base;
 	priv->dev = &pdev->dev;
 	nand = &priv->nand;
 	nand->priv = priv;

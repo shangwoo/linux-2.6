@@ -694,13 +694,6 @@ static uint32_t asm9260_nand_ecc_correction_ability = 0;
 static uint8_t *asm9260_nand_verify_buffer = NULL;
 #endif
 
-#ifdef CONFIG_MTD_PARTITIONS
-#ifdef CONFIG_MTD_CMDLINE_PARTS
-static const char *part_probes[] = { "cmdlinepart", NULL };
-#endif
-#endif
-
-
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
 	if (chip == -1)
@@ -1330,11 +1323,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	struct nand_chip *nand;
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
-	struct mtd_partition *partitions = NULL;
-	int num_partitions = 0;
-#ifdef CONFIG_MTD_PARTITIONS
-	struct asm9260_nand_data *asm9260_default_mtd_part;
-#endif
 	int res = 0;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
@@ -1461,36 +1449,13 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		goto err_scan_tail;
 	}
 
-	DBG("mtd->writesize 0x%x\n", mtd->writesize);
-	DBG("mtd->erasesize 0x%x\n", mtd->erasesize);
-	DBG("mtd->oobsize 0x%x\n", mtd->oobsize);
-	DBG("chip->chipsize 0x%x\n", (uint32_t)nand->chipsize);
-	DBG("chip->page_shift 0x%x\n", nand->page_shift);
-	DBG("chip->phys_erase_shift 0x%x\n", nand->phys_erase_shift);
-	DBG("chip->pagemask 0x%x\n", nand->pagemask);
-	DBG("chip->badblockpos 0x%x\n", nand->badblockpos);
-	DBG("chip->bbt_erase_shift 0x%x\n", nand->bbt_erase_shift);
-	DBG("chip->buffers 0x%x\n", (uint32_t)nand->buffers);
-	DBG("chip->chip_shift 0x%x\n", nand->chip_shift);
-	DBG("chip->options 0x%x\n", nand->options);
-
-	printk("%s:%i", __func__, __LINE__);
 	mtd->name = "NAND";
-#ifdef CONFIG_MTD_PARTITIONS
-#ifdef CONFIG_MTD_CMDLINE_PARTS
-	num_partitions = parse_mtd_partitions(mtd,
-			part_probes, &partitions, 0);
-#endif
-	if (num_partitions <= 0)
-	{
-		num_partitions = asm9260_default_mtd_part->mtd_part_num;
-		partitions = asm9260_default_mtd_part->asm9260_mtd_part;
-	}
 
-	res = add_mtd_partitions(mtd, partitions, num_partitions);
-#else
-	res = mtd_device_register(mtd, partitions, num_partitions);
-#endif
+	res = mtd_device_parse_register(mtd, NULL,
+			&(struct mtd_part_parser_data) {
+				.of_node = pdev->dev.of_node,
+			},
+			NULL, 0);
 
 	platform_set_drvdata(pdev, priv);
 	return res;

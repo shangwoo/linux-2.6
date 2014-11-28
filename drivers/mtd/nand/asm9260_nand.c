@@ -1449,7 +1449,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		goto err_scan_tail;
 	}
 
-	mtd->name = "NAND";
+	mtd->name = dev_name(&pdev->dev);
 
 	res = mtd_device_parse_register(mtd, NULL,
 			&(struct mtd_part_parser_data) {

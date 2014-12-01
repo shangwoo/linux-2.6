@@ -420,6 +420,9 @@ struct asm9260_nand_priv {
 	struct clk *clk_ahb;
 
 	void __iomem *base;
+
+	u8 read_cache[4];
+	int read_cache_cnt;
 };
 
 /*2KB--4*512B, correction ability: 4bit--7Byte ecc*/
@@ -660,7 +663,6 @@ extern void set_pin_mux(int port,int pin,int mux_type);
 extern void set_GPIO(int port,int pin);
 static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd);
 struct asm9260_nand_regs *nand_regs;
-static int read_cache_byte_cnt = 0;
 static uint8_t read_cache[4] = {0};
 static uint32_t *read_val = (uint32_t *)read_cache;
 static uint8_t __attribute__((aligned(32))) NandAddr[32] = {0}; 
@@ -877,6 +879,8 @@ static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
  */
 static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, int column, int page_addr)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	uint32_t *addr = (uint32_t *)NandAddr;
 	int ret;
 
@@ -921,7 +925,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_addr0_l = column;
 			asm9260_nand_cmd(mtd, NAND_CMD_READID, 0, 0, SEQ1);
 
-			read_cache_byte_cnt = 0;
+			priv->read_cache_cnt = 0;
 
 			break;
 
@@ -963,7 +967,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			asm9260_nand_cmd(mtd, NAND_CMD_READ0,
 					NAND_CMD_READSTART, 0, SEQ10);
 
-			read_cache_byte_cnt = 0;
+			priv->read_cache_cnt = 0;
 			break;
 		case NAND_CMD_SEQIN:
 
@@ -1008,7 +1012,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			nand_regs->nand_data_size = 1;
 			asm9260_nand_cmd(mtd, NAND_CMD_STATUS, 0, 0, SEQ1);
 
-			read_cache_byte_cnt = 0;
+			priv->read_cache_cnt = 0;
 			break;
 
 		case NAND_CMD_ERASE1:
@@ -1054,14 +1058,15 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 	struct asm9260_nand_priv *priv = nand->priv;
 	uint8_t this_byte;
 
-	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
+	printk("%s:%i\n", __func__, __LINE__);
+	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
 		*read_val = ioread32(priv->base + HW_FIFO_DATA);
-		read_cache_byte_cnt = 4;
+		priv->read_cache_cnt = 4;
 	}
 
-	this_byte = read_cache[sizeof(read_cache) - read_cache_byte_cnt];
-	read_cache_byte_cnt--;
+	this_byte = read_cache[sizeof(read_cache) - priv->read_cache_cnt];
+	priv->read_cache_cnt--;
 
 	return this_byte;
 }
@@ -1073,18 +1078,18 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 	uint16_t this_word = 0;
 	uint16_t *val_tmp = (uint16_t *)read_cache;
 
-	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
+	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
 		*read_val = ioread32(priv->base + HW_FIFO_DATA);
-		read_cache_byte_cnt = 4;
+		priv->read_cache_cnt = 4;
 	}
 
-	if (read_cache_byte_cnt == 4)
+	if (priv->read_cache_cnt == 4)
 		this_word = val_tmp[0];
-	else if (read_cache_byte_cnt == 2)
+	else if (priv->read_cache_cnt == 2)
 		this_word = val_tmp[1];
 
-	read_cache_byte_cnt -= 2;
+	priv->read_cache_cnt -= 2;
 
 	return this_word;
 }
@@ -1355,6 +1360,8 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	mtd->priv = nand;
 	mtd->owner = THIS_MODULE;
 	mtd->name = dev_name(&pdev->dev);
+
+	priv->read_cache_cnt = 0;
 
 	asm9260_nand_get_dt_clks(priv);
 

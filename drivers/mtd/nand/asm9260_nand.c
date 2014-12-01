@@ -1403,17 +1403,6 @@ static int asm9260_nand_remove(struct platform_device *pdev)
 	return 0;
 }
 
-
-static int asm9260_nand_suspend(struct platform_device *pdev , pm_message_t state)
-{
-	return 0;
-}
-
-static int asm9260_nand_resume(struct platform_device *pdev )
-{
-	return 0;
-}
-
 static const struct of_device_id asm9260_nand_match[] =
 {
 	{
@@ -1421,18 +1410,15 @@ static const struct of_device_id asm9260_nand_match[] =
 	},
 	{},
 };
-
 MODULE_DEVICE_TABLE(of, asm9260_nand_match);
 
 static struct platform_driver asm9260_nand_driver = {
 	.probe		= asm9260_nand_probe,
 	.remove		= asm9260_nand_remove,
-	.suspend	= asm9260_nand_suspend,
-	.resume		= asm9260_nand_resume,
 	.driver		= {
-		.name	= "asm9260-nand",
+		.name	= "asm9260_nand",
 		.owner	= THIS_MODULE,
-		.of_match_table = asm9260_nand_match,
+		.of_match_table = of_match_ptr(asm9260_nand_match),
 	},
 };
 

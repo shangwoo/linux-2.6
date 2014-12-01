@@ -1215,6 +1215,85 @@ int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
 	return ecc_bytes;
 }
 
+static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
+{
+	struct nand_chip *nand = &priv->nand;
+	struct mtd_info *mtd = &priv->mtd;
+
+	if (nand->ecc.mode == NAND_ECC_HW) {
+		/* ECC is calculated for the whole page (1 step) */
+		nand->ecc.size = mtd->writesize;
+
+		/* set ECC page size and oob layout */
+		switch (mtd->writesize) {
+			case 2048:
+				nand->ecc.bytes  =
+					asm9260_ecc_cap_select(2048,
+							mtd->oobsize);
+				nand->ecc.layout = &asm9260_nand_oob_64;
+				nand->ecc.strength = 4;
+				break;
+
+			case 4096:
+				nand->ecc.bytes =
+					asm9260_ecc_cap_select(4096,
+							mtd->oobsize);
+
+				if (mtd->oobsize == 128) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_128;
+					nand->ecc.strength = 6;
+				} else if (mtd->oobsize == 218) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_218;
+					nand->ecc.strength = 14;
+				} else if (mtd->oobsize == 224) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_224;
+					nand->ecc.strength = 14;
+				} else
+					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+							mtd->oobsize);
+
+				break;
+
+			case 8192:
+				nand->ecc.bytes =
+					asm9260_ecc_cap_select(8192,
+							mtd->oobsize);
+
+				if (mtd->oobsize == 256) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_256;
+					nand->ecc.strength = 8;
+				} else if (mtd->oobsize == 436) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_436;
+					nand->ecc.strength = 14;
+				} else if (mtd->oobsize == 448) {
+					nand->ecc.layout =
+						&asm9260_nand_oob_448;
+					nand->ecc.strength = 16;
+				} else
+					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+							mtd->oobsize);
+				break;
+
+			default:
+				printk("!!! NAND Warning !!  Unsupported Page size [%d] !!!!\n",
+						mtd->writesize);
+				break;
+		}
+	}
+	else
+		printk("CONFIG_MTD_NAND_ASM9260_HWECC must be chosen in menuconfig!");
+
+	asm9260_nand_spare_data_size = mtd->oobsize -
+		nand->ecc.bytes;
+	DBG("asm9260_nand_spare_data_size : 0x%x. \n",
+			asm9260_nand_spare_data_size);
+}
+
 static int asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 {
 	struct device_node *np = priv->dev->of_node;
@@ -1289,85 +1368,13 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
 		res = -ENXIO;
 		goto err_scan_ident;
 	}
 
-	if (nand->ecc.mode == NAND_ECC_HW) {
-		/* ECC is calculated for the whole page (1 step) */
-		nand->ecc.size = mtd->writesize;
-
-		/* set ECC page size and oob layout */
-		switch (mtd->writesize) {
-			case 2048:
-				nand->ecc.bytes  =
-					asm9260_ecc_cap_select(2048,
-							mtd->oobsize);
-				nand->ecc.layout = &asm9260_nand_oob_64;
-				nand->ecc.strength = 4;
-				break;
-
-			case 4096:
-				nand->ecc.bytes =
-					asm9260_ecc_cap_select(4096,
-							mtd->oobsize);
-
-				if (mtd->oobsize == 128) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_128;
-					nand->ecc.strength = 6;
-				} else if (mtd->oobsize == 218) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_218;
-					nand->ecc.strength = 14;
-				} else if (mtd->oobsize == 224) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_224;
-					nand->ecc.strength = 14;
-				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
-							mtd->oobsize);
-
-				break;
-
-			case 8192:
-				nand->ecc.bytes =
-					asm9260_ecc_cap_select(8192,
-							mtd->oobsize);
-
-				if (mtd->oobsize == 256) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_256;
-					nand->ecc.strength = 8;
-				} else if (mtd->oobsize == 436) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_436;
-					nand->ecc.strength = 14;
-				} else if (mtd->oobsize == 448) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_448;
-					nand->ecc.strength = 16;
-				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
-							mtd->oobsize);
-				break;
-
-			default:
-				printk("!!! NAND Warning !!  Unsupported Page size [%d] !!!!\n",
-						mtd->writesize);
-				break;
-		}
-	}
-	else
-		printk("CONFIG_MTD_NAND_ASM9260_HWECC must be chosen in menuconfig!");
-
-	asm9260_nand_spare_data_size = mtd->oobsize -
-		nand->ecc.bytes;
-	DBG("asm9260_nand_spare_data_size : 0x%x. \n",
-			asm9260_nand_spare_data_size);
+	asm9260_nand_ecc_conf(priv);
 
 	/* second phase scan */
 	if (nand_scan_tail(mtd)) {

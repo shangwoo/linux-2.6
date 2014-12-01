@@ -355,6 +355,8 @@ Modification: 	Tidy up code.
 
 #define HW_CMD		0x00
 
+#define HW_FIFO_DATA	0x98
+
 struct asm9260_nand_regs{
 	volatile uint32_t nand_command;
 	volatile uint32_t nand_control;
@@ -1048,11 +1050,13 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	uint8_t this_byte;
 
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-		*read_val = ioread32(&nand_regs->nand_fifo_data);
+		*read_val = ioread32(priv->base + HW_FIFO_DATA);
 		read_cache_byte_cnt = 4;
 	}
 
@@ -1064,12 +1068,14 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 
 static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	uint16_t this_word = 0;
 	uint16_t *val_tmp = (uint16_t *)read_cache;
 
 	if ((read_cache_byte_cnt <= 0) || (read_cache_byte_cnt > 4))
 	{
-		*read_val = ioread32(&nand_regs->nand_fifo_data);
+		*read_val = ioread32(priv->base + HW_FIFO_DATA);
 		read_cache_byte_cnt = 4;
 	}
 
@@ -1085,6 +1091,8 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 
 static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	uint32_t i;
 	uint32_t *tmpbuf = (u32 *)buf;
 
@@ -1096,7 +1104,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 
 	for (i = 0; i < (len>>2); i++)
 	{
-		tmpbuf[i] = (nand_regs->nand_fifo_data);
+		tmpbuf[i] = ioread32(priv->base + HW_FIFO_DATA);
 	}
 }
 
@@ -1104,6 +1112,8 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		const uint8_t *buf, int len)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	u32 i;
 	u32 *tmpbuf = (u32 *)buf;
 
@@ -1114,8 +1124,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	}
 
 	for (i = 0; i < (len >> 2); i++)
-		nand_regs->nand_fifo_data = tmpbuf[i];
-
+		iowrite32(tmpbuf[i], priv->base + HW_FIFO_DATA);
 }
 
 static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
@@ -1167,8 +1176,6 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 {
 	nand_chip->select_chip = asm9260_select_chip;
 	nand_chip->cmd_ctrl    = asm9260_cmd_ctrl;
-	nand_chip->IO_ADDR_R   = (void  __iomem	*)(&nand_regs->nand_fifo_data);
-	nand_chip->IO_ADDR_W   = (void  __iomem	*)(&nand_regs->nand_fifo_data);
 	nand_chip->cmdfunc     = asm9260_nand_command_lp;
 	nand_chip->read_byte   = asm9260_nand_read_byte;
 	nand_chip->read_word   = asm9260_nand_read_word;

@@ -1333,16 +1333,18 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	struct nand_chip *nand;
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
-	int res = 0;
+	int ret;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
 			GFP_KERNEL);
-	if (!priv)
+	if (!priv) {
+		dev_err(&pdev->dev, "Allocation filed!\n");
 		return -ENOMEM;
+	}
 
-	priv->base = of_io_request_and_map(np, 0, np->name);
+	priv->base = of_io_request_and_map(np, 0, np->full_name);
         if (!priv->base) {
-                printk("%s: unable to map resource", np->full_name);
+		dev_err(&pdev->dev, "Unable to map resource!\n");
 		return -EINVAL;
 	}
 
@@ -1359,10 +1361,9 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	asm9260_nand_get_dt_clks(priv);
 
 	/* initialise the hardware */
-	res = asm9260_nand_inithw(priv, 0);
-	if (res != 0)
-	{
-		printk("init failed,res = 0x%x\n",res);
+	ret = asm9260_nand_inithw(priv, 0);
+	if (ret) {
+		dev_err(&pdev->dev, "HW init filed! (%x)\n", ret);
 		return -EIO;
 	}
 
@@ -1370,33 +1371,26 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
-		res = -ENXIO;
-		goto err_scan_ident;
+		dev_err(&pdev->dev, "scan_ident filed!\n");
+		return -ENXIO;
 	}
 
 	asm9260_nand_ecc_conf(priv);
 
 	/* second phase scan */
 	if (nand_scan_tail(mtd)) {
-		res = -ENXIO;
-		goto err_scan_tail;
+		dev_err(&pdev->dev, "scan_tail filed!\n");
+		return -ENXIO;
 	}
 
-
-	res = mtd_device_parse_register(mtd, NULL,
+	ret = mtd_device_parse_register(mtd, NULL,
 			&(struct mtd_part_parser_data) {
 				.of_node = pdev->dev.of_node,
 			},
 			NULL, 0);
 
 	platform_set_drvdata(pdev, priv);
-	return res;
-
-
-err_scan_tail:
-err_scan_ident:
-
-	return res;
+	return ret;
 }
 
 

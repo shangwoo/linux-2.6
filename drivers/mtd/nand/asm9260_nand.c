@@ -1436,23 +1436,8 @@ static struct platform_driver asm9260_nand_driver = {
 	},
 };
 
-
-static int __init asm9260_nand_init(void)
-{
-	printk("ASM9260 NAND Driver, (c) 2012 Alphascale.\n");
-	return platform_driver_register(&asm9260_nand_driver);
-}
-
-static void __exit asm9260_nand_exit(void)
-{
-	platform_driver_unregister(&asm9260_nand_driver);
-}
-
-module_init(asm9260_nand_init);
-module_exit(asm9260_nand_exit);
+module_platform_driver(asm9260_nand_driver);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Chen Dongdong <chendd@alphascale.cn>");
 MODULE_DESCRIPTION("ASM9260 MTD NAND driver");
-
-

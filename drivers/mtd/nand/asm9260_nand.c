@@ -1093,38 +1093,29 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	uint32_t i;
-	uint32_t *tmpbuf = (u32 *)buf;
 
-	if (len & 0x3)
-	{
-		printk("Unsupported length\n");
+	if (len & 0x3) {
+		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
 	}
 
-	for (i = 0; i < (len>>2); i++)
-	{
-		tmpbuf[i] = ioread32(priv->base + HW_FIFO_DATA);
-	}
+	len >>= 2;
+	ioread32_rep(priv->base + HW_FIFO_DATA, buf, len);
 }
-
 
 static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		const uint8_t *buf, int len)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	u32 i;
-	u32 *tmpbuf = (u32 *)buf;
 
-	if (len & 0x3)
-	{
-		printk("Unsupported length\n");
+	if (len & 0x3) {
+		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
 	}
 
-	for (i = 0; i < (len >> 2); i++)
-		iowrite32(tmpbuf[i], priv->base + HW_FIFO_DATA);
+	len >>= 2;
+	iowrite32_rep(priv->base + HW_FIFO_DATA, buf, len);
 }
 
 static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,

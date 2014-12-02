@@ -1055,9 +1055,6 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 	struct asm9260_nand_priv *priv = nand->priv;
 	u8 tmp;
 
-	if (priv->read_cache_cnt - size < 0)
-		dev_err(priv->dev, "Some thing bad happended. Wrong read sequence?\n");
-
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
 		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);

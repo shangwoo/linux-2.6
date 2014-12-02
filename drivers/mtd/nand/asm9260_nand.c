@@ -356,6 +356,7 @@ Modification: 	Tidy up code.
 #define HW_CMD		0x00
 
 #define HW_FIFO_DATA	0x98
+#define HW_FIFO_INIT	0xb0
 
 struct asm9260_nand_regs{
 	volatile u32 nand_command;
@@ -917,7 +918,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				| (INT_DIS << NAND_CTRL_INT_EN)
 				| (SPARE_DIS << NAND_CTRL_SPARE_EN)
 				| (ADDR_CYCLE_1);
-			nand_regs->nand_fifo_init = 1;	//reset FIFO
+
+			iowrite32(1, priv->base + HW_FIFO_INIT);
 			nand_regs->nand_data_size = 8;	//ID 4 Bytes
 			nand_regs->nand_addr0_l = column;
 			asm9260_nand_cmd(mtd, NAND_CMD_READID, 0, 0, SEQ1);
@@ -928,7 +930,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 		case NAND_CMD_READ0:
 
-			nand_regs->nand_fifo_init = 1;
+			iowrite32(1, priv->base + HW_FIFO_INIT);
 
 			asm9260_nand_controller_config(mtd);
 
@@ -968,7 +970,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			break;
 		case NAND_CMD_SEQIN:
 
-			nand_regs->nand_fifo_init = 1;
+			iowrite32(1, priv->base + HW_FIFO_INIT);
 			asm9260_nand_controller_config(mtd);
 
 			if (column == 0)

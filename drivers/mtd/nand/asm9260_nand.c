@@ -661,10 +661,7 @@ struct ecc_info ecc_info_table[8] = {
 
 extern void set_pin_mux(int port,int pin,int mux_type);
 extern void set_GPIO(int port,int pin);
-static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd);
 struct asm9260_nand_regs *nand_regs;
-static uint8_t read_cache[4] = {0};
-static uint32_t *read_val = (uint32_t *)read_cache;
 static uint8_t __attribute__((aligned(32))) NandAddr[32] = {0}; 
 static uint32_t page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
 static uint32_t asm9260_nand_spare_data_size;
@@ -1057,15 +1054,15 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 	uint8_t this_byte;
+	uint32_t *read_val = (uint32_t *)priv->read_cache;
 
-	printk("%s:%i\n", __func__, __LINE__);
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
 		*read_val = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;
 	}
 
-	this_byte = read_cache[sizeof(read_cache) - priv->read_cache_cnt];
+	this_byte = priv->read_cache[sizeof(priv->read_cache) - priv->read_cache_cnt];
 	priv->read_cache_cnt--;
 
 	return this_byte;
@@ -1076,7 +1073,8 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 	uint16_t this_word = 0;
-	uint16_t *val_tmp = (uint16_t *)read_cache;
+	uint16_t *val_tmp = (uint16_t *)priv->read_cache;
+	uint32_t *read_val = (uint32_t *)priv->read_cache;
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{

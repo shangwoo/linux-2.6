@@ -358,57 +358,57 @@ Modification: 	Tidy up code.
 #define HW_FIFO_DATA	0x98
 
 struct asm9260_nand_regs{
-	volatile uint32_t nand_command;
-	volatile uint32_t nand_control;
-	volatile uint32_t nand_status;
-	volatile uint32_t nand_int_mask;
-	volatile uint32_t nand_int_status;
-	volatile uint32_t nand_ecc_ctrl;
-	volatile uint32_t nand_ecc_offset;
-	volatile uint32_t nand_addr0_l;
-	volatile uint32_t nand_addr1_l;
-	volatile uint32_t nand_addr0_h;
-	volatile uint32_t nand_addr1_h;
-	volatile uint32_t nand_rsvd0;
-	volatile uint32_t nand_spare_size;
-	volatile uint32_t nand_rsvd1;
-	volatile uint32_t nand_protect;
-	volatile uint32_t nand_rsvd2;
-	volatile uint32_t nand_lookup_en;
-	volatile uint32_t nand_lookup0;
-	volatile uint32_t nand_lookup1;
-	volatile uint32_t nand_lookup2;
-	volatile uint32_t nand_lookup3;
-	volatile uint32_t nand_lookup4;
-	volatile uint32_t nand_lookup5;
-	volatile uint32_t nand_lookup6;
-	volatile uint32_t nand_lookup7;
-	volatile uint32_t nand_dma_addr;
-	volatile uint32_t nand_dma_cnt;
-	volatile uint32_t nand_dma_ctrl;
-	volatile uint32_t nand_rsvd3;
-	volatile uint32_t nand_rsvd4;
-	volatile uint32_t nand_rsvd5;
-	volatile uint32_t nand_rsvd6;
-	volatile uint32_t nand_mem_ctrl;
-	volatile uint32_t nand_data_size;
-	volatile uint32_t nand_read_status;
-	volatile uint32_t nand_time_seq_0;
-	volatile uint32_t nand_timings_asyn;
-	volatile uint32_t nand_timings_syn;
-	volatile uint32_t nand_fifo_data;
-	volatile uint32_t nand_time_mode;
-	volatile uint32_t nand_dma_addr_offset;
-	volatile uint32_t nand_rsvd7;
-	volatile uint32_t nand_rsvd8;
-	volatile uint32_t nand_rsvd9;
-	volatile uint32_t nand_fifo_init;
-	volatile uint32_t nand_generic_seq_ctrl;
-	volatile uint32_t nand_err_cnt00;
-	volatile uint32_t nand_err_cnt01;
-	volatile uint32_t nand_err_cnt10;
-	volatile uint32_t nand_err_cnt11;
-	volatile uint32_t nand_time_seq_1;
+	volatile u32 nand_command;
+	volatile u32 nand_control;
+	volatile u32 nand_status;
+	volatile u32 nand_int_mask;
+	volatile u32 nand_int_status;
+	volatile u32 nand_ecc_ctrl;
+	volatile u32 nand_ecc_offset;
+	volatile u32 nand_addr0_l;
+	volatile u32 nand_addr1_l;
+	volatile u32 nand_addr0_h;
+	volatile u32 nand_addr1_h;
+	volatile u32 nand_rsvd0;
+	volatile u32 nand_spare_size;
+	volatile u32 nand_rsvd1;
+	volatile u32 nand_protect;
+	volatile u32 nand_rsvd2;
+	volatile u32 nand_lookup_en;
+	volatile u32 nand_lookup0;
+	volatile u32 nand_lookup1;
+	volatile u32 nand_lookup2;
+	volatile u32 nand_lookup3;
+	volatile u32 nand_lookup4;
+	volatile u32 nand_lookup5;
+	volatile u32 nand_lookup6;
+	volatile u32 nand_lookup7;
+	volatile u32 nand_dma_addr;
+	volatile u32 nand_dma_cnt;
+	volatile u32 nand_dma_ctrl;
+	volatile u32 nand_rsvd3;
+	volatile u32 nand_rsvd4;
+	volatile u32 nand_rsvd5;
+	volatile u32 nand_rsvd6;
+	volatile u32 nand_mem_ctrl;
+	volatile u32 nand_data_size;
+	volatile u32 nand_read_status;
+	volatile u32 nand_time_seq_0;
+	volatile u32 nand_timings_asyn;
+	volatile u32 nand_timings_syn;
+	volatile u32 nand_fifo_data;
+	volatile u32 nand_time_mode;
+	volatile u32 nand_dma_addr_offset;
+	volatile u32 nand_rsvd7;
+	volatile u32 nand_rsvd8;
+	volatile u32 nand_rsvd9;
+	volatile u32 nand_fifo_init;
+	volatile u32 nand_generic_seq_ctrl;
+	volatile u32 nand_err_cnt00;
+	volatile u32 nand_err_cnt01;
+	volatile u32 nand_err_cnt10;
+	volatile u32 nand_err_cnt11;
+	volatile u32 nand_time_seq_1;
 };
 
 struct asm9260_nand_priv {
@@ -662,11 +662,11 @@ struct ecc_info ecc_info_table[8] = {
 extern void set_pin_mux(int port,int pin,int mux_type);
 extern void set_GPIO(int port,int pin);
 struct asm9260_nand_regs *nand_regs;
-static uint8_t __attribute__((aligned(32))) NandAddr[32] = {0}; 
-static uint32_t page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
-static uint32_t asm9260_nand_spare_data_size;
-static uint32_t asm9260_nand_acceptable_err_level = 0;
-static uint32_t asm9260_nand_ecc_correction_ability = 0;
+static u8 __attribute__((aligned(32))) NandAddr[32] = {0}; 
+static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
+static u32 asm9260_nand_spare_data_size;
+static u32 asm9260_nand_acceptable_err_level = 0;
+static u32 asm9260_nand_ecc_correction_ability = 0;
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
@@ -743,15 +743,15 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 static int asm9260_nand_timing_config(void)
 {
 	int ret = 0;
-	uint32_t twhr;
-	uint32_t trhw;
-	uint32_t trwh;
-	uint32_t trwp;
-	uint32_t tadl = 0;
-	uint32_t tccs = 0;
-	uint32_t tsync = 0;
-	uint32_t trr = 0;
-	uint32_t twb = 0;
+	u32 twhr;
+	u32 trhw;
+	u32 trwh;
+	u32 trwp;
+	u32 tadl = 0;
+	u32 tccs = 0;
+	u32 tsync = 0;
+	u32 trr = 0;
+	u32 twb = 0;
 
 	/* default config before read id */
 	nand_regs->nand_control = (ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
@@ -783,7 +783,7 @@ static int asm9260_nand_timing_config(void)
 	return ret;
 }
 
-static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, uint8_t nChip)
+static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 nChip)
 {
 	int ret = 0;
 
@@ -803,8 +803,8 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, uint8_t nChip)
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	static int count = 1;
-	uint32_t chip_size   = mtd->size;
-	uint32_t page_size   = mtd->writesize;
+	u32 chip_size   = mtd->size;
+	u32 page_size   = mtd->writesize;
 
 	if (count)
 	{
@@ -843,22 +843,22 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 }
 
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
-		uint32_t nPage, uint32_t nColumn, uint8_t *pAddr)
+		u32 nPage, u32 nColumn, u8 *pAddr)
 {
 	int i = 0;
-	uint32_t row_addr = nPage;
+	u32 row_addr = nPage;
 
 	memset(pAddr, 0, 32);
 
 	for (i=0; i<col_cycles; i++)
 	{
-		pAddr[i] = (uint8_t)(nColumn & 0xFF);
+		pAddr[i] = (u8)(nColumn & 0xFF);
 		nColumn = nColumn >> 8;
 	}
 
 	for (i = col_cycles; i < addr_cycles; i++)
 	{
-		pAddr[i] = (uint8_t)(row_addr & 0xFF);
+		pAddr[i] = (u8)(row_addr & 0xFF);
 		row_addr = row_addr >> 8;
 	}
 }
@@ -878,7 +878,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	uint32_t *addr = (uint32_t *)NandAddr;
+	u32 *addr = (u32 *)NandAddr;
 	int ret;
 
 	if (command == NAND_CMD_READOOB) {
@@ -1049,12 +1049,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	return ;
 }
 
-static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
+static u8 asm9260_nand_read_byte(struct mtd_info *mtd)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	uint8_t this_byte;
-	uint32_t *read_val = (uint32_t *)priv->read_cache;
+	u8 this_byte;
+	u32 *read_val = (u32 *)priv->read_cache;
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
@@ -1068,13 +1068,13 @@ static u_int8_t asm9260_nand_read_byte(struct mtd_info *mtd)
 	return this_byte;
 }
 
-static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
+static u16 asm9260_nand_read_word(struct mtd_info *mtd)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	uint16_t this_word = 0;
-	uint16_t *val_tmp = (uint16_t *)priv->read_cache;
-	uint32_t *read_val = (uint32_t *)priv->read_cache;
+	u16 this_word = 0;
+	u16 *val_tmp = (u16 *)priv->read_cache;
+	u32 *read_val = (u32 *)priv->read_cache;
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
@@ -1092,7 +1092,7 @@ static uint16_t asm9260_nand_read_word(struct mtd_info *mtd)
 	return this_word;
 }
 
-static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
+static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
@@ -1107,7 +1107,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len)
 }
 
 static void asm9260_nand_write_buf(struct mtd_info *mtd,
-		const uint8_t *buf, int len)
+		const u8 *buf, int len)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
@@ -1122,11 +1122,11 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 }
 
 static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
-		struct nand_chip *chip, const uint8_t *buf,
+		struct nand_chip *chip, const u8 *buf,
 		int oob_required)
 {
-	uint8_t *temp_ptr;
-	temp_ptr = (uint8_t *)buf;
+	u8 *temp_ptr;
+	temp_ptr = (u8 *)buf;
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
 	temp_ptr = chip->oob_poi;
@@ -1135,10 +1135,10 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 }
 
 static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
-		struct nand_chip *chip, uint8_t *buf,
+		struct nand_chip *chip, u8 *buf,
 		int oob_required, int page)
 {
-	uint8_t *temp_ptr;
+	u8 *temp_ptr;
 	temp_ptr = buf;
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 

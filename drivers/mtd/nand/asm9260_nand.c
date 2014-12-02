@@ -1049,6 +1049,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	return ;
 }
 
+
+/**
+ * We can't read less then 32 bits on HW_FIFO_DATA. So, to make
+ * read_byte and read_word happy, we use sort of cached 32bit read.
+ * Note: expected values for size should be 1 or 2 (byte).
+ */
 static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 {
 	struct nand_chip *nand = mtd->priv;

@@ -421,7 +421,7 @@ struct asm9260_nand_priv {
 
 	void __iomem *base;
 
-	u8 read_cache[4];
+	u32 read_cache;
 	int read_cache_cnt;
 };
 
@@ -1049,47 +1049,35 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	return ;
 }
 
-static u8 asm9260_nand_read_byte(struct mtd_info *mtd)
+static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	u8 this_byte;
-	u32 *read_val = (u32 *)priv->read_cache;
+	u8 tmp;
+
+	if (priv->read_cache_cnt - size < 0)
+		dev_err(priv->dev, "Some thing bad happended. Wrong read sequence?\n");
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
-		*read_val = ioread32(priv->base + HW_FIFO_DATA);
+		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;
 	}
 
-	this_byte = priv->read_cache[sizeof(priv->read_cache) - priv->read_cache_cnt];
-	priv->read_cache_cnt--;
+	tmp = priv->read_cache >> (8 * (4 - priv->read_cache_cnt));
+	priv->read_cache_cnt -= size;
 
-	return this_byte;
+	return tmp;
+}
+
+static u8 asm9260_nand_read_byte(struct mtd_info *mtd)
+{
+	return 0xff & asm9260_nand_read_cached(mtd, 1);
 }
 
 static u16 asm9260_nand_read_word(struct mtd_info *mtd)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
-	u16 this_word = 0;
-	u16 *val_tmp = (u16 *)priv->read_cache;
-	u32 *read_val = (u32 *)priv->read_cache;
-
-	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
-	{
-		*read_val = ioread32(priv->base + HW_FIFO_DATA);
-		priv->read_cache_cnt = 4;
-	}
-
-	if (priv->read_cache_cnt == 4)
-		this_word = val_tmp[0];
-	else if (priv->read_cache_cnt == 2)
-		this_word = val_tmp[1];
-
-	priv->read_cache_cnt -= 2;
-
-	return this_word;
+	return 0xffff & asm9260_nand_read_cached(mtd, 2);
 }
 
 static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)

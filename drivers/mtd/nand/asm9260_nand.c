@@ -348,12 +348,23 @@ Modification: 	Tidy up code.
 #define ASM9260T_NAND_CLK_EN		0x00000400
 #define	ASM9260T_NAND_CLK_DIV		0x00000008
 
-#define	NAND_ECC_CAP				5
-#define NAND_ECC_ERR_THRESHOLD		8
 
 
 
 #define HW_CMD		0x00
+#define HW_CTRL		0x04
+#define HW_STATUS	0x08
+#define HW_INT_MASK	0x0c
+#define HW_INT_STATUS	0x10
+
+#define HW_ECC_CTRL	0x14
+#define	NAND_ECC_CAP			5
+#define NAND_ECC_ERR_THRESHOLD		8
+#define BM_ECC_ERR_OVER		BIT(2)
+/* Uncorrected error. */
+#define BM_ECC_ERR_UNC		BIT(1)
+/* Corrected error. */
+#define BM_ECC_ERR_CORRECT	BIT(0)
 
 #define HW_FIFO_DATA	0x98
 #define HW_FIFO_INIT	0xb0
@@ -1235,20 +1246,30 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 	u8 *temp_ptr;
+	u32 status, max_bitflips = 0;
+
 	temp_ptr = buf;
-	printk("%s:%i\n", __func__, __LINE__);
-	asm9260_reg_snap(priv);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
-	printk("%s:%i\n", __func__, __LINE__);
-	asm9260_reg_snap(priv);
+	status = ioread32(priv->base + HW_ECC_CTRL);
+	if (status & BM_ECC_ERR_UNC) {
+		/* FIXME: how many bit should fail, to get this result?.
+		 * sirtenly more then 1. */
+		mtd->ecc_stats.failed++;
+	} else if (status & BM_ECC_ERR_CORRECT) {
+		/*FIXME: max_bitflips should be = treshold */
+		if (status & BM_ECC_ERR_OVER)
+			max_bitflips = 4;
+		else
+			max_bitflips = 1;
+		mtd->ecc_stats.corrected += max_bitflips;
+	}
+
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);
 	chip->read_buf(mtd, temp_ptr, priv->spare_size);
-	printk("%s:%i\n", __func__, __LINE__);
-	asm9260_reg_snap(priv);
 
-	return 0;
+	return max_bitflips;
 }
 
 static int asm9260_nand_wait(struct mtd_info *mtd, struct nand_chip *chip)

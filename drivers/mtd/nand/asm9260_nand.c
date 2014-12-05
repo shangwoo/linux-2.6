@@ -424,6 +424,8 @@ struct asm9260_nand_priv {
 
 	u32 read_cache;
 	int read_cache_cnt;
+
+	unsigned int spare_size;
 };
 
 /*2KB--4*512B, correction ability: 4bit--7Byte ecc*/
@@ -665,7 +667,6 @@ extern void set_GPIO(int port,int pin);
 struct asm9260_nand_regs *nand_regs;
 static u8 __attribute__((aligned(32))) NandAddr[32] = {0}; 
 static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
-static u32 asm9260_nand_spare_data_size;
 static u32 asm9260_nand_acceptable_err_level = 0;
 static u32 asm9260_nand_ecc_correction_ability = 0;
 
@@ -882,11 +883,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	u32 *addr = (u32 *)NandAddr;
 	int ret;
 
-	if (command == NAND_CMD_READOOB) {
-		column += mtd->writesize;
-		command = NAND_CMD_READ0;
-	}
-
 	ret = !asm9260_nand_dev_ready(0);
 	if (ret)
 		DBG("wait for device ready timeout.\n");
@@ -928,8 +924,10 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			break;
 
+		case NAND_CMD_READOOB:
+			column += mtd->writesize;
+			command = NAND_CMD_READ0;
 		case NAND_CMD_READ0:
-
 			iowrite32(1, priv->base + HW_FIFO_INIT);
 
 			asm9260_nand_controller_config(mtd);
@@ -940,9 +938,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
 					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
 				nand_regs->nand_ecc_offset =
-					mtd->writesize + asm9260_nand_spare_data_size;
-				nand_regs->nand_spare_size =
-					asm9260_nand_spare_data_size;
+					mtd->writesize + priv->spare_size;
+				nand_regs->nand_spare_size = priv->spare_size;
 			}
 			else if (column == mtd->writesize)
 			{
@@ -979,9 +976,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD)
 					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
 				nand_regs->nand_ecc_offset =
-					mtd->writesize + asm9260_nand_spare_data_size;
-				nand_regs->nand_spare_size =
-					asm9260_nand_spare_data_size;
+					mtd->writesize + priv->spare_size;
+				nand_regs->nand_spare_size = priv->spare_size;
 			}
 			else if (column == mtd->writesize)
 			{
@@ -1123,7 +1119,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
 	temp_ptr = chip->oob_poi;
-	chip->write_buf(mtd, temp_ptr, asm9260_nand_spare_data_size);
+	chip->write_buf(mtd, temp_ptr, priv->spare_size);
 	return 0;
 }
 
@@ -1137,7 +1133,7 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);
-	chip->read_buf(mtd, temp_ptr, asm9260_nand_spare_data_size);
+	chip->read_buf(mtd, temp_ptr, priv->spare_size);
 
 	return 0;
 }
@@ -1282,10 +1278,7 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	else
 		printk("CONFIG_MTD_NAND_ASM9260_HWECC must be chosen in menuconfig!");
 
-	asm9260_nand_spare_data_size = mtd->oobsize -
-		nand->ecc.bytes;
-	DBG("asm9260_nand_spare_data_size : 0x%x. \n",
-			asm9260_nand_spare_data_size);
+	priv->spare_size = mtd->oobsize - nand->ecc.bytes;
 }
 
 static int asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)

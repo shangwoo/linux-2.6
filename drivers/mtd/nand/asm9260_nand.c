@@ -662,8 +662,6 @@ struct ecc_info ecc_info_table[8] = {
 #define DBG(x...)
 #endif
 
-extern void set_pin_mux(int port,int pin,int mux_type);
-extern void set_GPIO(int port,int pin);
 struct asm9260_nand_regs *nand_regs;
 static u8 __attribute__((aligned(32))) NandAddr[32] = {0}; 
 static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
@@ -1114,6 +1112,8 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, const u8 *buf,
 		int oob_required)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	u8 *temp_ptr;
 	temp_ptr = (u8 *)buf;
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
@@ -1127,6 +1127,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, u8 *buf,
 		int oob_required, int page)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	u8 *temp_ptr;
 	temp_ptr = buf;
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);

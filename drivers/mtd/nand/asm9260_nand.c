@@ -378,7 +378,7 @@ u32 reg_list[][4] = {
 	{ 0x10, 0, 0, 4},
 	{ 0x14, 0, 0, 4},
 	{ 0x18, 0, 0, 4},
-	{ 0x1c, 0, 0, 4},
+//	{ 0x1c, 0, 0, 4}, //address
 	{ 0x20, 0, 0, 4},
 	{ 0x24, 0, 0, 4},
 	{ 0x28, 0, 0, 4},
@@ -409,7 +409,7 @@ u32 reg_list[][4] = {
 	{ 0x8c, 0, 0, 4},
 	{ 0x90, 0, 0, 4},
 	{ 0x94, 0, 0, 4},
-	//{ 0x98, 0, 0, 4},
+	//{ 0x98, 0, 0, 4}, //fifo data
 	{ 0x9c, 0, 0, 4},
 	{ 0xa0, 0, 0, 4},
 	{ 0xa4, 0, 0, 4},
@@ -1048,12 +1048,17 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			if (column == 0)
 			{
+				nand_regs->nand_control = ((nand_regs->nand_control)
+						& (~(ECC_EN << NAND_CTRL_ECC_EN)));
+
 				nand_regs->nand_ecc_ctrl =
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
 					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
 				nand_regs->nand_ecc_offset =
 					mtd->writesize + priv->spare_size;
 				nand_regs->nand_spare_size = priv->spare_size;
+
+
 			}
 			else if (column == mtd->writesize)
 			{
@@ -1248,9 +1253,16 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	u8 *temp_ptr;
 	u32 status, max_bitflips = 0;
 
+	nand_regs->nand_control = ((nand_regs->nand_control)
+				| ((ECC_EN << NAND_CTRL_ECC_EN)));
+
+	printk("%s:%i\n", __func__, __LINE__);
+	asm9260_reg_snap(priv);
 	temp_ptr = buf;
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
+	printk("%s:%i\n", __func__, __LINE__);
+	asm9260_reg_snap(priv);
 	status = ioread32(priv->base + HW_ECC_CTRL);
 	if (status & BM_ECC_ERR_UNC) {
 		/* FIXME: how many bit should fail, to get this result?.
@@ -1268,6 +1280,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);
 	chip->read_buf(mtd, temp_ptr, priv->spare_size);
+	printk("%s:%i\n", __func__, __LINE__);
+	asm9260_reg_snap(priv);
 
 	return max_bitflips;
 }
@@ -1512,6 +1526,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 			},
 			NULL, 0);
 
+	asm9260_reg_snap(priv);
 	platform_set_drvdata(pdev, priv);
 	return ret;
 }

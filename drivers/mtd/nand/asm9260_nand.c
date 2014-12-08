@@ -366,8 +366,26 @@ Modification: 	Tidy up code.
 /* Corrected error. */
 #define BM_ECC_ERR_CORRECT	BIT(0)
 
+#define HW_ECC_OFFSET	0x18
+#define HW_ADDR0_0	0x1c
+#define HW_ADDR1_0	0x20
+#define HW_ADDR0_1	0x24
+#define HW_ADDR1_1	0x28
+#define HW_SPARE_SIZE	0x30
+#define HW_DMA_ADDR	0x64
+#define HW_DMA_CNT	0x68
+#define HW_DMA_CTRL	0x6c
+#define HW_MEM_CTRL	0x80
+#define HW_DATA_SIZE	0x84
+#define HW_READ_STATUS	0x88
+#define HW_TIM_SEQ_0	0x8c
+#define HW_TIMING_ASYN	0x90
+#define HW_TIMING_SYN	0x94
+
 #define HW_FIFO_DATA	0x98
+#define HW_TIME_MODE	0x9c
 #define HW_FIFO_INIT	0xb0
+#define HW_TIM_SEQ_1	0xc8
 
 u32 reg_list[][4] = {
 	{ 0, 0, 0, 0},
@@ -786,14 +804,16 @@ static u32 asm9260_nand_ecc_correction_ability = 0;
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
+
 	if (chip == -1)
-	{
-		nand_regs->nand_mem_ctrl = ASM9260T_NAND_WP_STATE_MASK;
-	}
-	else
-	{
-		nand_regs->nand_mem_ctrl = ASM9260T_NAND_WP_STATE_MASK | chip;
-		nand_regs->nand_mem_ctrl = (1UL << (chip+8)) ^ (nand_regs->nand_mem_ctrl);	//clear WP reg
+		iowrite32(ASM9260T_NAND_WP_STATE_MASK, priv->base + HW_MEM_CTRL);
+	else {
+		iowrite32(ASM9260T_NAND_WP_STATE_MASK | chip,
+				priv->base + HW_MEM_CTRL);
+		iowrite32((1 << (chip + 8)) ^ ioread32(priv->base + HW_MEM_CTRL),
+				priv->base + HW_MEM_CTRL);	//clear WP reg
 	}
 }
 
@@ -819,13 +839,15 @@ static void asm9260_nand_cmd(struct mtd_info *mtd,
 	iowrite32(val, priv->base + HW_CMD);
 }
 
-static int asm9260_nand_controller_ready(void)
+static int asm9260_nand_controller_ready(struct mtd_info *mtd)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	int ret = 1;
 	int waittime = 0;
 	int timeout = 0x1000000;
 
-	while ((nand_regs->nand_status) & ASM9260T_NAND_CTRL_BUSY)
+	while (ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY)
 	{
 		waittime++;
 		if (waittime > timeout)
@@ -839,11 +861,13 @@ static int asm9260_nand_controller_ready(void)
 
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	int ret = 1;
 	int waittime = 0;
 	int timeout = 0x1000000;
 
-	while (!((nand_regs->nand_status) & ASM9260T_NAND_DEV0_READY))
+	while (!(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_DEV0_READY))
 	{
 		waittime++;
 		if (waittime > timeout)
@@ -856,7 +880,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 }
 
 
-static int asm9260_nand_timing_config(void)
+static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
 	int ret = 0;
 	u32 twhr;
@@ -870,7 +894,7 @@ static int asm9260_nand_timing_config(void)
 	u32 twb = 0;
 
 	/* default config before read id */
-	nand_regs->nand_control = (ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
+	iowrite32((ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
 		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
 		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
 		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
@@ -883,7 +907,8 @@ static int asm9260_nand_timing_config(void)
 		| (ECC_DIS << NAND_CTRL_ECC_EN)
 		| (INT_DIS << NAND_CTRL_INT_EN)
 		| (SPARE_DIS << NAND_CTRL_SPARE_EN)
-		| (ADDR_CYCLE_1);
+		| (ADDR_CYCLE_1),
+		priv->base + HW_CTRL);
 
 	trwh = 1; //TWH;
 	trwp = 1; //TWP;
@@ -899,18 +924,17 @@ static int asm9260_nand_timing_config(void)
 	return ret;
 }
 
-static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 nChip)
+static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
 {
 	int ret = 0;
 
-	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK |  nChip);
-	nand_regs->nand_mem_ctrl = (1UL << (nChip + 8)) ^ (nand_regs->nand_mem_ctrl);
+	asm9260_select_chip(&priv->mtd, chip);
 
-	ret = asm9260_nand_timing_config();
+	ret = asm9260_nand_timing_config(priv);
 	if (ret != 0)
 		return ret;
 
-	nand_regs->nand_mem_ctrl = (ASM9260T_NAND_WP_STATE_MASK | nChip);
+	asm9260_select_chip(&priv->mtd, -1);
 	asm9260_nand_cmd(&priv->mtd, NAND_CMD_RESET, 0, 0, SEQ0);
 
 	return !asm9260_nand_dev_ready(&priv->mtd);
@@ -918,6 +942,8 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 nChip)
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	static int count = 1;
 	u32 chip_size   = mtd->size;
 	u32 page_size   = mtd->writesize;
@@ -938,7 +964,7 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		DBG("addr_cycles: 0x%x.\n", addr_cycles);
 	}
 
-	nand_regs->nand_control = (EN_STATUS << NAND_CTRL_DIS_STATUS)
+	iowrite32((EN_STATUS << NAND_CTRL_DIS_STATUS)
 		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)
 		| (addr_cycles << NAND_CTRL_ADDR_CYCLE1)
@@ -954,7 +980,8 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		| (ECC_EN<< NAND_CTRL_ECC_EN)
 		| (INT_DIS << NAND_CTRL_INT_EN)
 		| (SPARE_EN << NAND_CTRL_SPARE_EN)
-		| (addr_cycles);
+		| (addr_cycles),
+		priv->base + HW_CTRL);
 
 }
 
@@ -997,7 +1024,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	u32 *addr = (u32 *)NandAddr;
 	int ret;
 
-	ret = !asm9260_nand_dev_ready(0);
+	ret = !asm9260_nand_dev_ready(mtd);
 	if (ret)
 		DBG("wait for device ready timeout.\n");
 
@@ -1013,7 +1040,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			break;
 
 		case NAND_CMD_READID:
-			nand_regs->nand_control =
+			iowrite32(
 				(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
 				| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
 				| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
@@ -1027,11 +1054,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				| (ECC_DIS << NAND_CTRL_ECC_EN)
 				| (INT_DIS << NAND_CTRL_INT_EN)
 				| (SPARE_DIS << NAND_CTRL_SPARE_EN)
-				| (ADDR_CYCLE_1);
+				| (ADDR_CYCLE_1),
+				priv->base + HW_CTRL);
 
 			iowrite32(1, priv->base + HW_FIFO_INIT);
-			nand_regs->nand_data_size = 8;	//ID 4 Bytes
-			nand_regs->nand_addr0_l = column;
+			iowrite32(8, priv->base + HW_DATA_SIZE);	//ID 4 Bytes
+			iowrite32(column, priv->base + HW_ADDR0_0);
 			asm9260_nand_cmd(mtd, NAND_CMD_READID, 0, 0, SEQ1);
 
 			priv->read_cache_cnt = 0;
@@ -1048,20 +1076,22 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			if (column == 0)
 			{
-				nand_regs->nand_ecc_ctrl =
+				iowrite32(
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
-					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
-				nand_regs->nand_ecc_offset =
-					mtd->writesize + priv->spare_size;
+					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
+					priv->base + HW_ECC_CTRL);
+				iowrite32(mtd->writesize + priv->spare_size,
+						priv->base + HW_ECC_OFFSET);
 				nand_regs->nand_spare_size = priv->spare_size;
 			}
 			else if (column == mtd->writesize)
 			{
-				nand_regs->nand_control = ((nand_regs->nand_control)
+				iowrite32((ioread32(priv->base + HW_CTRL)
 						& (~(ECC_EN << NAND_CTRL_ECC_EN)))
-					| (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN);
+					| (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN),
+					priv->base + HW_CTRL);
 				nand_regs->nand_spare_size = mtd->oobsize;
-				nand_regs->nand_data_size = mtd->oobsize;
+				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			}
 			else
 			{
@@ -1071,8 +1101,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
 
-			nand_regs->nand_addr0_l = addr[0];
-			nand_regs->nand_addr0_h = addr[1];
+			iowrite32(addr[0], priv->base + HW_ADDR0_0);
+			iowrite32(addr[1], priv->base + HW_ADDR0_1);
 
 			asm9260_nand_cmd(mtd, NAND_CMD_READ0,
 					NAND_CMD_READSTART, 0, SEQ10);
@@ -1086,26 +1116,28 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			if (column == 0)
 			{
-				nand_regs->nand_ecc_ctrl =
+				iowrite32(
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD)
-					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP);
-				nand_regs->nand_ecc_offset =
-					mtd->writesize + priv->spare_size;
+					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
+					priv->base + HW_ECC_CTRL);
+				iowrite32(mtd->writesize + priv->spare_size,
+						priv->base + HW_ECC_OFFSET);
 				nand_regs->nand_spare_size = priv->spare_size;
 			}
 			else if (column == mtd->writesize)
 			{
-				nand_regs->nand_control =
-					((((nand_regs->nand_control))
+				iowrite32(
+					(((ioread32(priv->base + HW_CTRL))
 					  | (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN))
 					 & (~(ECC_EN << NAND_CTRL_ECC_EN)))
-					& (~(SPARE_EN << NAND_CTRL_SPARE_EN));
-				nand_regs->nand_data_size = mtd->oobsize;
+					& (~(SPARE_EN << NAND_CTRL_SPARE_EN)),
+					priv->base + HW_CTRL);
+				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			}
  
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
-			nand_regs->nand_addr0_l = addr[0];
-			nand_regs->nand_addr0_h = addr[1];
+			iowrite32(addr[0], priv->base + HW_ADDR0_0);
+			iowrite32(addr[1], priv->base + HW_ADDR0_1);
 
 			asm9260_nand_cmd(mtd, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
 					0, SEQ12);
@@ -1114,11 +1146,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_STATUS:
 
 			asm9260_nand_controller_config(mtd);
-			nand_regs->nand_control = ((((nand_regs->nand_control)
-							& (~(SPARE_EN << NAND_CTRL_SPARE_EN)))
+			iowrite32((((ioread32(priv->base + HW_CTRL)
+								& (~(SPARE_EN << NAND_CTRL_SPARE_EN)))
 						& (~(ECC_EN<< NAND_CTRL_ECC_EN)))
-					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN));
-			nand_regs->nand_data_size = 1;
+					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)),
+				priv->base + HW_CTRL);
+			iowrite32(1, priv->base + HW_DATA_SIZE);
 			asm9260_nand_cmd(mtd, NAND_CMD_STATUS, 0, 0, SEQ1);
 
 			priv->read_cache_cnt = 0;
@@ -1127,14 +1160,14 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_ERASE1:
 
 			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
-			nand_regs->nand_addr0_l = addr[0];
-			nand_regs->nand_addr0_h = addr[1];
+			iowrite32(addr[0], priv->base + HW_ADDR0_0);
+			iowrite32(addr[1], priv->base + HW_ADDR0_1);
 
 			asm9260_nand_controller_config(mtd);
-			nand_regs->nand_control =
-				(nand_regs->nand_control)
+			iowrite32(ioread32(priv->base + HW_CTRL)
 				& ((~(ECC_EN << NAND_CTRL_ECC_EN))
-						& (~(SPARE_EN << NAND_CTRL_SPARE_EN)));
+					& (~(SPARE_EN << NAND_CTRL_SPARE_EN))),
+				priv->base + HW_CTRL);
 
 			asm9260_nand_cmd(mtd, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 					0, SEQ14);
@@ -1148,13 +1181,13 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			|| (command == NAND_CMD_STATUS)
 			|| (command == NAND_CMD_ERASE1))
 	{
-		ret = !asm9260_nand_dev_ready(0);
+		ret = !asm9260_nand_dev_ready(mtd);
 		if (ret)
 			DBG("wait for device ready timeout, ret = 0x%x.\n", ret);
 	}
 	else if ((command == NAND_CMD_READ0))
 	{
-		ret = !asm9260_nand_controller_ready();
+		ret = !asm9260_nand_controller_ready(mtd);
 		if (ret)
 			DBG("wait for device ready timeout, ret = 0x%x.\n", ret);
 	}
@@ -1252,6 +1285,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);
+#if 0
+// TODO: this code seems to work, but looks like my nand device is too bad.
 	if (status & BM_ECC_ERR_UNC) {
 		/* FIXME: how many bit should fail, to get this result?.
 		 * sirtenly more then 1. */
@@ -1264,6 +1299,7 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 			max_bitflips = 1;
 		mtd->ecc_stats.corrected += max_bitflips;
 	}
+#endif
 
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);

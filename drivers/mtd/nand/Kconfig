@@ -74,6 +74,23 @@ config MTD_NAND_DENALI_SCRATCH_REG_ADDR
           scratch register here to enable this feature. On Intel Moorestown
           boards, the scratch register is at 0xFF108018.
 
+config MTD_NAND_EVATRONIX
+	bool "Enable Evatronix NANDFLASH-CTRL driver"
+	help
+	  NAND hardware driver for Evatronix NANDFLASH-CTRL
+	  NAND flash controller.
+
+config MTD_NAND_EVATRONIX_CHIPS
+	int "Number of NAND chips probed by Evatronix NAND flash driver"
+	default 1
+	range 1 2
+	depends on MTD_NAND_EVATRONIX
+	help
+	  Number of NAND chips that should be supported by Evatronix NAND flash
+	  driver. If multiple chips are detected, they will be concatenated
+	  and presented as one large NAND device.
+	  Currently a maximum of two chips are supported.
+
 config MTD_NAND_GPIO
 	tristate "GPIO NAND Flash driver"
 	depends on GPIOLIB

@@ -746,8 +746,6 @@ struct ecc_info ecc_info_table[8] = {
 #define DBG(x...)
 #endif
 
-static u8 __attribute__((aligned(32))) NandAddr[32] = {0};
-
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
 	struct nand_chip *nand = mtd->priv;
@@ -914,28 +912,17 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 }
 
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
-		u32 row_addr, u32 column, u8 *pAddr)
+		u32 row_addr, u32 column)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	int i;
+	u32 addr[2];
 
-	memset(pAddr, 0, 32);
+	addr[0] = (column & 0xffff) | (0xffff0000 & (row_addr << 16));
+	addr[1] = (row_addr >> 16) & 0xff;
 
-	for (i = 0; i < priv->col_cycles; i++)
-	{
-		pAddr[i] = column & 0xFF;
-		column = column >> 8;
-	}
-
-	for (i = priv->col_cycles; i < priv->addr_cycles; i++)
-	{
-		pAddr[i] = row_addr & 0xFF;
-		row_addr = row_addr >> 8;
-	}
-//	iowrite32(addr[0], priv->base + HW_ADDR0_0);
-//	iowrite32(addr[1], priv->base + HW_ADDR0_1);
-
+	iowrite32(addr[0], priv->base + HW_ADDR0_0);
+	iowrite32(addr[1], priv->base + HW_ADDR0_1);
 }
 
 /**
@@ -953,7 +940,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	u32 *addr = (u32 *)NandAddr;
 	int ret;
 
 	ret = !asm9260_nand_dev_ready(mtd);
@@ -1026,10 +1012,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				break;
 			}
 
-			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
-
-			iowrite32(addr[0], priv->base + HW_ADDR0_0);
-			iowrite32(addr[1], priv->base + HW_ADDR0_1);
+			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
 			asm9260_nand_cmd(mtd, NAND_CMD_READ0,
 					NAND_CMD_READSTART, 0, SEQ10);
@@ -1061,9 +1044,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			}
  
-			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
-			iowrite32(addr[0], priv->base + HW_ADDR0_0);
-			iowrite32(addr[1], priv->base + HW_ADDR0_1);
+			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
 			asm9260_nand_cmd(mtd, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
 					0, SEQ12);
@@ -1085,9 +1066,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 		case NAND_CMD_ERASE1:
 
-			asm9260_nand_make_addr_lp(mtd, page_addr, column, NandAddr);
-			iowrite32(addr[0], priv->base + HW_ADDR0_0);
-			iowrite32(addr[1], priv->base + HW_ADDR0_1);
+			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
 			asm9260_nand_controller_config(mtd);
 			iowrite32(ioread32(priv->base + HW_CTRL)

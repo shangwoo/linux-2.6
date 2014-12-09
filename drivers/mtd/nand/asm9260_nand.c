@@ -455,61 +455,6 @@ u32 reg_list[][4] = {
 	{ 0xfc, 0, 0, 4},
 };
 
-
-struct asm9260_nand_regs{
-	volatile u32 nand_command;
-	volatile u32 nand_control;
-	volatile u32 nand_status;
-	volatile u32 nand_int_mask;
-	volatile u32 nand_int_status;
-	volatile u32 nand_ecc_ctrl;
-	volatile u32 nand_ecc_offset;
-	volatile u32 nand_addr0_l;
-	volatile u32 nand_addr1_l;
-	volatile u32 nand_addr0_h;
-	volatile u32 nand_addr1_h;
-	volatile u32 nand_rsvd0;
-	volatile u32 nand_spare_size;
-	volatile u32 nand_rsvd1;
-	volatile u32 nand_protect;
-	volatile u32 nand_rsvd2;
-	volatile u32 nand_lookup_en;
-	volatile u32 nand_lookup0;
-	volatile u32 nand_lookup1;
-	volatile u32 nand_lookup2;
-	volatile u32 nand_lookup3;
-	volatile u32 nand_lookup4;
-	volatile u32 nand_lookup5;
-	volatile u32 nand_lookup6;
-	volatile u32 nand_lookup7;
-	volatile u32 nand_dma_addr;
-	volatile u32 nand_dma_cnt;
-	volatile u32 nand_dma_ctrl;
-	volatile u32 nand_rsvd3;
-	volatile u32 nand_rsvd4;
-	volatile u32 nand_rsvd5;
-	volatile u32 nand_rsvd6;
-	volatile u32 nand_mem_ctrl;
-	volatile u32 nand_data_size;
-	volatile u32 nand_read_status;
-	volatile u32 nand_time_seq_0;
-	volatile u32 nand_timings_asyn;
-	volatile u32 nand_timings_syn;
-	volatile u32 nand_fifo_data;
-	volatile u32 nand_time_mode;
-	volatile u32 nand_dma_addr_offset;
-	volatile u32 nand_rsvd7;
-	volatile u32 nand_rsvd8;
-	volatile u32 nand_rsvd9;
-	volatile u32 nand_fifo_init;
-	volatile u32 nand_generic_seq_ctrl;
-	volatile u32 nand_err_cnt00;
-	volatile u32 nand_err_cnt01;
-	volatile u32 nand_err_cnt10;
-	volatile u32 nand_err_cnt11;
-	volatile u32 nand_time_seq_1;
-};
-
 struct asm9260_nand_priv {
 	struct mtd_info mtd;
 	struct nand_chip nand;
@@ -525,7 +470,6 @@ struct asm9260_nand_priv {
 
 	unsigned int spare_size;
 };
-
 
 static void asm9260_reg_snap(struct asm9260_nand_priv *priv)
 {

@@ -1074,27 +1074,22 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_nand_controller_config(mtd);
 
-			if (column == 0)
-			{
+			if (column == 0) {
 				iowrite32(
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD) 
 					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
 					priv->base + HW_ECC_CTRL);
 				iowrite32(mtd->writesize + priv->spare_size,
 						priv->base + HW_ECC_OFFSET);
-				nand_regs->nand_spare_size = priv->spare_size;
-			}
-			else if (column == mtd->writesize)
-			{
+				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
+			} else if (column == mtd->writesize) {
 				iowrite32((ioread32(priv->base + HW_CTRL)
 						& (~(ECC_EN << NAND_CTRL_ECC_EN)))
 					| (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN),
 					priv->base + HW_CTRL);
-				nand_regs->nand_spare_size = mtd->oobsize;
+				iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
-			}
-			else
-			{
+			} else {
 				printk("couldn't support the column\n");
 				break;
 			}
@@ -1114,15 +1109,14 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			iowrite32(1, priv->base + HW_FIFO_INIT);
 			asm9260_nand_controller_config(mtd);
 
-			if (column == 0)
-			{
+			if (column == 0) {
 				iowrite32(
 					(asm9260_nand_acceptable_err_level << NAND_ECC_ERR_THRESHOLD)
 					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
 					priv->base + HW_ECC_CTRL);
 				iowrite32(mtd->writesize + priv->spare_size,
 						priv->base + HW_ECC_OFFSET);
-				nand_regs->nand_spare_size = priv->spare_size;
+				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
 			}
 			else if (column == mtd->writesize)
 			{

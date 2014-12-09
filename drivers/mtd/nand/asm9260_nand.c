@@ -1290,7 +1290,8 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.hwctl     = NULL;
 }
 
-int asm9260_ecc_cap_select(int nand_page_size, int nand_oob_size)
+int asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
+		int nand_page_size, int nand_oob_size)
 {
 	int ecc_bytes = 0;
 	int i;
@@ -1326,7 +1327,7 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 		switch (mtd->writesize) {
 			case 2048:
 				nand->ecc.bytes  =
-					asm9260_ecc_cap_select(2048,
+					asm9260_ecc_cap_select(priv, 2048,
 							mtd->oobsize);
 				nand->ecc.layout = &asm9260_nand_oob_64;
 				nand->ecc.strength = 4;
@@ -1334,7 +1335,7 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 
 			case 4096:
 				nand->ecc.bytes =
-					asm9260_ecc_cap_select(4096,
+					asm9260_ecc_cap_select(priv, 4096,
 							mtd->oobsize);
 
 				if (mtd->oobsize == 128) {
@@ -1357,7 +1358,7 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 
 			case 8192:
 				nand->ecc.bytes =
-					asm9260_ecc_cap_select(8192,
+					asm9260_ecc_cap_select(priv, 8192,
 							mtd->oobsize);
 
 				if (mtd->oobsize == 256) {

@@ -468,6 +468,10 @@ struct asm9260_nand_priv {
 	u32 read_cache;
 	int read_cache_cnt;
 
+	unsigned int addr_cycles;
+	unsigned int col_cycles;
+	unsigned int page_shift;
+	unsigned int block_shift;
 	unsigned int ecc_cap;
 	unsigned int ecc_threshold;
 	unsigned int spare_size;
@@ -743,7 +747,6 @@ struct ecc_info ecc_info_table[8] = {
 #endif
 
 static u8 __attribute__((aligned(32))) NandAddr[32] = {0};
-static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
@@ -894,24 +897,26 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 
 	if (count)
 	{
-		count = 0;
-		page_shift = __ffs(page_size);
-		block_shift = __ffs(mtd->erasesize) - page_shift;
+		u32 row_cycles; /* FIXME: do we need it? */
 
-		col_cycles  = 2;
-		addr_cycles = col_cycles +
+		count = 0;
+		priv->page_shift = __ffs(page_size);
+		priv->block_shift = __ffs(mtd->erasesize) - priv->page_shift;
+
+		priv->col_cycles  = 2;
+		priv->addr_cycles = priv->col_cycles +
 			(((chip_size >> page_size) > 65536) ? 3 : 2);
-		row_cycles  = addr_cycles - col_cycles;
-		DBG("page_shift: 0x%x.\n", page_shift);
-		DBG("block_shift: 0x%x.\n", block_shift);
-		DBG("col_cycles: 0x%x.\n", col_cycles);
-		DBG("addr_cycles: 0x%x.\n", addr_cycles);
+		row_cycles  = priv->addr_cycles - priv->col_cycles;
+		DBG("page_shift: 0x%x.\n", priv->page_shift);
+		DBG("block_shift: 0x%x.\n", priv->block_shift);
+		DBG("col_cycles: 0x%x.\n", priv->col_cycles);
+		DBG("addr_cycles: 0x%x.\n", priv->addr_cycles);
 	}
 
 	iowrite32((EN_STATUS << NAND_CTRL_DIS_STATUS)
 		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)
-		| (addr_cycles << NAND_CTRL_ADDR_CYCLE1)
+		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
 		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
 		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
 		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
@@ -919,12 +924,12 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
 		| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
 		| (DATA_SIZE_FULL_PAGE << NAND_CTRL_CUSTOM_SIZE_EN)
-		| (((page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
-		| (((block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
+		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
+		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
 		| (ECC_EN<< NAND_CTRL_ECC_EN)
 		| (INT_DIS << NAND_CTRL_INT_EN)
 		| (SPARE_EN << NAND_CTRL_SPARE_EN)
-		| (addr_cycles),
+		| (priv->addr_cycles),
 		priv->base + HW_CTRL);
 
 }
@@ -932,18 +937,20 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
 		u32 nPage, u32 nColumn, u8 *pAddr)
 {
+	struct nand_chip *nand = mtd->priv;
+	struct asm9260_nand_priv *priv = nand->priv;
 	int i = 0;
 	u32 row_addr = nPage;
 
 	memset(pAddr, 0, 32);
 
-	for (i=0; i<col_cycles; i++)
+	for (i = 0; i < priv->col_cycles; i++)
 	{
 		pAddr[i] = (u8)(nColumn & 0xFF);
 		nColumn = nColumn >> 8;
 	}
 
-	for (i = col_cycles; i < addr_cycles; i++)
+	for (i = priv->col_cycles; i < priv->addr_cycles; i++)
 	{
 		pAddr[i] = (u8)(row_addr & 0xFF);
 		row_addr = row_addr >> 8;

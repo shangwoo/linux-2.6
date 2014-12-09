@@ -935,24 +935,23 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 }
 
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
-		u32 nPage, u32 nColumn, u8 *pAddr)
+		u32 row_addr, u32 column, u8 *pAddr)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	int i = 0;
-	u32 row_addr = nPage;
+	int i;
 
 	memset(pAddr, 0, 32);
 
 	for (i = 0; i < priv->col_cycles; i++)
 	{
-		pAddr[i] = (u8)(nColumn & 0xFF);
-		nColumn = nColumn >> 8;
+		pAddr[i] = column & 0xFF;
+		column = column >> 8;
 	}
 
 	for (i = priv->col_cycles; i < priv->addr_cycles; i++)
 	{
-		pAddr[i] = (u8)(row_addr & 0xFF);
+		pAddr[i] = row_addr & 0xFF;
 		row_addr = row_addr >> 8;
 	}
 }

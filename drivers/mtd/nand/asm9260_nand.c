@@ -468,6 +468,7 @@ struct asm9260_nand_priv {
 	u32 read_cache;
 	int read_cache_cnt;
 
+	unsigned int ecc_cap;
 	unsigned int ecc_threshold;
 	unsigned int spare_size;
 };
@@ -743,7 +744,6 @@ struct ecc_info ecc_info_table[8] = {
 
 static u8 __attribute__((aligned(32))) NandAddr[32] = {0};
 static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
-static u32 asm9260_nand_ecc_correction_ability = 0;
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
@@ -1021,7 +1021,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			if (column == 0) {
 				iowrite32(
 					(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
-					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
+					| (priv->ecc_cap << NAND_ECC_CAP),
 					priv->base + HW_ECC_CTRL);
 				iowrite32(mtd->writesize + priv->spare_size,
 						priv->base + HW_ECC_OFFSET);
@@ -1056,7 +1056,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			if (column == 0) {
 				iowrite32(
 					(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
-					| (asm9260_nand_ecc_correction_ability << NAND_ECC_CAP),
+					| (priv->ecc_cap << NAND_ECC_CAP),
 					priv->base + HW_ECC_CTRL);
 				iowrite32(mtd->writesize + priv->spare_size,
 						priv->base + HW_ECC_OFFSET);
@@ -1301,7 +1301,7 @@ int asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 		if ((nand_oob_size - ecc_info_table[i].ecc_bytes_per_sector
 					* (nand_page_size >> 9)) > (28 + 2))
 		{
-			asm9260_nand_ecc_correction_ability =
+			priv->ecc_cap =
 				ecc_info_table[i].ecc_cap;
 			priv->ecc_threshold =
 				ecc_info_table[i].ecc_threshold;

@@ -912,14 +912,15 @@ static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 
 	trwh = 1; //TWH;
 	trwp = 1; //TWP;
-	nand_regs->nand_timings_asyn = (trwh << 4) | (trwp);
+	iowrite32((trwh << 4) | (trwp), priv->base + HW_TIMING_ASYN);
 
 	twhr = 2;
 	trhw = 4;
-	nand_regs->nand_time_seq_0 = (twhr << 24) | (trhw << 16)
-		| (tadl << 8) | (tccs);
+	iowrite32((twhr << 24) | (trhw << 16)
+		| (tadl << 8) | (tccs), priv->base + HW_TIM_SEQ_0);
 
-	nand_regs->nand_time_seq_1 = (tsync << 16) | (trr << 9) | (twb);
+	iowrite32((tsync << 16) | (trr << 9) | (twb),
+			priv->base + HW_TIM_SEQ_1);
 
 	return ret;
 }

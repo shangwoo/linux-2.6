@@ -740,7 +740,6 @@ struct ecc_info ecc_info_table[8] = {
 #define DBG(x...)
 #endif
 
-struct asm9260_nand_regs *nand_regs;
 static u8 __attribute__((aligned(32))) NandAddr[32] = {0};
 static u32 page_shift, block_shift, addr_cycles, row_cycles, col_cycles;
 static u32 asm9260_nand_acceptable_err_level = 0;
@@ -1444,7 +1443,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	nand_regs = priv->base;
 	priv->dev = &pdev->dev;
 	nand = &priv->nand;
 	nand->priv = priv;

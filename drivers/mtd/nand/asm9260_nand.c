@@ -740,7 +740,7 @@ struct ecc_info ecc_info_table[8] = {
 #define ASM9260_NAND_ERR_UNCORRECT	2
 #define ASM9260_NAND_ERR_OVER		3
 
-#ifdef CONFIG_MTD_NAND_ASM9260_DEBUG
+#if 1
 #define DBG(x...) printk("ASM9260_NAND_DBG: " x)
 #else
 #define DBG(x...)
@@ -891,27 +891,6 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	static int count = 1;
-	u32 chip_size   = mtd->size;
-	u32 page_size   = mtd->writesize;
-
-	if (count)
-	{
-		u32 row_cycles; /* FIXME: do we need it? */
-
-		count = 0;
-		priv->page_shift = __ffs(page_size);
-		priv->block_shift = __ffs(mtd->erasesize) - priv->page_shift;
-
-		priv->col_cycles  = 2;
-		priv->addr_cycles = priv->col_cycles +
-			(((chip_size >> page_size) > 65536) ? 3 : 2);
-		row_cycles  = priv->addr_cycles - priv->col_cycles;
-		DBG("page_shift: 0x%x.\n", priv->page_shift);
-		DBG("block_shift: 0x%x.\n", priv->block_shift);
-		DBG("col_cycles: 0x%x.\n", priv->col_cycles);
-		DBG("addr_cycles: 0x%x.\n", priv->addr_cycles);
-	}
 
 	iowrite32((EN_STATUS << NAND_CTRL_DIS_STATUS)
 		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
@@ -954,6 +933,9 @@ static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
 		pAddr[i] = row_addr & 0xFF;
 		row_addr = row_addr >> 8;
 	}
+//	iowrite32(addr[0], priv->base + HW_ADDR0_0);
+//	iowrite32(addr[1], priv->base + HW_ADDR0_1);
+
 }
 
 /**
@@ -1485,6 +1467,17 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "scan_tail filed!\n");
 		return -ENXIO;
 	}
+
+	priv->page_shift = __ffs(mtd->writesize);
+	priv->block_shift = __ffs(mtd->erasesize) - priv->page_shift;
+
+	priv->col_cycles  = 2;
+	priv->addr_cycles = priv->col_cycles +
+		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
+	DBG("page_shift: 0x%x.\n", priv->page_shift);
+	DBG("block_shift: 0x%x.\n", priv->block_shift);
+	DBG("col_cycles: 0x%x.\n", priv->col_cycles);
+	DBG("addr_cycles: 0x%x.\n", priv->addr_cycles);
 
 	ret = mtd_device_parse_register(mtd, NULL,
 			&(struct mtd_part_parser_data) {

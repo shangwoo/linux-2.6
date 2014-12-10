@@ -811,9 +811,8 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
 }
 
-static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
+static void asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
-	int ret = 0;
 	u32 twhr;
 	u32 trhw;
 	u32 trwh;
@@ -823,19 +822,6 @@ static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 	u32 tsync = 0;
 	u32 trr = 0;
 	u32 twb = 0;
-
-	/* default config before read id */
-	iowrite32((ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
-		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
-		| (PROT_DIS << NAND_CTRL_PORT_EN)
-		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
-		| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
-		| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
-		| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
-		| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-		| (SPARE_DIS << NAND_CTRL_SPARE_EN)
-		| (ADDR_CYCLE_1),
-		priv->base + HW_CTRL);
 
 	trwh = 1; //TWH;
 	trwp = 1; //TWP;
@@ -848,22 +834,11 @@ static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 
 	iowrite32((tsync << 16) | (trr << 9) | (twb),
 			priv->base + HW_TIM_SEQ_1);
-
-	return ret;
 }
 
-static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
+static void asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
 {
-	int ret = 0;
-
 	asm9260_select_chip(&priv->mtd, chip);
-
-	ret = asm9260_nand_timing_config(priv);
-	if (ret != 0)
-		return ret;
-
-	asm9260_select_chip(&priv->mtd, -1);
-	return 0;
 }
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
@@ -1373,11 +1348,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	asm9260_nand_init_chip(nand);
 
 	/* initialise the hardware */
-	ret = asm9260_nand_inithw(priv, 0);
-	if (ret) {
-		dev_err(&pdev->dev, "HW init filed! (%x)\n", ret);
-		return -EIO;
-	}
+	asm9260_nand_inithw(priv, 0);
 
 
 	/* first scan to find the device and get the page size */

@@ -811,36 +811,6 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
 }
 
-static void asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
-{
-	u32 twhr;
-	u32 trhw;
-	u32 trwh;
-	u32 trwp;
-	u32 tadl = 0;
-	u32 tccs = 0;
-	u32 tsync = 0;
-	u32 trr = 0;
-	u32 twb = 0;
-
-	trwh = 1; //TWH;
-	trwp = 1; //TWP;
-	iowrite32((trwh << 4) | (trwp), priv->base + HW_TIMING_ASYN);
-
-	twhr = 2;
-	trhw = 4;
-	iowrite32((twhr << 24) | (trhw << 16)
-		| (tadl << 8) | (tccs), priv->base + HW_TIM_SEQ_0);
-
-	iowrite32((tsync << 16) | (trr << 9) | (twb),
-			priv->base + HW_TIM_SEQ_1);
-}
-
-static void asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
-{
-	asm9260_select_chip(&priv->mtd, chip);
-}
-
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
@@ -1177,7 +1147,32 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.hwctl		= NULL;
 }
 
-int asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
+static void asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
+{
+	u32 twhr;
+	u32 trhw;
+	u32 trwh;
+	u32 trwp;
+	u32 tadl = 0;
+	u32 tccs = 0;
+	u32 tsync = 0;
+	u32 trr = 0;
+	u32 twb = 0;
+
+	trwh = 1; //TWH;
+	trwp = 1; //TWP;
+	iowrite32((trwh << 4) | (trwp), priv->base + HW_TIMING_ASYN);
+
+	twhr = 2;
+	trhw = 4;
+	iowrite32((twhr << 24) | (trhw << 16)
+		| (tadl << 8) | (tccs), priv->base + HW_TIM_SEQ_0);
+
+	iowrite32((tsync << 16) | (trr << 9) | (twb),
+			priv->base + HW_TIM_SEQ_1);
+}
+
+static int asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 		int nand_page_size, int nand_oob_size)
 {
 	int ecc_bytes = 0;
@@ -1348,7 +1343,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	asm9260_nand_init_chip(nand);
 
 	/* initialise the hardware */
-	asm9260_nand_inithw(priv, 0);
+	asm9260_nand_timing_config(priv);
 
 
 	/* first scan to find the device and get the page size */

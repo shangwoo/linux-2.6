@@ -1163,6 +1163,7 @@ static int asm9260_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *ch
 			ECC_EN << NAND_CTRL_ECC_EN);
 
 	chip->read_buf(mtd, buf, mtd->writesize);
+	printk("%s %x\n", __func__, ioread32(priv->base + HW_ECC_CTRL));
 	if (oob_required)
 		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
 	return 0;
@@ -1179,6 +1180,7 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 	temp_ptr = buf;
 
+	printk("%s\n", __func__);
 	/* enable ecc */
 	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);

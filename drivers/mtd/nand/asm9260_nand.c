@@ -826,8 +826,6 @@ static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 
 	/* default config before read id */
 	iowrite32((ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
-		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
-		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
 		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
 		| (PROT_DIS << NAND_CTRL_PORT_EN)
 		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
@@ -835,8 +833,6 @@ static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 		| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
 		| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
 		| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-		| (ECC_DIS << NAND_CTRL_ECC_EN)
-		| (INT_DIS << NAND_CTRL_INT_EN)
 		| (SPARE_DIS << NAND_CTRL_SPARE_EN)
 		| (ADDR_CYCLE_1),
 		priv->base + HW_CTRL);
@@ -878,8 +874,6 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)
 		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
-		| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
-		| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
 		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
 		| (PROT_DIS << NAND_CTRL_PORT_EN)
 		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
@@ -887,8 +881,6 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		| (DATA_SIZE_FULL_PAGE << NAND_CTRL_CUSTOM_SIZE_EN)
 		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
 		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
-		| (ECC_EN<< NAND_CTRL_ECC_EN)
-		| (INT_DIS << NAND_CTRL_INT_EN)
 		| (SPARE_EN << NAND_CTRL_SPARE_EN)
 		| (priv->addr_cycles),
 		priv->base + HW_CTRL);
@@ -938,8 +930,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_READID:
 			iowrite32(
 				(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
-				| (ADDR1_AUTO_INCR_DIS << NAND_CTRL_ADDR1_AUTO_INCR)
-				| (ADDR0_AUTO_INCR_DIS << NAND_CTRL_ADDR0_AUTO_INCR)
 				| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
 				| (PROT_DIS << NAND_CTRL_PORT_EN)
 				| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
@@ -947,9 +937,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
 				| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
 				| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-				| (ECC_DIS << NAND_CTRL_ECC_EN)
-				| (INT_DIS << NAND_CTRL_INT_EN)
-				| (SPARE_DIS << NAND_CTRL_SPARE_EN)
 				| (ADDR_CYCLE_1),
 				priv->base + HW_CTRL);
 
@@ -1147,7 +1134,6 @@ static int asm9260_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *ch
 			ECC_EN << NAND_CTRL_ECC_EN);
 
 	chip->read_buf(mtd, buf, mtd->writesize);
-	printk("%s %x\n", __func__, ioread32(priv->base + HW_ECC_CTRL));
 	if (oob_required)
 		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
 	return 0;
@@ -1163,13 +1149,12 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 	temp_ptr = buf;
 
-	printk("%s\n", __func__);
 	/* enable ecc */
 	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);
-#if 0
+#if 1
 // TODO: this code seems to work, but looks like my nand device is too bad.
 	if (status & BM_ECC_ERR_UNC) {
 		/* FIXME: how many bit should fail, to get this result?.

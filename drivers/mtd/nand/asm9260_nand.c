@@ -819,27 +819,6 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
 }
 
-static int asm9260_nand_mem_ready(struct mtd_info *mtd)
-{
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
-	int ret = 1;
-	int waittime = 0;
-	int timeout = 0x1000000;
-
-	while (!(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_DEV0_READY))
-	{
-		waittime++;
-		if (waittime > timeout)
-		{
-			ret = 0;
-			break;
-		}
-	}
-	return ret;
-}
-
-
 static int asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
 	int ret = 0;
@@ -896,9 +875,7 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
 		return ret;
 
 	asm9260_select_chip(&priv->mtd, -1);
-	asm9260_nand_cmd_prep(&priv->mtd, NAND_CMD_RESET, 0, 0, SEQ0);
-
-	return !asm9260_nand_mem_ready(&priv->mtd);
+	return 0;
 }
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
@@ -957,10 +934,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 	int ret;
-
-	ret = !asm9260_nand_mem_ready(mtd);
-	if (ret)
-		DBG("wait for device ready timeout.\n");
 
 	switch (command)
 	{
@@ -1427,6 +1400,8 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_get_dt_clks(priv);
 
+	asm9260_nand_init_chip(nand);
+
 	/* initialise the hardware */
 	ret = asm9260_nand_inithw(priv, 0);
 	if (ret) {
@@ -1434,7 +1409,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -EIO;
 	}
 
-	asm9260_nand_init_chip(nand);
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {

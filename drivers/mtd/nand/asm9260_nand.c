@@ -790,7 +790,12 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd)
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 
+	if (!priv->cmd_cache)
+		return;
+
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
+	priv->cmd_cache = 0;
+
 	nand_wait_ready(mtd);
 }
 
@@ -976,7 +981,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 		case NAND_CMD_RESET:
 			asm9260_nand_cmd_prep(mtd, NAND_CMD_RESET, 0, 0, SEQ0);
-			break;
+			asm9260_nand_cmd_comp(mtd);
+			return;
 
 		case NAND_CMD_READID:
 			iowrite32(
@@ -1103,7 +1109,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			printk("don't support this command : 0x%x!\n", command);
 	}
 
-	asm9260_nand_cmd_comp(mtd);
 	return;
 }
 
@@ -1121,6 +1126,7 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
+		asm9260_nand_cmd_comp(mtd);
 		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;
 	}
@@ -1146,6 +1152,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 
+	asm9260_nand_cmd_comp(mtd);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
@@ -1161,6 +1168,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
 
+	asm9260_nand_cmd_comp(mtd);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
@@ -1178,6 +1186,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	struct asm9260_nand_priv *priv = nand->priv;
 	u8 *temp_ptr;
 	temp_ptr = (u8 *)buf;
+
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
 	temp_ptr = chip->oob_poi;

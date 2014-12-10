@@ -750,6 +750,20 @@ struct ecc_info ecc_info_table[8] = {
 #define DBG(x...)
 #endif
 
+static unsigned int asm9260_reg_rmw(struct asm9260_nand_priv *priv,
+		u32 reg_offset, u32 set, u32 clr)
+{
+	u32 val;
+
+	val = ioread32(priv->base + reg_offset);
+	val &= ~clr;
+	val |= set;
+	iowrite32(val, priv->base + reg_offset);
+
+	return val;
+}
+
+
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
 	struct nand_chip *nand = mtd->priv;
@@ -1028,10 +1042,9 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 						priv->base + HW_ECC_OFFSET);
 				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
 			} else if (column == mtd->writesize) {
-				iowrite32((ioread32(priv->base + HW_CTRL)
-						& (~(ECC_EN << NAND_CTRL_ECC_EN)))
-					| (DATA_SIZE_CUSTOM<< NAND_CTRL_CUSTOM_SIZE_EN),
-					priv->base + HW_CTRL);
+				asm9260_reg_rmw(priv, HW_CTRL,
+						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
+						ECC_EN << NAND_CTRL_ECC_EN);
 				iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			} else {
@@ -1060,17 +1073,14 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 						priv->base + HW_ECC_OFFSET);
 				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
 			}
-			else if (column == mtd->writesize)
-			{
-				iowrite32(
-					(((ioread32(priv->base + HW_CTRL))
-					  | (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN))
-					 & (~(ECC_EN << NAND_CTRL_ECC_EN)))
-					& (~(SPARE_EN << NAND_CTRL_SPARE_EN)),
-					priv->base + HW_CTRL);
+			else if (column == mtd->writesize) {
+				asm9260_reg_rmw(priv, HW_CTRL,
+						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
+						ECC_EN << NAND_CTRL_ECC_EN |
+						SPARE_EN << NAND_CTRL_SPARE_EN);
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			}
- 
+
 			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
 			asm9260_nand_cmd_prep(mtd, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
@@ -1080,11 +1090,11 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_STATUS:
 
 			asm9260_nand_controller_config(mtd);
-			iowrite32((((ioread32(priv->base + HW_CTRL)
-								& (~(SPARE_EN << NAND_CTRL_SPARE_EN)))
-						& (~(ECC_EN<< NAND_CTRL_ECC_EN)))
-					| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)),
-				priv->base + HW_CTRL);
+
+			asm9260_reg_rmw(priv, HW_CTRL,
+					DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
+					ECC_EN << NAND_CTRL_ECC_EN |
+					SPARE_EN << NAND_CTRL_SPARE_EN);
 			iowrite32(1, priv->base + HW_DATA_SIZE);
 			asm9260_nand_cmd_prep(mtd, NAND_CMD_STATUS, 0, 0, SEQ1);
 
@@ -1096,10 +1106,9 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
 			asm9260_nand_controller_config(mtd);
-			iowrite32(ioread32(priv->base + HW_CTRL)
-				& ((~(ECC_EN << NAND_CTRL_ECC_EN))
-					& (~(SPARE_EN << NAND_CTRL_SPARE_EN))),
-				priv->base + HW_CTRL);
+			asm9260_reg_rmw(priv, HW_CTRL, 0,
+					ECC_EN << NAND_CTRL_ECC_EN |
+					SPARE_EN << NAND_CTRL_SPARE_EN);
 
 			asm9260_nand_cmd_prep(mtd, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 					0, SEQ14);

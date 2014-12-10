@@ -750,7 +750,7 @@ struct ecc_info ecc_info_table[8] = {
 #define DBG(x...)
 #endif
 
-static unsigned int asm9260_reg_rmw(struct asm9260_nand_priv *priv,
+static void asm9260_reg_rmw(struct asm9260_nand_priv *priv,
 		u32 reg_offset, u32 set, u32 clr)
 {
 	u32 val;
@@ -759,15 +759,12 @@ static unsigned int asm9260_reg_rmw(struct asm9260_nand_priv *priv,
 	val &= ~clr;
 	val |= set;
 	iowrite32(val, priv->base + reg_offset);
-
-	return val;
 }
 
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	if (chip == -1)
 		iowrite32(ASM9260T_NAND_WP_STATE_MASK, priv->base + HW_MEM_CTRL);
@@ -787,8 +784,7 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 static void asm9260_nand_cmd_prep(struct mtd_info *mtd,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	priv->cmd_cache  = (cmd0 << NAND_CMD_CMD0) | (cmd1 << NAND_CMD_CMD1);
 	priv->cmd_cache |= (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
@@ -799,8 +795,7 @@ static void asm9260_nand_cmd_prep(struct mtd_info *mtd,
 /* complete command request */
 static void asm9260_nand_cmd_comp(struct mtd_info *mtd)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	if (!priv->cmd_cache)
 		return;
@@ -813,8 +808,7 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd)
 
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
 }
@@ -880,8 +874,7 @@ static int asm9260_nand_inithw(struct asm9260_nand_priv *priv, u8 chip)
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	iowrite32((EN_STATUS << NAND_CTRL_DIS_STATUS)
 		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
@@ -907,8 +900,7 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
 		u32 row_addr, u32 column)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u32 addr[2];
 
 	addr[0] = (column & 0xffff) | (0xffff0000 & (row_addr << 16));
@@ -931,8 +923,7 @@ static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
  */
 static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, int column, int page_addr)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	switch (command)
 	{
@@ -1077,8 +1068,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
  */
 static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u8 tmp;
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
@@ -1106,8 +1096,7 @@ static u16 asm9260_nand_read_word(struct mtd_info *mtd)
 
 static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	asm9260_nand_cmd_comp(mtd);
 	if (len & 0x3) {
@@ -1122,8 +1111,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		const u8 *buf, int len)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	asm9260_nand_cmd_comp(mtd);
 	if (len & 0x3) {
@@ -1139,8 +1127,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, const u8 *buf,
 		int oob_required)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u8 *temp_ptr;
 	temp_ptr = (u8 *)buf;
 
@@ -1155,8 +1142,7 @@ static int asm9260_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *ch
 		                              uint8_t *buf, int oob_required,
 					      int page)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	/* disable ecc */
 	asm9260_reg_rmw(priv, HW_CTRL, 0,
@@ -1173,8 +1159,7 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, u8 *buf,
 		int oob_required, int page)
 {
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u8 *temp_ptr;
 	u32 status, max_bitflips = 0;
 

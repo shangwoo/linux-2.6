@@ -781,11 +781,9 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 }
 
 /* TODO: 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
-static void asm9260_nand_cmd_prep(struct mtd_info *mtd,
+static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
 {
-	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
-
 	priv->cmd_cache  = (cmd0 << NAND_CMD_CMD0) | (cmd1 << NAND_CMD_CMD1);
 	priv->cmd_cache |= (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 		| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL);
@@ -933,7 +931,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			return;
 
 		case NAND_CMD_RESET:
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_RESET, 0, 0, SEQ0);
+			asm9260_nand_cmd_prep(priv, NAND_CMD_RESET, 0, 0, SEQ0);
 			asm9260_nand_cmd_comp(mtd);
 			return;
 
@@ -958,7 +956,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			iowrite32(1, priv->base + HW_FIFO_INIT);
 			iowrite32(8, priv->base + HW_DATA_SIZE);	//ID 4 Bytes
 			iowrite32(column, priv->base + HW_ADDR0_0);
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_READID, 0, 0, SEQ1);
+			asm9260_nand_cmd_prep(priv, NAND_CMD_READID, 0, 0, SEQ1);
 
 			priv->read_cache_cnt = 0;
 
@@ -993,7 +991,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_READ0,
+			asm9260_nand_cmd_prep(priv, NAND_CMD_READ0,
 					NAND_CMD_READSTART, 0, SEQ10);
 
 			priv->read_cache_cnt = 0;
@@ -1022,7 +1020,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
+			asm9260_nand_cmd_prep(priv, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
 					0, SEQ12);
 
 			break;
@@ -1035,7 +1033,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 					ECC_EN << NAND_CTRL_ECC_EN |
 					SPARE_EN << NAND_CTRL_SPARE_EN);
 			iowrite32(1, priv->base + HW_DATA_SIZE);
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_STATUS, 0, 0, SEQ1);
+			asm9260_nand_cmd_prep(priv, NAND_CMD_STATUS, 0, 0, SEQ1);
 
 			priv->read_cache_cnt = 0;
 			break;
@@ -1049,7 +1047,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 					ECC_EN << NAND_CTRL_ECC_EN |
 					SPARE_EN << NAND_CTRL_SPARE_EN);
 
-			asm9260_nand_cmd_prep(mtd, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
+			asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 					0, SEQ14);
 			break;
 

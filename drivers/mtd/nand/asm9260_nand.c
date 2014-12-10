@@ -781,8 +781,6 @@ static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 
 static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 {
-	static int count = 0;
-	printk("asm9260_cmd_ctrl count %d\n", ++count);
 }
 
 /* TODO: 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
@@ -819,28 +817,6 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	struct asm9260_nand_priv *priv = nand->priv;
 
 	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
-}
-
-static int asm9260_nand_ctrl_ready(struct mtd_info *mtd)
-{
-	struct nand_chip *nand = mtd->priv;
-	struct asm9260_nand_priv *priv = nand->priv;
-	int ret = 1;
-	int waittime = 0;
-	int timeout = 0x1000000;
-	u32 tmp = ioread32(priv->base + HW_STATUS);
-
-	while (tmp & ASM9260T_NAND_CTRL_BUSY)
-	{
-		waittime++;
-		if (waittime > timeout)
-		{
-			ret = 0;
-			break;
-		}
-		tmp = ioread32(priv->base + HW_STATUS);
-	}
-	return ret;
 }
 
 static int asm9260_nand_mem_ready(struct mtd_info *mtd)

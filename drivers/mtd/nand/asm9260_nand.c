@@ -967,8 +967,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
 			} else if (column == mtd->writesize) {
 				asm9260_reg_rmw(priv, HW_CTRL,
-						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
-						ECC_EN << NAND_CTRL_ECC_EN);
+						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
 				iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			} else {
@@ -1000,7 +999,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			else if (column == mtd->writesize) {
 				asm9260_reg_rmw(priv, HW_CTRL,
 						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
-						ECC_EN << NAND_CTRL_ECC_EN |
 						SPARE_EN << NAND_CTRL_SPARE_EN);
 				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 			}
@@ -1017,7 +1015,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_reg_rmw(priv, HW_CTRL,
 					DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
-					ECC_EN << NAND_CTRL_ECC_EN |
 					SPARE_EN << NAND_CTRL_SPARE_EN);
 			iowrite32(1, priv->base + HW_DATA_SIZE);
 			asm9260_nand_cmd_prep(priv, NAND_CMD_STATUS, 0, 0, SEQ1);
@@ -1031,7 +1028,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 
 			asm9260_nand_controller_config(mtd);
 			asm9260_reg_rmw(priv, HW_CTRL, 0,
-					ECC_EN << NAND_CTRL_ECC_EN |
 					SPARE_EN << NAND_CTRL_SPARE_EN);
 
 			asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
@@ -1123,22 +1119,6 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	return 0;
 }
 
-static int asm9260_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
-		                              uint8_t *buf, int oob_required,
-					      int page)
-{
-	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
-
-	/* disable ecc */
-	asm9260_reg_rmw(priv, HW_CTRL, 0,
-			ECC_EN << NAND_CTRL_ECC_EN);
-
-	chip->read_buf(mtd, buf, mtd->writesize);
-	if (oob_required)
-		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);
-	return 0;
-}
-
 static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, u8 *buf,
 		int oob_required, int page)
@@ -1216,7 +1196,7 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 
 	nand_chip->ecc.write_page	= asm9260_nand_write_page_hwecc;
 	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
-	nand_chip->ecc.read_page_raw	= asm9260_nand_read_page_raw;
+	nand_chip->ecc.read_page_raw	= NULL;
 	nand_chip->ecc.calculate	= NULL;
 	nand_chip->ecc.correct		= NULL;
 	nand_chip->ecc.hwctl		= NULL;

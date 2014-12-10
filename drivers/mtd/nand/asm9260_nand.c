@@ -782,9 +782,6 @@ static void asm9260_nand_cmd_prep(struct mtd_info *mtd,
 	priv->cmd_cache |= (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
 		| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL);
 	priv->cmd_cache |= seq;
-
-	/* FIXME: we will need to trigger it on read */
-	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
 }
 
 /* complete command request */
@@ -975,7 +972,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 		case NAND_CMD_PAGEPROG:
 		case NAND_CMD_CACHEDPROG:
 		case NAND_CMD_ERASE2:
-			break;
+			return;
 
 		case NAND_CMD_RESET:
 			asm9260_nand_cmd_prep(mtd, NAND_CMD_RESET, 0, 0, SEQ0);
@@ -1106,21 +1103,8 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 			printk("don't support this command : 0x%x!\n", command);
 	}
 
-	if ((command == NAND_CMD_RESET) || (command == NAND_CMD_READID)
-			|| (command == NAND_CMD_STATUS)
-			|| (command == NAND_CMD_ERASE1))
-	{
-		ret = !asm9260_nand_mem_ready(mtd);
-		if (ret)
-			DBG("wait for device ready timeout, ret = 0x%x.\n", ret);
-	}
-	else if ((command == NAND_CMD_READ0))
-	{
-		ret = !asm9260_nand_ctrl_ready(mtd);
-		if (ret)
-			DBG("wait for device ready timeout, ret = 0x%x.\n", ret);
-	}
-	return ;
+	asm9260_nand_cmd_comp(mtd);
+	return;
 }
 
 

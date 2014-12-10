@@ -933,7 +933,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, 
 {
 	struct nand_chip *nand = mtd->priv;
 	struct asm9260_nand_priv *priv = nand->priv;
-	int ret;
 
 	switch (command)
 	{
@@ -1152,7 +1151,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	return 0;
 }
 
-static int nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
+static int asm9260_nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
 		                              uint8_t *buf, int oob_required,
 					      int page)
 {
@@ -1245,11 +1244,12 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.mode = NAND_ECC_NONE;
 #endif
 
-	nand_chip->ecc.write_page = asm9260_nand_write_page_hwecc;
-	nand_chip->ecc.read_page  = asm9260_nand_read_page_hwecc;
-	nand_chip->ecc.calculate = NULL;
-	nand_chip->ecc.correct   = NULL;
-	nand_chip->ecc.hwctl     = NULL;
+	nand_chip->ecc.write_page	= asm9260_nand_write_page_hwecc;
+	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
+	nand_chip->ecc.read_page_raw	= asm9260_nand_read_page_raw;
+	nand_chip->ecc.calculate	= NULL;
+	nand_chip->ecc.correct		= NULL;
+	nand_chip->ecc.hwctl		= NULL;
 }
 
 int asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,

@@ -815,20 +815,13 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	iowrite32((EN_STATUS << NAND_CTRL_DIS_STATUS)
-		| (NO_RNB_SEL << NAND_CTRL_RNB_SEL)
-		| (BIG_BLOCK_EN << NAND_CTRL_SMALL_BLOCK_EN)
+	iowrite32(
+		(NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
-		| (WORK_MODE_ASYNC << NAND_CTRL_WORK_MODE)
-		| (PROT_DIS << NAND_CTRL_PORT_EN)
-		| (LOOKUP_DIS << NAND_CTRL_LOOKU_EN)
-		| (IO_WIDTH_8 << NAND_CTRL_IO_WIDTH)
-		| (DATA_SIZE_FULL_PAGE << NAND_CTRL_CUSTOM_SIZE_EN)
 		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
 		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
 		| (priv->addr_cycles),
 		priv->base + HW_CTRL);
-
 }
 
 static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,

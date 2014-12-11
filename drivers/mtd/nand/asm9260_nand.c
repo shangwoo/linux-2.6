@@ -385,6 +385,12 @@ Modification: 	Tidy up code.
 #define HW_FIFO_DATA	0x98
 #define HW_TIME_MODE	0x9c
 #define HW_FIFO_INIT	0xb0
+/*
+ * Counter for ecc related errors.
+ * For each 512 byte block it has 5bit counter.
+ */
+#define HW_ECC_ERR_CNT	0xb8
+
 #define HW_TIM_SEQ_1	0xc8
 
 u32 reg_list[][4] = {
@@ -1053,6 +1059,19 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	return 0;
 }
 
+static unsigned int asm9260_nand_count_ecc(struct asm9260_nand_priv *priv)
+{
+	u32 tmp, i, count = 0;
+
+	/* FIXME: this layout was tested only on 2048byte NAND.
+	 * NANDs with bigger page size should use more registers. */
+	tmp = ioread32(priv->base + HW_ECC_ERR_CNT);
+	for (i = 0; i < 4; i++)
+		count += 0x1f & (tmp >> (5 * i));
+
+	return count;
+}
+
 static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, u8 *buf,
 		int oob_required, int page)
@@ -1063,35 +1082,24 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 	temp_ptr = buf;
 
-	asm9260_reg_snap(priv);
 	/* enable ecc */
 	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
-	asm9260_reg_snap(priv);
 	status = ioread32(priv->base + HW_ECC_CTRL);
-#if 1
-// TODO: this code seems to work, but looks like my nand device is too bad.
-	if (status & BM_ECC_ERR_UNC) {
-		/* FIXME: how many bit should fail, to get this result?.
-		 * sirtenly more then 1. */
-		mtd->ecc_stats.failed++;
-	} else if (status & BM_ECC_ERR_CORRECT) {
-		/*FIXME: max_bitflips should be = treshold */
-		if (status & BM_ECC_ERR_OVER)
-			max_bitflips = 4;
-		else
-			max_bitflips = 1;
+
+	max_bitflips = asm9260_nand_count_ecc(priv);
+
+	/* FIXME: do we need it for failed bit too? */
+	if (status & BM_ECC_ERR_UNC)
+		mtd->ecc_stats.failed += max_bitflips;
+	else if (status & BM_ECC_ERR_CORRECT)
 		mtd->ecc_stats.corrected += max_bitflips;
-	}
-#endif
-	iowrite32(0, priv->base + 0xb8);
 
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);
 	chip->read_buf(mtd, temp_ptr, priv->spare_size);
 
-	printk("..\n");
 	return max_bitflips;
 }
 

@@ -848,132 +848,122 @@ static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
  * devices We dont have the separate regions as we have in the small page
  * devices.  We must emulate NAND_CMD_READOOB to keep the code compatible.
  */
-static void asm9260_nand_command_lp(struct mtd_info *mtd, unsigned int command, int column, int page_addr)
+static void asm9260_nand_command_lp(struct mtd_info *mtd,
+		unsigned int command, int column, int page_addr)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	switch (command)
 	{
-		case NAND_CMD_PAGEPROG:
-		case NAND_CMD_CACHEDPROG:
-		case NAND_CMD_ERASE2:
-			return;
+	case NAND_CMD_PAGEPROG:
+	case NAND_CMD_CACHEDPROG:
+	case NAND_CMD_ERASE2:
+		return;
 
-		case NAND_CMD_RESET:
-			asm9260_nand_cmd_prep(priv, NAND_CMD_RESET, 0, 0, SEQ0);
-			asm9260_nand_cmd_comp(mtd);
-			return;
+	case NAND_CMD_RESET:
+		asm9260_nand_cmd_prep(priv, NAND_CMD_RESET, 0, 0, SEQ0);
+		asm9260_nand_cmd_comp(mtd);
+		return;
 
-		case NAND_CMD_READID:
+	case NAND_CMD_READID:
+		iowrite32(
+			(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
+			| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
+			| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
+			| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
+			| (ADDR_CYCLE_1),
+			priv->base + HW_CTRL);
+
+		iowrite32(1, priv->base + HW_FIFO_INIT);
+		iowrite32(8, priv->base + HW_DATA_SIZE);
+		iowrite32(column, priv->base + HW_ADDR0_0);
+		asm9260_nand_cmd_prep(priv, NAND_CMD_READID, 0, 0, SEQ1);
+
+		priv->read_cache_cnt = 0;
+		break;
+
+	case NAND_CMD_READOOB:
+		column += mtd->writesize;
+		command = NAND_CMD_READ0;
+	case NAND_CMD_READ0:
+		iowrite32(1, priv->base + HW_FIFO_INIT);
+
+		asm9260_nand_controller_config(mtd);
+
+		asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
+		if (column == 0) {
 			iowrite32(
-				(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
-				| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
-				| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
-				| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
-				| (ADDR_CYCLE_1),
-				priv->base + HW_CTRL);
-
-			iowrite32(1, priv->base + HW_FIFO_INIT);
-			iowrite32(8, priv->base + HW_DATA_SIZE);	//ID 4 Bytes
-			iowrite32(column, priv->base + HW_ADDR0_0);
-			asm9260_nand_cmd_prep(priv, NAND_CMD_READID, 0, 0, SEQ1);
-
-			priv->read_cache_cnt = 0;
-
-			break;
-
-		case NAND_CMD_READOOB:
-			column += mtd->writesize;
-			command = NAND_CMD_READ0;
-		case NAND_CMD_READ0:
-			iowrite32(1, priv->base + HW_FIFO_INIT);
-
-			asm9260_nand_controller_config(mtd);
-
-			asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
-
-			if (column == 0) {
-				iowrite32(
-					(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
-					| (priv->ecc_cap << NAND_ECC_CAP),
-					priv->base + HW_ECC_CTRL);
-				iowrite32(mtd->writesize + priv->spare_size,
-						priv->base + HW_ECC_OFFSET);
-				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
-			} else if (column == mtd->writesize) {
-				asm9260_reg_rmw(priv, HW_CTRL,
-						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
-				iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
-				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
-			} else {
-				printk("couldn't support the column\n");
-				break;
-			}
-
-			asm9260_nand_make_addr_lp(mtd, page_addr, column);
-
-			asm9260_nand_cmd_prep(priv, NAND_CMD_READ0,
-					NAND_CMD_READSTART, 0, SEQ10);
-
-			priv->read_cache_cnt = 0;
-			break;
-		case NAND_CMD_SEQIN:
-
-			iowrite32(1, priv->base + HW_FIFO_INIT);
-			asm9260_nand_controller_config(mtd);
-
-			if (column == 0) {
-				asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
-
-				iowrite32(
-					(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
-					| (priv->ecc_cap << NAND_ECC_CAP),
-					priv->base + HW_ECC_CTRL);
-				iowrite32(mtd->writesize + priv->spare_size,
-						priv->base + HW_ECC_OFFSET);
-				iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
-			}
-			else if (column == mtd->writesize) {
-				asm9260_reg_rmw(priv, HW_CTRL,
-						DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
-						0);
-				iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
-			}
-
-			asm9260_nand_make_addr_lp(mtd, page_addr, column);
-
-			asm9260_nand_cmd_prep(priv, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
-					0, SEQ12);
-
-			break;
-		case NAND_CMD_STATUS:
-
-			asm9260_nand_controller_config(mtd);
-
+				(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
+				| (priv->ecc_cap << NAND_ECC_CAP),
+				priv->base + HW_ECC_CTRL);
+			iowrite32(mtd->writesize + priv->spare_size,
+					priv->base + HW_ECC_OFFSET);
+			iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
+		} else if (column == mtd->writesize) {
 			asm9260_reg_rmw(priv, HW_CTRL,
-					DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN,
-					0);
-			iowrite32(1, priv->base + HW_DATA_SIZE);
-			asm9260_nand_cmd_prep(priv, NAND_CMD_STATUS, 0, 0, SEQ1);
-
-			priv->read_cache_cnt = 0;
+				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
+			iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
+			iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
+		} else {
+			printk("couldn't support the column\n");
 			break;
+		}
 
-		case NAND_CMD_ERASE1:
+		asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
-			asm9260_nand_make_addr_lp(mtd, page_addr, column);
+		asm9260_nand_cmd_prep(priv, NAND_CMD_READ0,
+				NAND_CMD_READSTART, 0, SEQ10);
 
-			asm9260_nand_controller_config(mtd);
+		priv->read_cache_cnt = 0;
+		break;
+	case NAND_CMD_SEQIN:
+		iowrite32(1, priv->base + HW_FIFO_INIT);
+		asm9260_nand_controller_config(mtd);
 
-			asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
-					0, SEQ14);
-			break;
+	if (column == 0) {
+		asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
 
-		default:
-			printk("don't support this command : 0x%x!\n", command);
+		iowrite32(
+			(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
+			| (priv->ecc_cap << NAND_ECC_CAP),
+			priv->base + HW_ECC_CTRL);
+		iowrite32(mtd->writesize + priv->spare_size,
+			priv->base + HW_ECC_OFFSET);
+		iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
+	} else if (column == mtd->writesize) {
+		asm9260_reg_rmw(priv, HW_CTRL,
+				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
+		iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 	}
 
-	return;
+	asm9260_nand_make_addr_lp(mtd, page_addr, column);
+
+	asm9260_nand_cmd_prep(priv, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
+			0, SEQ12);
+
+		break;
+	case NAND_CMD_STATUS:
+		asm9260_nand_controller_config(mtd);
+
+		asm9260_reg_rmw(priv, HW_CTRL,
+				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
+		iowrite32(1, priv->base + HW_DATA_SIZE);
+		asm9260_nand_cmd_prep(priv, NAND_CMD_STATUS, 0, 0, SEQ1);
+
+		priv->read_cache_cnt = 0;
+		break;
+
+	case NAND_CMD_ERASE1:
+		asm9260_nand_make_addr_lp(mtd, page_addr, column);
+
+		asm9260_nand_controller_config(mtd);
+
+		asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
+				0, SEQ14);
+		break;
+	default:
+		printk("don't support this command : 0x%x!\n", command);
+	}
 }
 
 

@@ -390,11 +390,11 @@ Modification: 	Tidy up code.
 u32 reg_list[][4] = {
 	{ 0, 0, 0, 0},
 	{ 0, 0, 0, 4},
-	{ 0x4, 0, 0, 4},
+//	{ 0x4, 0, 0, 4},
 	{ 0x8, 0, 0, 4},
 	{ 0xc, 0, 0, 4},
 	{ 0x10, 0, 0, 4},
-	{ 0x14, 0, 0, 4},
+//	{ 0x14, 0, 0, 4},
 	{ 0x18, 0, 0, 4},
 //	{ 0x1c, 0, 0, 4}, //address
 	{ 0x20, 0, 0, 4},
@@ -807,8 +807,11 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd)
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	u32 tmp;
 
-	return !(ioread32(priv->base + HW_STATUS) & ASM9260T_NAND_CTRL_BUSY);
+	tmp = ioread32(priv->base + HW_STATUS);
+
+	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) && (tmp & 0x1));
 }
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
@@ -866,6 +869,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		return;
 
 	case NAND_CMD_READID:
+		iowrite32(1, priv->base + HW_FIFO_INIT);
 		iowrite32(
 			(ADDR_CYCLE_1 << NAND_CTRL_ADDR_CYCLE1)
 			| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
@@ -874,7 +878,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 			| (ADDR_CYCLE_1),
 			priv->base + HW_CTRL);
 
-		iowrite32(1, priv->base + HW_FIFO_INIT);
 		iowrite32(8, priv->base + HW_DATA_SIZE);
 		iowrite32(column, priv->base + HW_ADDR0_0);
 		asm9260_nand_cmd_prep(priv, NAND_CMD_READID, 0, 0, SEQ1);
@@ -920,34 +923,38 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 		asm9260_nand_controller_config(mtd);
 
-	if (column == 0) {
-		asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
+		if (column == 0) {
+			asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
 
-		iowrite32(
-			(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
-			| (priv->ecc_cap << NAND_ECC_CAP),
-			priv->base + HW_ECC_CTRL);
-		iowrite32(mtd->writesize + priv->spare_size,
-			priv->base + HW_ECC_OFFSET);
-		iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
-	} else if (column == mtd->writesize) {
-		asm9260_reg_rmw(priv, HW_CTRL,
-				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
-		iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
-	}
+			iowrite32(
+				(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
+				| (priv->ecc_cap << NAND_ECC_CAP),
+				priv->base + HW_ECC_CTRL);
+			iowrite32(mtd->writesize + priv->spare_size,
+				priv->base + HW_ECC_OFFSET);
+			iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
+		} else if (column == mtd->writesize) {
+			asm9260_reg_rmw(priv, HW_CTRL,
+					DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
+			iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
+		}
 
-	asm9260_nand_make_addr_lp(mtd, page_addr, column);
+		asm9260_nand_make_addr_lp(mtd, page_addr, column);
 
-	asm9260_nand_cmd_prep(priv, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
+		asm9260_nand_cmd_prep(priv, NAND_CMD_SEQIN, NAND_CMD_PAGEPROG,
 			0, SEQ12);
 
 		break;
 	case NAND_CMD_STATUS:
+		iowrite32(1, priv->base + HW_FIFO_INIT);
 		asm9260_nand_controller_config(mtd);
 
+		/* workaround for status bug.
+		 * we use SEQ1 insted of SEQ4, which will send address. */
+		asm9260_nand_make_addr_lp(mtd, 0, 0);
 		asm9260_reg_rmw(priv, HW_CTRL,
 				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
-		iowrite32(1, priv->base + HW_DATA_SIZE);
+		iowrite32(4, priv->base + HW_DATA_SIZE);
 		asm9260_nand_cmd_prep(priv, NAND_CMD_STATUS, 0, 0, SEQ1);
 
 		priv->read_cache_cnt = 0;
@@ -960,6 +967,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 		asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 				0, SEQ14);
+		asm9260_nand_cmd_comp(mtd);
 		break;
 	default:
 		printk("don't support this command : 0x%x!\n", command);
@@ -1037,6 +1045,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	u8 *temp_ptr;
 	temp_ptr = (u8 *)buf;
 
+	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
 	temp_ptr = chip->oob_poi;
@@ -1054,10 +1063,12 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 	temp_ptr = buf;
 
+	asm9260_reg_snap(priv);
 	/* enable ecc */
 	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
+	asm9260_reg_snap(priv);
 	status = ioread32(priv->base + HW_ECC_CTRL);
 #if 1
 // TODO: this code seems to work, but looks like my nand device is too bad.
@@ -1074,11 +1085,13 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		mtd->ecc_stats.corrected += max_bitflips;
 	}
 #endif
+	iowrite32(0, priv->base + 0xb8);
 
 	temp_ptr = chip->oob_poi;
 	memset(temp_ptr, 0xff, mtd->oobsize);
 	chip->read_buf(mtd, temp_ptr, priv->spare_size);
 
+	printk("..\n");
 	return max_bitflips;
 }
 

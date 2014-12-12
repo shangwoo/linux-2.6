@@ -753,9 +753,33 @@ static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 	priv->cmd_cache |= seq;
 }
 
-static void asm9260_nand_dma_set(struct mtd_info *mtd, int dma)
+static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, u8 *buf,
+		enum dma_data_direction dir, size_t size)
 {
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	dma_addr_t dma_addr;
 
+	dma_addr = dma_map_single(priv->dev, buf, size, dir);
+	if (!dma_addr) {
+		dev_err(priv->dev, "dma_map_single filed");
+		return 0;
+	}
+
+	iowrite32(dma_addr, priv->base + HW_DMA_ADDR);
+	iowrite32(size, priv->base + HW_DMA_CNT);
+	iowrite32((DMA_START_EN << NAND_DMA_CTRL_START)
+		  | ((dir == DMA_FROM_DEVICE ? 1 : 0) << NAND_DMA_CTRL_DIR)
+		  | (DMA_MODE_SFR << NAND_DMA_CTRL_MODE)
+		  | (DMA_BURST_INCR16 << NAND_DMA_CTRL_BURST),
+		  priv->base + HW_DMA_CTRL);
+	return dma_addr;
+}
+
+static void asm9260_nand_dma_unset(struct mtd_info *mtd, dma_addr_t dma_addr,
+		enum dma_data_direction dir, size_t size)
+{
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	dma_unmap_single(priv->dev, dma_addr, size, dir);
 }
 
 /* complete command request */
@@ -781,6 +805,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	u32 tmp;
 
 	tmp = ioread32(priv->base + HW_STATUS);
+	printk("%x %x\n", ioread32(priv->base + HW_DMA_CTRL), tmp);
 
 	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) &&
 			(tmp & 0x1));
@@ -979,10 +1004,21 @@ static u16 asm9260_nand_read_word(struct mtd_info *mtd)
 static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	dma_addr_t dma_addr;
+	int dma_ok;
 
-	asm9260_nand_cmd_comp(mtd, 0);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
+		return;
+	}
+
+	asm9260_reg_snap(priv);
+	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
+	asm9260_nand_cmd_comp(mtd, dma_addr ? 1 : 0);
+	asm9260_reg_snap(priv);
+
+	if (dma_ok) {
+		asm9260_nand_dma_unset(mtd, dma_addr, DMA_FROM_DEVICE, len);
 		return;
 	}
 
@@ -994,10 +1030,19 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		const u8 *buf, int len)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	dma_addr_t dma_addr;
+	int dma_ok;
 
-	asm9260_nand_cmd_comp(mtd, 0);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
+		return;
+	}
+
+	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
+	asm9260_nand_cmd_comp(mtd, dma_addr ? 1 : 0);
+
+	if (dma_addr) {
+		asm9260_nand_dma_unset(mtd, dma_addr, DMA_TO_DEVICE, len);
 		return;
 	}
 
@@ -1016,8 +1061,8 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	asm9260_reg_rmw(priv, HW_CTRL, ECC_EN << NAND_CTRL_ECC_EN, 0);
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
-	temp_ptr = chip->oob_poi;
-	chip->write_buf(mtd, temp_ptr, priv->spare_size);
+	if (oob_required)
+		chip->ecc.write_oob(mtd, chip, mtd->writesize);
 	return 0;
 }
 
@@ -1058,9 +1103,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	else if (status & BM_ECC_ERR_CORRECT)
 		mtd->ecc_stats.corrected += max_bitflips;
 
-	temp_ptr = chip->oob_poi;
-	memset(temp_ptr, 0xff, mtd->oobsize);
-	chip->read_buf(mtd, temp_ptr, priv->spare_size);
+	if (oob_required)
+		chip->ecc.read_oob(mtd, chip, page);
 
 	return max_bitflips;
 }

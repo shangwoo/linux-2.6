@@ -816,8 +816,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	switch (command)
-	{
+	switch (command) {
 	case NAND_CMD_PAGEPROG:
 	case NAND_CMD_CACHEDPROG:
 	case NAND_CMD_ERASE2:

@@ -746,16 +746,6 @@ struct ecc_info ecc_info_table[8] = {
 	{ECC_CAP_16, ECC_THRESHOLD_15, 26},
 };
 
-#define ASM9260_NAND_ERR_CORRECT	1
-#define ASM9260_NAND_ERR_UNCORRECT	2
-#define ASM9260_NAND_ERR_OVER		3
-
-#if 1
-#define DBG(x...) printk("ASM9260_NAND_DBG: " x)
-#else
-#define DBG(x...)
-#endif
-
 static void asm9260_reg_rmw(struct asm9260_nand_priv *priv,
 		u32 reg_offset, u32 set, u32 clr)
 {
@@ -766,7 +756,6 @@ static void asm9260_reg_rmw(struct asm9260_nand_priv *priv,
 	val |= set;
 	iowrite32(val, priv->base + reg_offset);
 }
-
 
 static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
@@ -817,15 +806,15 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 
 	tmp = ioread32(priv->base + HW_STATUS);
 
-	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) && (tmp & 0x1));
+	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) &&
+			(tmp & priv->mem_status_mask));
 }
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	iowrite32(
-		(NO_RNB_SEL << NAND_CTRL_RNB_SEL)
+	iowrite32((NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
 		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
 		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
@@ -914,7 +903,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 			iowrite32(mtd->oobsize, priv->base + HW_SPARE_SIZE);
 			iowrite32(mtd->oobsize, priv->base + HW_DATA_SIZE);
 		} else {
-			printk("couldn't support the column\n");
+			dev_err(priv->dev, "Couldn't support the column\n");
 			break;
 		}
 
@@ -955,8 +944,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 		asm9260_nand_controller_config(mtd);
 
-		/* workaround for status bug.
-		 * we use SEQ1 insted of SEQ4, which will send address. */
+		/*
+		 * Workaround for status bug.
+		 * Instead of SEQ4 we need to use SEQ1 here, which will
+		 * send cmd with address. For this case we need to make sure
+		 * ADDR == 0.
+		 */
 		asm9260_nand_make_addr_lp(mtd, 0, 0);
 		asm9260_reg_rmw(priv, HW_CTRL,
 				DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN, 0);
@@ -971,12 +964,17 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 		asm9260_nand_controller_config(mtd);
 
+		/*
+		 * Prepare and send command now. We don't need to split it in
+		 * two stages.
+		 */
 		asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 				0, SEQ14);
 		asm9260_nand_cmd_comp(mtd);
-		break;
+		return;
 	default:
-		printk("don't support this command : 0x%x!\n", command);
+		dev_err(priv->dev, "don't support this command : 0x%x!\n",
+				command);
 	}
 }
 
@@ -1103,23 +1101,6 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	return max_bitflips;
 }
 
-static int asm9260_nand_wait(struct mtd_info *mtd, struct nand_chip *chip)
-{
-	int status = 0;
-
-	/* Apply this short delay always to ensure that we do wait tWB in
-	 * any case on any machine. */
-	ndelay(100);
-
-	chip->dev_ready(mtd);
-
-	chip->cmdfunc(mtd, NAND_CMD_STATUS, -1, -1);
-	status = (int)chip->read_byte(mtd);
-
-	return status;
-}
-
-
 static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 {
 	nand_chip->select_chip = asm9260_select_chip;
@@ -1132,20 +1113,11 @@ static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 
 	nand_chip->dev_ready   = asm9260_nand_dev_ready;
 	nand_chip->chip_delay  = 100;
-	nand_chip->waitfunc    = asm9260_nand_wait;
 
-#ifdef CONFIG_MTD_NAND_ASM9260_HWECC
 	nand_chip->ecc.mode = NAND_ECC_HW;
-#else
-	nand_chip->ecc.mode = NAND_ECC_NONE;
-#endif
 
 	nand_chip->ecc.write_page	= asm9260_nand_write_page_hwecc;
 	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
-	nand_chip->ecc.read_page_raw	= NULL;
-	nand_chip->ecc.calculate	= NULL;
-	nand_chip->ecc.correct		= NULL;
-	nand_chip->ecc.hwctl		= NULL;
 }
 
 static void asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
@@ -1234,7 +1206,7 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 						&asm9260_nand_oob_224;
 					nand->ecc.strength = 14;
 				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+					dev_err(priv->dev, "Unsupported Oob size [%d].\n",
 							mtd->oobsize);
 
 				break;
@@ -1257,18 +1229,16 @@ static void asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 						&asm9260_nand_oob_448;
 					nand->ecc.strength = 16;
 				} else
-					printk("!!! NAND Warning !!  Unsupported Oob size [%d] !!!!\n",
+					dev_err(priv->dev, "Unsupported Oob size [%d].\n",
 							mtd->oobsize);
 				break;
 
 			default:
-				printk("!!! NAND Warning !!  Unsupported Page size [%d] !!!!\n",
+				dev_err(priv->dev, "Unsupported Page size [%d].\n",
 						mtd->writesize);
 				break;
 		}
 	}
-	else
-		printk("CONFIG_MTD_NAND_ASM9260_HWECC must be chosen in menuconfig!");
 
 	priv->spare_size = mtd->oobsize - nand->ecc.bytes;
 }
@@ -1339,13 +1309,12 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	priv->read_cache_cnt = 0;
 
-	asm9260_nand_get_dt_clks(priv);
+	if (asm9260_nand_get_dt_clks(priv))
+		return -ENODEV;
 
 	asm9260_nand_init_chip(nand);
 
-	/* initialise the hardware */
 	asm9260_nand_timing_config(priv);
-
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
@@ -1361,16 +1330,12 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
-	priv->page_shift = __ffs(mtd->writesize);
-	priv->block_shift = __ffs(mtd->erasesize) - priv->page_shift;
+	priv->page_shift = ffs(mtd->writesize);
+	priv->block_shift = ffs(mtd->erasesize) - priv->page_shift;
 
 	priv->col_cycles  = 2;
 	priv->addr_cycles = priv->col_cycles +
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
-	DBG("page_shift: 0x%x.\n", priv->page_shift);
-	DBG("block_shift: 0x%x.\n", priv->block_shift);
-	DBG("col_cycles: 0x%x.\n", priv->col_cycles);
-	DBG("addr_cycles: 0x%x.\n", priv->addr_cycles);
 
 	priv->mem_status_mask = ASM9260T_NAND_DEV0_READY;
 

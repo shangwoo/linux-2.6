@@ -439,6 +439,10 @@ struct asm9260_nand_priv {
 	struct clk *clk_ahb;
 
 	void __iomem *base;
+	/* fall back dma buffer */
+	void __iomem *bdma_virt;
+	dma_addr_t bdma_phy;
+	int bdma;
 
 	u32 read_cache;
 	int read_cache_cnt;
@@ -753,7 +757,7 @@ static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 	priv->cmd_cache |= seq;
 }
 
-static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, u8 *buf,
+static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 		enum dma_data_direction dir, size_t size)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
@@ -763,6 +767,16 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, u8 *buf,
 	if (dma_mapping_error(priv->dev, dma_addr)) {
 		dev_err(priv->dev, "dma_map_single filed");
 		return dma_addr;
+
+	} if (!IS_ALIGNED((dma_addr_t) dma_addr, PAGE_SIZE)) {
+		dma_unmap_single(priv->dev, dma_addr, size, dir);
+		/* use fallback buffer */
+		dma_addr =  priv->bdma_phy;
+
+		if (dir == DMA_TO_DEVICE)
+			memcpy_toio(priv->bdma_virt, buf, size);
+
+		priv->bdma = 1;
 	}
 
 	iowrite32(dma_addr, priv->base + HW_DMA_ADDR);
@@ -775,11 +789,19 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, u8 *buf,
 	return dma_addr;
 }
 
-static void asm9260_nand_dma_unset(struct mtd_info *mtd, dma_addr_t dma_addr,
-		enum dma_data_direction dir, size_t size)
+static void asm9260_nand_dma_unset(struct mtd_info *mtd, void *buf,
+		dma_addr_t dma_addr, enum dma_data_direction dir, size_t size)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
-	dma_unmap_single(priv->dev, dma_addr, size, dir);
+
+	if (!priv->bdma) {
+		dma_unmap_single(priv->dev, dma_addr, size, dir);
+		return;
+	}
+
+	if (dir == DMA_FROM_DEVICE)
+		memcpy_fromio(buf, priv->bdma_virt, size);
+	priv->bdma = 0;
 }
 
 /* complete command request */
@@ -1020,7 +1042,8 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	if (dma_ok) {
 		dma_sync_single_for_cpu(priv->dev, dma_addr, len, DMA_FROM_DEVICE);
-		asm9260_nand_dma_unset(mtd, dma_addr, DMA_FROM_DEVICE, len);
+		asm9260_nand_dma_unset(mtd, buf, dma_addr,
+				DMA_FROM_DEVICE, len);
 		return;
 	}
 
@@ -1048,7 +1071,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
 	if (dma_ok) {
-		asm9260_nand_dma_unset(mtd, dma_addr, DMA_TO_DEVICE, len);
+		asm9260_nand_dma_unset(mtd, buf, dma_addr, DMA_TO_DEVICE, len);
 		return;
 	}
 
@@ -1290,6 +1313,15 @@ out_err:
 	return 1;
 }
 
+static int asm9260_nand_alloc_dma(struct asm9260_nand_priv *priv,
+		size_t size)
+{
+	priv->bdma_virt = dmam_alloc_coherent(priv->dev, size, &priv->bdma_phy,
+			GFP_KERNEL);
+	priv->bdma = 0;
+	return 0;
+}
+
 static int asm9260_nand_probe(struct platform_device *pdev)
 {
 	struct asm9260_nand_priv *priv;
@@ -1325,6 +1357,8 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;
+
+	asm9260_nand_alloc_dma(priv, 8192 + 448);
 
 	asm9260_nand_init_chip(nand);
 

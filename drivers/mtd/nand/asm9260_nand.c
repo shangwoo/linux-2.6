@@ -1,39 +1,15 @@
-/********************************************************
-Copyright (C), 2007-2013, Alphascale Tech. Co., Ltd.
-File name: asm9260_nand.c
-Author: ChenDongdong    Version: 1.0    Date: 2012-04-17
-Description: asm9260 nand driver.
-History: 
-1. Date: 2012-12-17		Version: 0.1
-Author:	ChenDongdong
-Description: Rewrite the NAND driver.
-2. Date: 2012-12-21		Version: 0.2
-Author:	ChenDongdong
-Modification: Code is basically completed(for 4K), but the driver exist BUG.
-3. Date: 2012-01-04		Version: 0.3
-Author:	ChenDongdong
-Modification: 	4K page size NAND is supported. 
-				Only supports PIO mode of operation.
-				Update yaffs2.
-4. Date: 2012-01-06		Version: 0.4
-Author:	ChenDongdong
-Modification: 	Supports DMA operation.
-5. Date: 2012-01-07		Version: 0.5
-Author:	ChenDongdong
-Modification: 	Supports NAND verify.
-6. Date: 2012-01-08		Version: 0.6
-Author:	ChenDongdong
-Modification: 	Supports 2K page size NAND.
-				Modify h-boot.
-7. Date: 2012-01-09		Version: 0.7
-Author:	ChenDongdong
-Modification: 	Supports 8K page size NAND.
-				Modify h-boot.
-8. Date: 2012-01-10		Version: 1.0
-Author:	ChenDongdong
-Modification: 	Tidy up code.				
-
-********************************************************/
+/*
+ * NAND controller driver for Alphascale ASM9260, which is probably
+ * based on Evatronix NANDFLASH-CTRL IP (version unknown)
+ *
+ * Copyright (C), 2007-2013, Alphascale Tech. Co., Ltd.
+ * 		  2014 Oleksij Rempel <linux@rempel-privat.de>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ */
 
 #include <linux/kernel.h>
 #include <linux/types.h>
@@ -55,15 +31,10 @@ Modification: 	Tidy up code.
 #include <linux/mtd/nand.h>
 #include <linux/mtd/nand_ecc.h>
 #include <linux/mtd/partitions.h>
-//#include <mach/system.h>
-//#include <mach/pincontrol.h>
-//#include <mach/dma.h>
 #include <asm/hardware/iomd.h>
 #include <asm/io.h>
 #include <asm/irq.h>
 #include <asm/mach-types.h>
-//#include <mach/uart_reg.h>
-//#include <mach/asm9260_nand.h>
 
 #include <linux/module.h>
 #include <linux/clk.h>
@@ -76,8 +47,6 @@ Modification: 	Tidy up code.
 #include <linux/bitops.h>
 #include <linux/of_platform.h>
 
-
-// ================== Definitions ====================
 
 // timing parameters
 #define  TITC  0x0
@@ -835,17 +804,6 @@ static void asm9260_nand_make_addr_lp(struct mtd_info *mtd,
 	iowrite32(addr[1], priv->base + HW_ADDR0_1);
 }
 
-/**
- * nand_command_lp - [DEFAULT] Send command to NAND large page device
- * @mtd:	MTD device structure
- * @command:	the command to be sent
- * @column:	the column address for this command, -1 if none
- * @page_addr:	the page address for this command, -1 if none
- *
- * Send command to NAND device. This is the version for the new large page
- * devices We dont have the separate regions as we have in the small page
- * devices.  We must emulate NAND_CMD_READOOB to keep the code compatible.
- */
 static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		unsigned int command, int column, int page_addr)
 {
@@ -982,7 +940,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 /**
  * We can't read less then 32 bits on HW_FIFO_DATA. So, to make
  * read_byte and read_word happy, we use sort of cached 32bit read.
- * Note: expected values for size should be 1 or 2 (byte).
+ * Note: expected values for size should be 1 or 2 bytes.
  */
 static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 {

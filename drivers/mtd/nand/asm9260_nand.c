@@ -443,6 +443,8 @@ struct asm9260_nand_priv {
 	void __iomem *bdma_virt;
 	dma_addr_t bdma_phy;
 	int bdma;
+	wait_queue_head_t wq;
+	int irq_done;
 
 	u32 read_cache;
 	int read_cache_cnt;
@@ -819,6 +821,16 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	priv->cmd_cache = 0;
 
 	nand_wait_ready(mtd);
+#if 0
+        timeout = wait_event_timeout(priv->wq, priv->irq_done,
+                                     1 * HZ);
+        if (timeout <= 0) {
+                dev_info(priv->dev,
+                         "Request 0x%08x timed out waiting for 0x%08x\n",
+                         etx_command, int_state);
+                /* TODO: Do something useful here? */
+        }
+#endif
 }
 
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
@@ -1138,6 +1150,24 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	return max_bitflips;
 }
 
+#if 1
+static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
+{
+	struct asm9260_nand_priv *priv = device_info;
+        //etx_info->irq.int_status = etx_read(INT_STATUS_REG);
+
+        /* Note: We can't (at least in the software model) clear the interrupts
+         * by clearing CONTROL.INT_EN, as that does not disable the interrupt
+         * output port from the nfc towards the gic. */
+        //etx_write(0, INT_STATUS_REG);
+
+        priv->irq_done = 1;
+        wake_up(&priv->wq);
+
+        return IRQ_HANDLED;
+}
+#endif
+
 static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 {
 	nand_chip->select_chip = asm9260_select_chip;
@@ -1329,6 +1359,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
 	int ret;
+	unsigned int irq;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
 			GFP_KERNEL);
@@ -1359,6 +1390,12 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -ENODEV;
 
 	asm9260_nand_alloc_dma(priv, 8192 + 448);
+
+	irq = irq_of_parse_and_map(np, 0);
+	if (!irq)
+		return -ENODEV;
+	ret = devm_request_irq(priv->dev, irq, asm9260_nand_irq,
+				IRQF_SHARED, np->full_name, priv);
 
 	asm9260_nand_init_chip(nand);
 

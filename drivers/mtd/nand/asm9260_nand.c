@@ -760,9 +760,9 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, u8 *buf,
 	dma_addr_t dma_addr;
 
 	dma_addr = dma_map_single(priv->dev, buf, size, dir);
-	if (!dma_addr) {
+	if (dma_mapping_error(priv->dev, dma_addr)) {
 		dev_err(priv->dev, "dma_map_single filed");
-		return 0;
+		return dma_addr;
 	}
 
 	iowrite32(dma_addr, priv->base + HW_DMA_ADDR);
@@ -1014,10 +1014,12 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	asm9260_reg_snap(priv);
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
-	asm9260_nand_cmd_comp(mtd, dma_addr ? 1 : 0);
+	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	asm9260_nand_cmd_comp(mtd, dma_ok);
 	asm9260_reg_snap(priv);
 
 	if (dma_ok) {
+		dma_sync_single_for_cpu(priv->dev, dma_addr, len, DMA_FROM_DEVICE);
 		asm9260_nand_dma_unset(mtd, dma_addr, DMA_FROM_DEVICE, len);
 		return;
 	}
@@ -1039,9 +1041,13 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	}
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
-	asm9260_nand_cmd_comp(mtd, dma_addr ? 1 : 0);
+	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	if(dma_ok)
+		dma_sync_single_for_device(priv->dev, dma_addr, len,
+				DMA_TO_DEVICE);
+	asm9260_nand_cmd_comp(mtd, dma_ok);
 
-	if (dma_addr) {
+	if (dma_ok) {
 		asm9260_nand_dma_unset(mtd, dma_addr, DMA_TO_DEVICE, len);
 		return;
 	}

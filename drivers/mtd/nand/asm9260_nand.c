@@ -749,18 +749,25 @@ static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
 {
 	priv->cmd_cache  = (cmd0 << NAND_CMD_CMD0) | (cmd1 << NAND_CMD_CMD1);
-	priv->cmd_cache |= (ADDR_SEL_0 << NAND_CMD_ADDR_SEL)
-		| (INPUT_SEL_BIU << NAND_CMD_INPUT_SEL);
+	priv->cmd_cache |= ADDR_SEL_0 << NAND_CMD_ADDR_SEL;
 	priv->cmd_cache |= seq;
 }
 
+static void asm9260_nand_dma_set(struct mtd_info *mtd, int dma)
+{
+
+}
+
 /* complete command request */
-static void asm9260_nand_cmd_comp(struct mtd_info *mtd)
+static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
 	if (!priv->cmd_cache)
 		return;
+
+	if (dma)
+		priv->cmd_cache |= INPUT_SEL_DMA << NAND_CMD_INPUT_SEL;
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
 	priv->cmd_cache = 0;
@@ -818,7 +825,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 	case NAND_CMD_RESET:
 		asm9260_nand_cmd_prep(priv, NAND_CMD_RESET, 0, 0, SEQ0);
-		asm9260_nand_cmd_comp(mtd);
+		asm9260_nand_cmd_comp(mtd, 0);
 		return;
 
 	case NAND_CMD_READID:
@@ -928,7 +935,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		 */
 		asm9260_nand_cmd_prep(priv, NAND_CMD_ERASE1, NAND_CMD_ERASE2,
 				0, SEQ14);
-		asm9260_nand_cmd_comp(mtd);
+		asm9260_nand_cmd_comp(mtd, 0);
 		return;
 	default:
 		dev_err(priv->dev, "don't support this command : 0x%x!\n",
@@ -949,7 +956,7 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 
 	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
 	{
-		asm9260_nand_cmd_comp(mtd);
+		asm9260_nand_cmd_comp(mtd, 0);
 		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;
 	}
@@ -974,7 +981,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	asm9260_nand_cmd_comp(mtd);
+	asm9260_nand_cmd_comp(mtd, 0);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
@@ -989,7 +996,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	asm9260_nand_cmd_comp(mtd);
+	asm9260_nand_cmd_comp(mtd, 0);
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;

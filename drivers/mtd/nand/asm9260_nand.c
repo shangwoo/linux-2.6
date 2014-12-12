@@ -776,7 +776,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	tmp = ioread32(priv->base + HW_STATUS);
 
 	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) &&
-			(tmp & priv->mem_status_mask));
+			(tmp & 0x1));
 }
 
 static void asm9260_nand_controller_config (struct mtd_info *mtd)

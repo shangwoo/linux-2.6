@@ -821,7 +821,8 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 
         priv->irq_done = 0;
 	/* FIXME use define instead of BIT() */
-	iowrite32(BIT(4), priv->base + HW_INT_MASK);
+	//iowrite32(BIT(1) | BIT(4), priv->base + HW_INT_MASK);
+	iowrite32(0xffff, priv->base + HW_INT_MASK);
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
 	cmd = priv->cmd_cache;
@@ -843,7 +844,6 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 	u32 tmp;
 
 	tmp = ioread32(priv->base + HW_STATUS);
-	printk("%x %x\n", ioread32(priv->base + HW_DMA_CTRL), tmp);
 
 	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) &&
 			(tmp & 0x1));
@@ -1403,6 +1403,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	if (!irq)
 		return -ENODEV;
 
+	init_waitqueue_head(&priv->wq);
 	iowrite32(0, priv->base + HW_INT_MASK);
 	ret = devm_request_irq(priv->dev, irq, asm9260_nand_irq,
 				IRQF_ONESHOT, np->full_name, priv);

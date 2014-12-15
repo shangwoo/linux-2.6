@@ -810,6 +810,8 @@ static void asm9260_nand_dma_unset(struct mtd_info *mtd, void *buf,
 static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	int timeout;
+	u32 cmd;
 
 	if (!priv->cmd_cache)
 		return;
@@ -817,20 +819,22 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	if (dma)
 		priv->cmd_cache |= INPUT_SEL_DMA << NAND_CMD_INPUT_SEL;
 
+        priv->irq_done = 0;
+	/* FIXME use define instead of BIT() */
+	iowrite32(BIT(4), priv->base + HW_INT_MASK);
+
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
+	cmd = priv->cmd_cache;
 	priv->cmd_cache = 0;
 
-	nand_wait_ready(mtd);
-#if 0
-        timeout = wait_event_timeout(priv->wq, priv->irq_done,
-                                     1 * HZ);
-        if (timeout <= 0) {
-                dev_info(priv->dev,
-                         "Request 0x%08x timed out waiting for 0x%08x\n",
-                         etx_command, int_state);
-                /* TODO: Do something useful here? */
-        }
-#endif
+	//nand_wait_ready(mtd);
+	timeout = wait_event_timeout(priv->wq, priv->irq_done,
+				     1 * HZ);
+	if (timeout <= 0) {
+		dev_info(priv->dev,
+                         "Request 0x%08x timed out\n", cmd);
+		/* TODO: Do something useful here? */
+	}
 }
 
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
@@ -853,6 +857,7 @@ static void asm9260_nand_controller_config (struct mtd_info *mtd)
 		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
 		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
 		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
+		| INT_EN << 4
 		| (priv->addr_cycles),
 		priv->base + HW_CTRL);
 }
@@ -893,6 +898,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 			| (DATA_SIZE_CUSTOM << NAND_CTRL_CUSTOM_SIZE_EN)
 			| (PAGE_SIZE_4096B << NAND_CTRL_PAGE_SIZE)
 			| (BLOCK_SIZE_32P << NAND_CTRL_BLOCK_SIZE)
+			| INT_EN << 4
 			| (ADDR_CYCLE_1),
 			priv->base + HW_CTRL);
 
@@ -1154,13 +1160,14 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 {
 	struct asm9260_nand_priv *priv = device_info;
-        //etx_info->irq.int_status = etx_read(INT_STATUS_REG);
+	u32 status;
 
-        /* Note: We can't (at least in the software model) clear the interrupts
-         * by clearing CONTROL.INT_EN, as that does not disable the interrupt
-         * output port from the nfc towards the gic. */
-        //etx_write(0, INT_STATUS_REG);
+	status = ioread32(priv->base + HW_INT_STATUS);
+	if (!status)
+		return IRQ_NONE;
 
+	iowrite32(0, priv->base + HW_INT_MASK);
+	iowrite32(0, priv->base + HW_INT_STATUS);
         priv->irq_done = 1;
         wake_up(&priv->wq);
 
@@ -1385,6 +1392,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	mtd->name = dev_name(&pdev->dev);
 
 	priv->read_cache_cnt = 0;
+        priv->irq_done = 0;
 
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;
@@ -1394,8 +1402,11 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	irq = irq_of_parse_and_map(np, 0);
 	if (!irq)
 		return -ENODEV;
+
+	iowrite32(0, priv->base + HW_INT_MASK);
 	ret = devm_request_irq(priv->dev, irq, asm9260_nand_irq,
-				IRQF_SHARED, np->full_name, priv);
+				IRQF_ONESHOT, np->full_name, priv);
+				//IRQF_SHARED, np->full_name, priv);
 
 	asm9260_nand_init_chip(nand);
 

@@ -1487,6 +1487,5 @@ static struct platform_driver asm9260_nand_driver = {
 
 module_platform_driver(asm9260_nand_driver);
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Chen Dongdong <chendd@alphascale.cn>");
-MODULE_DESCRIPTION("ASM9260 MTD NAND driver");
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("ASM9260 NAND driver");

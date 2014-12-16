@@ -282,12 +282,6 @@
 #define	ASM9260T_NAND_DMA_READY			0x00000001
 #define	ASM9260T_NAND_DMA_ERROR			0x00000002
 
-#define NAND_CMD_CMD2				24
-#define NAND_CMD_CMD1				16
-#define NAND_CMD_CMD0				8
-#define NAND_CMD_ADDR_SEL			7
-#define NAND_CMD_INPUT_SEL			6
-#define NAND_CMD_CMDSEQ				0
 
 #define NAND_CTRL_DIS_STATUS		23
 #define NAND_CTRL_RNB_SEL			22
@@ -314,20 +308,24 @@
 #define NAND_DMA_CTRL_ERR			1
 #define NAND_DMA_CTRL_READY			0
 
-#define ASM9260T_NAND_CLK_EN		0x00000400
-#define	ASM9260T_NAND_CLK_DIV		0x00000008
+#define HW_CMD			0x00
+#define BM_CMD_CMD2_S		24
+#define BM_CMD_CMD1_S		16
+#define BM_CMD_CMD0_S		8
+/* 0 - ADDR0, 1 - ADDR1 */
+#define BM_CMD_ADDR1		BIT(7)
+/* 0 - PIO, 1 - DMA */
+#define BM_CMD_DMA		BIT(6)
+#define BM_CMD_CMDSEQ_S		0
 
 
-
-
-#define HW_CMD		0x00
 #define HW_CTRL		0x04
 #define HW_STATUS	0x08
 
-#define HW_INT_MASK	0x0c
-#define HW_INT_STATUS	0x10
+#define HW_INT_MASK		0x0c
+#define HW_INT_STATUS		0x10
 #define BM_INT_FIFO_ERROR	BIT(12)
-/* FIXME: do we need MEM1_RDY (BIT5) - MEM7_RDY (BIT11) */
+/* MEM1_RDY (BIT5) - MEM7_RDY (BIT11) */
 #define BM_INT_MEM0_RDY		BIT(4)
 #define BM_INT_ECC_TRSH_ERR	BIT(3)
 #define BM_INT_ECC_FATAL_ERR	BIT(2)
@@ -368,74 +366,6 @@
 #define HW_ECC_ERR_CNT	0xb8
 
 #define HW_TIM_SEQ_1	0xc8
-
-u32 reg_list[][4] = {
-	{ 0, 0, 0, 0},
-	{ 0, 0, 0, 4},
-//	{ 0x4, 0, 0, 4},
-	{ 0x8, 0, 0, 4},
-	{ 0xc, 0, 0, 4},
-	{ 0x10, 0, 0, 4},
-//	{ 0x14, 0, 0, 4},
-	{ 0x18, 0, 0, 4},
-//	{ 0x1c, 0, 0, 4}, //address
-	{ 0x20, 0, 0, 4},
-	{ 0x24, 0, 0, 4},
-	{ 0x28, 0, 0, 4},
-	{ 0x2c, 0, 0, 4},
-	{ 0x30, 0, 0, 4},
-	{ 0x34, 0, 0, 4},
-	{ 0x38, 0, 0, 4},
-	{ 0x3c, 0, 0, 4},
-	{ 0x40, 0, 0, 4},
-	{ 0x44, 0, 0, 4},
-	{ 0x48, 0, 0, 4},
-	{ 0x4c, 0, 0, 4},
-	{ 0x50, 0, 0, 4},
-	{ 0x54, 0, 0, 4},
-	{ 0x58, 0, 0, 4},
-	{ 0x5c, 0, 0, 4},
-	{ 0x60, 0, 0, 4},
-	{ 0x64, 0, 0, 4},
-	{ 0x68, 0, 0, 4},
-	{ 0x6c, 0, 0, 4},
-	{ 0x70, 0, 0, 4},
-	{ 0x74, 0, 0, 4},
-	{ 0x78, 0, 0, 4},
-	{ 0x7c, 0, 0, 4},
-	{ 0x80, 0, 0, 4},
-	{ 0x84, 0, 0, 4},
-	{ 0x88, 0, 0, 4},
-	{ 0x8c, 0, 0, 4},
-	{ 0x90, 0, 0, 4},
-	{ 0x94, 0, 0, 4},
-	//{ 0x98, 0, 0, 4}, //fifo data
-	{ 0x9c, 0, 0, 4},
-	{ 0xa0, 0, 0, 4},
-	{ 0xa4, 0, 0, 4},
-	{ 0xa8, 0, 0, 4},
-	{ 0xac, 0, 0, 4},
-	{ 0xb0, 0, 0, 4},
-	{ 0xb4, 0, 0, 4},
-	{ 0xb8, 0, 0, 4},
-	{ 0xbc, 0, 0, 4},
-	{ 0xc0, 0, 0, 4},
-	{ 0xc4, 0, 0, 4},
-	{ 0xc8, 0, 0, 4},
-	{ 0xcc, 0, 0, 4},
-	{ 0xd0, 0, 0, 4},
-	{ 0xd4, 0, 0, 4},
-	{ 0xd8, 0, 0, 4},
-	{ 0xdc, 0, 0, 4},
-	{ 0xe0, 0, 0, 4},
-	{ 0xe4, 0, 0, 4},
-	{ 0xe8, 0, 0, 4},
-	{ 0xec, 0, 0, 4},
-	{ 0xf0, 0, 0, 4},
-	{ 0xf4, 0, 0, 4},
-	{ 0xf8, 0, 0, 4},
-	{ 0xfc, 0, 0, 4},
-};
 
 struct asm9260_nand_priv {
 	struct device		*dev;
@@ -718,9 +648,8 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
 {
-	priv->cmd_cache  = (cmd0 << NAND_CMD_CMD0) | (cmd1 << NAND_CMD_CMD1);
-	priv->cmd_cache |= ADDR_SEL_0 << NAND_CMD_ADDR_SEL;
-	priv->cmd_cache |= seq;
+	priv->cmd_cache  = (cmd0 << BM_CMD_CMD0_S) | (cmd1 << BM_CMD_CMD1_S);
+	priv->cmd_cache |= seq << BM_CMD_CMDSEQ_S;
 }
 
 static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
@@ -731,7 +660,7 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 
 	dma_addr = dma_map_single(priv->dev, buf, size, dir);
 	if (dma_mapping_error(priv->dev, dma_addr)) {
-		dev_err(priv->dev, "dma_map_single filed");
+		dev_err(priv->dev, "dma_map_single failed!\n");
 		return dma_addr;
 
 	}
@@ -765,7 +694,7 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 		return;
 
 	if (dma) {
-		priv->cmd_cache |= INPUT_SEL_DMA << NAND_CMD_INPUT_SEL;
+		priv->cmd_cache |= BM_CMD_DMA;
 		priv->irq_done = 0;
 		iowrite32(BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
 	}

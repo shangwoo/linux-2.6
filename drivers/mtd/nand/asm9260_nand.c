@@ -323,8 +323,15 @@
 #define HW_CMD		0x00
 #define HW_CTRL		0x04
 #define HW_STATUS	0x08
+
 #define HW_INT_MASK	0x0c
 #define HW_INT_STATUS	0x10
+#define BM_INT_FIFO_ERROR	BIT(12)
+/* FIXME: do we need MEM1_RDY (BIT5) - MEM7_RDY (BIT11) */
+#define BM_INT_MEM0_RDY		BIT(4)
+#define BM_INT_ECC_TRSH_ERR	BIT(3)
+#define BM_INT_ECC_FATAL_ERR	BIT(2)
+#define BM_INT_CMD_END		BIT(1)
 
 #define HW_ECC_CTRL	0x14
 #define	NAND_ECC_CAP			5
@@ -431,12 +438,14 @@ u32 reg_list[][4] = {
 };
 
 struct asm9260_nand_priv {
-	struct mtd_info mtd;
-	struct nand_chip nand;
-	struct device *dev;
+	struct device		*dev;
+	struct mtd_info		mtd;
+	struct nand_chip	nand;
 
-	struct clk *clk;
-	struct clk *clk_ahb;
+	struct clk		*clk;
+	struct clk		*clk_ahb;
+
+	unsigned int block_shift;
 
 	void __iomem *base;
 	/* fall back dma buffer */
@@ -453,8 +462,6 @@ struct asm9260_nand_priv {
 
 	unsigned int addr_cycles;
 	unsigned int col_cycles;
-	unsigned int page_shift;
-	unsigned int block_shift;
 	unsigned int ecc_cap;
 	unsigned int ecc_threshold;
 	unsigned int spare_size;
@@ -770,8 +777,12 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 		dev_err(priv->dev, "dma_map_single filed");
 		return dma_addr;
 
-	} if (!IS_ALIGNED((dma_addr_t) dma_addr, PAGE_SIZE)) {
+	}
+
+#if 0
+if (!IS_ALIGNED((dma_addr_t) dma_addr, PAGE_SIZE)) {
 		dma_unmap_single(priv->dev, dma_addr, size, dir);
+
 		/* use fallback buffer */
 		dma_addr =  priv->bdma_phy;
 
@@ -780,6 +791,8 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 
 		priv->bdma = 1;
 	}
+#endif
+
 
 	iowrite32(dma_addr, priv->base + HW_DMA_ADDR);
 	iowrite32(size, priv->base + HW_DMA_CNT);
@@ -816,26 +829,30 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	if (!priv->cmd_cache)
 		return;
 
-	if (dma)
+	if (dma) {
 		priv->cmd_cache |= INPUT_SEL_DMA << NAND_CMD_INPUT_SEL;
-
-        priv->irq_done = 0;
-	/* FIXME use define instead of BIT() */
-	//iowrite32(BIT(1) | BIT(4), priv->base + HW_INT_MASK);
-	iowrite32(0xffff, priv->base + HW_INT_MASK);
+		priv->irq_done = 0;
+		/* FIXME Do we need CMD case? */
+		iowrite32(BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
+		//iowrite32(BM_INT_CMD_END | BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
+	}
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
 	cmd = priv->cmd_cache;
 	priv->cmd_cache = 0;
 
-	//nand_wait_ready(mtd);
-	timeout = wait_event_timeout(priv->wq, priv->irq_done,
-				     1 * HZ);
-	if (timeout <= 0) {
-		dev_info(priv->dev,
-                         "Request 0x%08x timed out\n", cmd);
-		/* TODO: Do something useful here? */
-	}
+	if (dma) {
+		struct nand_chip *nand = &priv->nand;
+
+		timeout = wait_event_timeout(nand->controller->wq,
+				priv->irq_done, 10 * HZ);
+		if (timeout <= 0) {
+			dev_info(priv->dev,
+                        	 "Request 0x%08x timed out\n", cmd);
+			/* TODO: Do something useful here? */
+		}
+	} else
+		nand_wait_ready(mtd);
 }
 
 static int asm9260_nand_dev_ready(struct mtd_info *mtd)
@@ -852,10 +869,11 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 static void asm9260_nand_controller_config (struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	struct nand_chip *nand = &priv->nand;
 
 	iowrite32((NO_RNB_SEL << NAND_CTRL_RNB_SEL)
 		| (priv->addr_cycles << NAND_CTRL_ADDR_CYCLE1)
-		| (((priv->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
+		| (((nand->page_shift - 8) & 0x7) << NAND_CTRL_PAGE_SIZE)
 		| (((priv->block_shift - 5) & 0x3) << NAND_CTRL_BLOCK_SIZE)
 		| INT_EN << 4
 		| (priv->addr_cycles),
@@ -917,7 +935,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 		asm9260_nand_controller_config(mtd);
 
-		asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
 		if (column == 0) {
 			iowrite32(
 				(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
@@ -948,8 +965,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		asm9260_nand_controller_config(mtd);
 
 		if (column == 0) {
-			asm9260_reg_rmw(priv, HW_CTRL, SPARE_EN << NAND_CTRL_SPARE_EN, 0);
-
 			iowrite32(
 				(priv->ecc_threshold << NAND_ECC_ERR_THRESHOLD)
 				| (priv->ecc_cap << NAND_ECC_CAP),
@@ -1052,11 +1067,9 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 		return;
 	}
 
-	asm9260_reg_snap(priv);
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
 	asm9260_nand_cmd_comp(mtd, dma_ok);
-	asm9260_reg_snap(priv);
 
 	if (dma_ok) {
 		dma_sync_single_for_cpu(priv->dev, dma_addr, len, DMA_FROM_DEVICE);
@@ -1156,10 +1169,10 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	return max_bitflips;
 }
 
-#if 1
 static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 {
 	struct asm9260_nand_priv *priv = device_info;
+	struct nand_chip *nand = &priv->nand;
 	u32 status;
 
 	status = ioread32(priv->base + HW_INT_STATUS);
@@ -1169,11 +1182,10 @@ static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 	iowrite32(0, priv->base + HW_INT_MASK);
 	iowrite32(0, priv->base + HW_INT_STATUS);
         priv->irq_done = 1;
-        wake_up(&priv->wq);
+        wake_up(&nand->controller->wq);
 
         return IRQ_HANDLED;
 }
-#endif
 
 static void asm9260_nand_init_chip(struct nand_chip *nand_chip)
 {
@@ -1403,7 +1415,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 	if (!irq)
 		return -ENODEV;
 
-	init_waitqueue_head(&priv->wq);
 	iowrite32(0, priv->base + HW_INT_MASK);
 	ret = devm_request_irq(priv->dev, irq, asm9260_nand_irq,
 				IRQF_ONESHOT, np->full_name, priv);
@@ -1427,9 +1438,9 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
-	priv->page_shift = ffs(mtd->writesize);
-	priv->block_shift = ffs(mtd->erasesize) - priv->page_shift;
-
+	/* FIXME: remove it or replace it */
+	/* FIXME: these complete part need fixing  */
+	priv->block_shift = __ffs(mtd->erasesize) - nand->page_shift;
 	priv->col_cycles  = 2;
 	priv->addr_cycles = priv->col_cycles +
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
@@ -1442,7 +1453,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 			},
 			NULL, 0);
 
-	asm9260_reg_snap(priv);
 	return ret;
 }
 

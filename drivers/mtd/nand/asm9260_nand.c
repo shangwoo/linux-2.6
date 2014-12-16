@@ -805,9 +805,7 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	if (dma) {
 		priv->cmd_cache |= INPUT_SEL_DMA << NAND_CMD_INPUT_SEL;
 		priv->irq_done = 0;
-		/* FIXME Do we need CMD case? */
 		iowrite32(BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
-		//iowrite32(BM_INT_CMD_END | BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
 	}
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
@@ -818,7 +816,7 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 		struct nand_chip *nand = &priv->nand;
 
 		timeout = wait_event_timeout(nand->controller->wq,
-				priv->irq_done, 10 * HZ);
+				priv->irq_done, 1 * HZ);
 		if (timeout <= 0) {
 			dev_info(priv->dev,
                         	 "Request 0x%08x timed out\n", cmd);
@@ -839,7 +837,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 			(tmp & 0x1));
 }
 
-static void asm9260_nand_controller_config (struct mtd_info *mtd)
+static void asm9260_nand_controller_config(struct mtd_info *mtd)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	struct nand_chip *nand = &priv->nand;
@@ -1051,6 +1049,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 		return;
 	}
 
+	/* fall back to pio mode */
 	len >>= 2;
 	ioread32_rep(priv->base + HW_FIFO_DATA, buf, len);
 }
@@ -1079,6 +1078,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		return;
 	}
 
+	/* fall back to pio mode */
 	len >>= 2;
 	iowrite32_rep(priv->base + HW_FIFO_DATA, buf, len);
 }

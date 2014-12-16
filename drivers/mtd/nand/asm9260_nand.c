@@ -464,41 +464,6 @@ struct asm9260_nand_priv {
 
 #define mtd_to_priv(m)	container_of(m, struct asm9260_nand_priv, mtd)
 
-static void asm9260_reg_snap(struct asm9260_nand_priv *priv)
-{
-	int a, b;
-	b = reg_list[0][1] ? 2 : 1;
-	reg_list[0][b] = 1;
-	/* grub all needed regs */
-	for (a = 1; a < ARRAY_SIZE(reg_list); a++) {
-		if (reg_list[a][3] == 1)
-			reg_list[a][b] = readb(priv->base + reg_list[a][0]);
-		else if (reg_list[a][3] == 2)
-			reg_list[a][b] = readw(priv->base + reg_list[a][0]);
-		else if (reg_list[a][3] == 4)
-			reg_list[a][b] = readl(priv->base + reg_list[a][0]);
-		else
-			printk("-- wrong lenght\n");
-	}
-	/* if we have two version, compare them */
-	if (reg_list[0][1] && reg_list[0][2]) {
-		for (a = 1; a < ARRAY_SIZE(reg_list); a++) {
-			if (reg_list[a][1] != reg_list[a][2])
-				printk("-- reg %02x: %08x %s %08x\n",
-						reg_list[a][0],
-						reg_list[a][1],
-						b == 1 ? "<" : ">",
-						reg_list[a][2]);
-		}
-		if (b == 1)
-			reg_list[0][2] = 0;
-		else
-			reg_list[0][1] = 0;
-	}
-}
-
-
-
 /*2KB--4*512B, correction ability: 4bit--7Byte ecc*/
 static struct nand_ecclayout asm9260_nand_oob_64 = {
 	.eccbytes = 4 * 7,
@@ -740,12 +705,9 @@ static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 
 	if (chip == -1)
 		iowrite32(ASM9260T_NAND_WP_STATE_MASK, priv->base + HW_MEM_CTRL);
-	else {
-		iowrite32(ASM9260T_NAND_WP_STATE_MASK | chip,
-				priv->base + HW_MEM_CTRL);
-		iowrite32((1 << (chip + 8)) ^ ioread32(priv->base + HW_MEM_CTRL),
-				priv->base + HW_MEM_CTRL);	//clear WP reg
-	}
+	else
+		asm9260_reg_rmw(priv, HW_MEM_CTRL, ASM9260T_NAND_WP_STATE_MASK,
+				1 << (chip + 8));
 }
 
 static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
@@ -833,6 +795,7 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 
 	tmp = ioread32(priv->base + HW_STATUS);
 
+	/* FIXME: use define instead of 0x1 */
 	return (!(tmp & ASM9260T_NAND_CTRL_BUSY) &&
 			(tmp & 0x1));
 }
@@ -1379,8 +1342,7 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	iowrite32(0, priv->base + HW_INT_MASK);
 	ret = devm_request_irq(priv->dev, irq, asm9260_nand_irq,
-				IRQF_ONESHOT, np->full_name, priv);
-				//IRQF_SHARED, np->full_name, priv);
+				IRQF_ONESHOT | IRQF_SHARED, np->name, priv);
 
 	asm9260_nand_init_chip(nand);
 

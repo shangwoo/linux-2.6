@@ -448,11 +448,6 @@ struct asm9260_nand_priv {
 	unsigned int block_shift;
 
 	void __iomem *base;
-	/* fall back dma buffer */
-	void __iomem *bdma_virt;
-	dma_addr_t bdma_phy;
-	int bdma;
-	wait_queue_head_t wq;
 	int irq_done;
 
 	u32 read_cache;
@@ -779,21 +774,6 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 
 	}
 
-#if 0
-if (!IS_ALIGNED((dma_addr_t) dma_addr, PAGE_SIZE)) {
-		dma_unmap_single(priv->dev, dma_addr, size, dir);
-
-		/* use fallback buffer */
-		dma_addr =  priv->bdma_phy;
-
-		if (dir == DMA_TO_DEVICE)
-			memcpy_toio(priv->bdma_virt, buf, size);
-
-		priv->bdma = 1;
-	}
-#endif
-
-
 	iowrite32(dma_addr, priv->base + HW_DMA_ADDR);
 	iowrite32(size, priv->base + HW_DMA_CNT);
 	iowrite32((DMA_START_EN << NAND_DMA_CTRL_START)
@@ -809,14 +789,7 @@ static void asm9260_nand_dma_unset(struct mtd_info *mtd, void *buf,
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	if (!priv->bdma) {
-		dma_unmap_single(priv->dev, dma_addr, size, dir);
-		return;
-	}
-
-	if (dir == DMA_FROM_DEVICE)
-		memcpy_fromio(buf, priv->bdma_virt, size);
-	priv->bdma = 0;
+	dma_unmap_single(priv->dev, dma_addr, size, dir);
 }
 
 /* complete command request */
@@ -1362,15 +1335,6 @@ out_err:
 	return 1;
 }
 
-static int asm9260_nand_alloc_dma(struct asm9260_nand_priv *priv,
-		size_t size)
-{
-	priv->bdma_virt = dmam_alloc_coherent(priv->dev, size, &priv->bdma_phy,
-			GFP_KERNEL);
-	priv->bdma = 0;
-	return 0;
-}
-
 static int asm9260_nand_probe(struct platform_device *pdev)
 {
 	struct asm9260_nand_priv *priv;
@@ -1408,8 +1372,6 @@ static int asm9260_nand_probe(struct platform_device *pdev)
 
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;
-
-	asm9260_nand_alloc_dma(priv, 8192 + 448);
 
 	irq = irq_of_parse_and_map(np, 0);
 	if (!irq)

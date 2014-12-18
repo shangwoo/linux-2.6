@@ -21,6 +21,8 @@
 #include <linux/of_irq.h>
 #include <linux/of_platform.h>
 
+#define ASM9260_ECC_STEP		512
+
 #define mtd_to_priv(m)	container_of(m, struct asm9260_nand_priv, mtd)
 
 #define HW_CMD				0x00
@@ -713,6 +715,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
 	if (dma_ok) {
@@ -740,6 +743,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	if (dma_ok)
 		dma_sync_single_for_device(priv->dev, dma_addr, len,
 				DMA_TO_DEVICE);
@@ -763,6 +767,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 	u8 *temp_ptr;
 	temp_ptr = (u8 *)buf;
 
+	//printk("%s:%i oob:%i\n", __func__, __LINE__, oob_required);
 	asm9260_reg_rmw(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
 	chip->write_buf(mtd, temp_ptr, mtd->writesize);
 
@@ -773,13 +778,15 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 
 static unsigned int asm9260_nand_count_ecc(struct asm9260_nand_priv *priv)
 {
-	u32 tmp, i, count = 0;
+	u32 tmp, i, count, maxcount = 0;
 
 	/* FIXME: this layout was tested only on 2048byte NAND.
 	 * NANDs with bigger page size should use more registers. */
 	tmp = ioread32(priv->base + HW_ECC_ERR_CNT);
-	for (i = 0; i < 4; i++)
-		count += 0x1f & (tmp >> (5 * i));
+	for (i = 0; i < 4; i++) {
+		count = 0x1f & (tmp >> (5 * i));
+		maxcount = max_t(unsigned int, maxcount, count);
+	}
 
 	return count;
 }
@@ -799,18 +806,21 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);
+	status = 0;
 
-	max_bitflips = asm9260_nand_count_ecc(priv);
-
-	/* FIXME: do we need it for failed bit too? */
-	if (status & BM_ECC_ERR_UNC)
-		mtd->ecc_stats.failed += max_bitflips;
-	else if (status & BM_ECC_ERR_CORRECT)
+	if (status & BM_ECC_ERR_UNC) {
+		mtd->ecc_stats.failed++;
+		max_bitflips = 10;
+	} else if (status & BM_ECC_ERR_CORRECT) {
+		max_bitflips = asm9260_nand_count_ecc(priv);
 		mtd->ecc_stats.corrected += max_bitflips;
+	}
 
 	if (oob_required)
 		chip->ecc.read_oob(mtd, chip, page);
 
+	//printk("%s:%i oob:%i: bad:%i\n", __func__, __LINE__, oob_required,
+			//max_bitflips);
 	return max_bitflips;
 }
 
@@ -882,6 +892,10 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 
 static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
+	struct nand_chip *nand = &priv->nand;
+	struct mtd_info *mtd = &priv->mtd;
+	struct nand_sdr_timings *time;
+	int mode;
 	u32 twhr;
 	u32 trhw;
 	u32 trwh;
@@ -891,6 +905,14 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 	u32 tsync = 0;
 	u32 trr = 0;
 	u32 twb = 0;
+
+	printk("timeing: %i \n", nand->onfi_timing_mode_default);
+	mode = nand->onfi_timing_mode_default;
+	time = onfi_async_timing_mode_to_sdr_timings(mode);
+	if (IS_ERR_OR_NULL(time)) {
+		dev_err(priv->dev, "Can't get onfi_timing_mode: %i\n", mode);
+		return;
+	}
 
 	trwh = 1; //TWH;
 	trwp = 1; //TWP;
@@ -929,10 +951,41 @@ static int __init asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 	return ecc_bytes;
 }
 
-static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
+#if 0
+static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
+	struct device_node *np = priv->dev->of_node;
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
+	int ecc_strength;
+
+	ecc_strength = of_get_nand_ecc_strength(np);
+	if (ecc_strength < nand->ecc_strength_ds) {
+		/* Let's check if ONFI can help us. */
+		if (nand->ecc_strength_ds <= 0) {
+			/* No ONFI and no DT - it is bad. */
+			dev_err(priv->dev,
+					"ecc_strength is not set by DT or ONFI. Please set nand-ecc-strength in DT.\n");
+			return -EINVAL;
+		} else if (nand->ecc_step_ds == ASM9260_ECC_STEP)
+			ecc_strength = nand->ecc_strength_ds;
+		else if (nand->ecc_step_ds != ASM9260_ECC_STEP) {
+			dev_err(priv->dev, "FIXME: calculate ecc_strength!\n");
+			return -EINVAL;
+		}
+	} else if (ecc_strength == 0) {
+		
+	}
+#endif
+
+static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
+{
+	struct device_node *np = priv->dev->of_node;
+	struct nand_chip *nand = &priv->nand;
+	struct mtd_info *mtd = &priv->mtd;
+
+	printk("strenght: %i %i\n", nand->ecc_strength_ds, nand->ecc_step_ds);
+	printk("timeing: %i \n", nand->onfi_timing_mode_default);
 
 	if (nand->ecc.mode == NAND_ECC_HW) {
 		/* ECC is calculated for the whole page (1 step) */
@@ -1086,7 +1139,6 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-	asm9260_nand_timing_config(priv);
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
@@ -1094,6 +1146,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
+	asm9260_nand_timing_config(priv);
 	asm9260_nand_ecc_conf(priv);
 	asm9260_nand_cached_config(priv);
 

@@ -890,6 +890,17 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 
 }
 
+static unsigned long __init clk_get_cyc_from_ns(struct clk *clk,
+		unsigned long ns)
+{
+	unsigned int cycle, tmp;
+
+	cycle = NSEC_PER_SEC / clk_get_rate(clk);
+	tmp = DIV_ROUND_CLOSEST(ns, cycle);
+	printk("clk %i = %i / %i\n", tmp, ns, cycle);
+	return tmp;
+}
+
 static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
 	struct nand_chip *nand = &priv->nand;
@@ -906,7 +917,6 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 	u32 trr = 0;
 	u32 twb = 0;
 
-	printk("timeing: %i \n", nand->onfi_timing_mode_default);
 	mode = nand->onfi_timing_mode_default;
 	time = onfi_async_timing_mode_to_sdr_timings(mode);
 	if (IS_ERR_OR_NULL(time)) {
@@ -914,8 +924,9 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 		return;
 	}
 
-	trwh = 1; //TWH;
-	trwp = 1; //TWP;
+	trwh = clk_get_cyc_from_ns(priv->clk, time->tWH_min / 1000);
+	trwp = clk_get_cyc_from_ns(priv->clk, time->tWP_min / 1000);
+
 	iowrite32((trwh << 4) | (trwp), priv->base + HW_TIMING_ASYN);
 
 	twhr = 2;

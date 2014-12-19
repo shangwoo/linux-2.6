@@ -37,7 +37,7 @@
 	};
 	partition@04a00000 {
 		label = "yaffs";
-		reg = <0x04a00000 0x3600000>;
+		reg = <0x04a00000 0x3580000>;
 	};
 	partition@flash {
 		label = "flash";

@@ -208,6 +208,7 @@ struct asm9260_nand_priv {
 	u32 cmd_cache;
 	u32 ctrl_cache;
 	u32 mem_status_mask;
+	u32 page_cache;
 
 	unsigned int ecc_cap;
 	unsigned int ecc_threshold;
@@ -620,6 +621,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 
 		if (column == 0) {
+			priv->page_cache = page_addr;
 			asm9260_nand_ctrl(priv, 0);
 			iowrite32(priv->spare_size, priv->base + HW_SPARE_SIZE);
 		} else if (column == mtd->writesize) {
@@ -715,7 +717,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
-	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
+	printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
 	if (dma_ok) {
@@ -743,7 +745,6 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
-	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	if (dma_ok)
 		dma_sync_single_for_device(priv->dev, dma_addr, len,
 				DMA_TO_DEVICE);
@@ -759,20 +760,28 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	iowrite32_rep(priv->base + HW_FIFO_DATA, buf, len);
 }
 
+static int asm9260_nand_write_page_raw(struct mtd_info *mtd,
+		struct nand_chip *chip, const u8 *buf,
+		int oob_required)
+{
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+
+	chip->write_buf(mtd, buf, mtd->writesize);
+	if (oob_required)
+		chip->ecc.write_oob(mtd, chip, priv->page_cache &
+				chip->pagemask);
+	return 0;
+}
+
 static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 		struct nand_chip *chip, const u8 *buf,
 		int oob_required)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
-	u8 *temp_ptr;
-	temp_ptr = (u8 *)buf;
 
-	//printk("%s:%i oob:%i\n", __func__, __LINE__, oob_required);
 	asm9260_reg_rmw(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
-	chip->write_buf(mtd, temp_ptr, mtd->writesize);
+	chip->ecc.write_page_raw(mtd, chip, buf, oob_required);
 
-	if (oob_required)
-		chip->ecc.write_oob(mtd, chip, mtd->writesize);
 	return 0;
 }
 
@@ -819,8 +828,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	if (oob_required)
 		chip->ecc.read_oob(mtd, chip, page);
 
-	//printk("%s:%i oob:%i: bad:%i\n", __func__, __LINE__, oob_required,
-			//max_bitflips);
+	printk("%s:%i oob:%i: bad:%i\n", __func__, __LINE__, oob_required,
+			max_bitflips);
 	return max_bitflips;
 }
 
@@ -854,10 +863,12 @@ static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 
 	nand_chip->dev_ready	= asm9260_nand_dev_ready;
 	nand_chip->chip_delay	= 100;
+	nand_chip->options		|= NAND_NO_SUBPAGE_WRITE;
 
 	nand_chip->ecc.mode	= NAND_ECC_HW;
 
 	nand_chip->ecc.write_page	= asm9260_nand_write_page_hwecc;
+	nand_chip->ecc.write_page_raw	= asm9260_nand_write_page_raw;
 	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
 }
 
@@ -875,8 +886,8 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
 
 	priv->mem_status_mask = BM_CTRL_MEM0_RDY;
-	priv->ctrl_cache = BM_CTRL_READ_STAT
-		| addr_cycles << BM_CTRL_ADDR_CYCLE1_S
+	//priv->ctrl_cache = BM_CTRL_READ_STAT
+	priv->ctrl_cache = addr_cycles << BM_CTRL_ADDR_CYCLE1_S
 		| ((nand->page_shift - 8) & 0x7) << BM_CTRL_PAGE_SIZE_S
 		| ((block_shift - 5) & 0x3) << BM_CTRL_BLOCK_SIZE_S
 		| BM_CTRL_INT_EN
@@ -893,29 +904,18 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 static unsigned long __init clk_get_cyc_from_ns(struct clk *clk,
 		unsigned long ns)
 {
-	unsigned int cycle, tmp;
+	unsigned int cycle;
 
 	cycle = NSEC_PER_SEC / clk_get_rate(clk);
-	tmp = DIV_ROUND_CLOSEST(ns, cycle);
-	printk("clk %i = %i / %i\n", tmp, ns, cycle);
-	return tmp;
+	return DIV_ROUND_CLOSEST(ns, cycle);
 }
 
 static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 {
 	struct nand_chip *nand = &priv->nand;
-	struct mtd_info *mtd = &priv->mtd;
-	struct nand_sdr_timings *time;
+	const struct nand_sdr_timings *time;
+	u32 twhr, trhw, trwh, trwp, tadl, tccs, tsync, trr, twb;
 	int mode;
-	u32 twhr;
-	u32 trhw;
-	u32 trwh;
-	u32 trwp;
-	u32 tadl = 0;
-	u32 tccs = 0;
-	u32 tsync = 0;
-	u32 trr = 0;
-	u32 twb = 0;
 
 	mode = nand->onfi_timing_mode_default;
 	time = onfi_async_timing_mode_to_sdr_timings(mode);
@@ -929,11 +929,20 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 
 	iowrite32((trwh << 4) | (trwp), priv->base + HW_TIMING_ASYN);
 
-	twhr = 2;
-	trhw = 4;
+	twhr = clk_get_cyc_from_ns(priv->clk, time->tWHR_min / 1000);
+	trhw = clk_get_cyc_from_ns(priv->clk, time->tRHW_min / 1000);
+	tadl = clk_get_cyc_from_ns(priv->clk, time->tADL_min / 1000);
+	/* tCCS - change read/write collumn. Time between last cmd and data. */
+	tccs = clk_get_cyc_from_ns(priv->clk,
+			(time->tCLR_min + time->tCLH_min + time->tRC_min)
+			/ 1000);
+
 	iowrite32((twhr << 24) | (trhw << 16)
 		| (tadl << 8) | (tccs), priv->base + HW_TIM_SEQ_0);
 
+	trr = clk_get_cyc_from_ns(priv->clk, time->tRR_min / 1000);
+	tsync = 0; /* ??? */
+	twb = clk_get_cyc_from_ns(priv->clk, time->tWB_max / 1000);
 	iowrite32((tsync << 16) | (trr << 9) | (twb),
 			priv->base + HW_TIM_SEQ_1);
 }
@@ -991,7 +1000,6 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 
 static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
-	struct device_node *np = priv->dev->of_node;
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
 

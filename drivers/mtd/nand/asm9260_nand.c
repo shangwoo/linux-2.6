@@ -717,7 +717,7 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
-	printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
+	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
 	if (dma_ok) {
@@ -815,11 +815,11 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);
-	status = 0;
+	//status = 0;
 
 	if (status & BM_ECC_ERR_UNC) {
 		mtd->ecc_stats.failed++;
-		max_bitflips = 10;
+		//max_bitflips = 10;
 	} else if (status & BM_ECC_ERR_CORRECT) {
 		max_bitflips = asm9260_nand_count_ecc(priv);
 		mtd->ecc_stats.corrected += max_bitflips;
@@ -828,8 +828,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	if (oob_required)
 		chip->ecc.read_oob(mtd, chip, page);
 
-	printk("%s:%i oob:%i: bad:%i\n", __func__, __LINE__, oob_required,
-			max_bitflips);
+	//printk("%s:%i oob:%i: bad:%i\n", __func__, __LINE__, oob_required,
+//			max_bitflips);
 	return max_bitflips;
 }
 
@@ -863,7 +863,12 @@ static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 
 	nand_chip->dev_ready	= asm9260_nand_dev_ready;
 	nand_chip->chip_delay	= 100;
-	nand_chip->options		|= NAND_NO_SUBPAGE_WRITE;
+	nand_chip->options	|= NAND_NO_SUBPAGE_WRITE;
+	/* FIXME: use of_get_nand_on_flash_bbt(np); */
+#if 1
+	nand_chip->bbt_options	= NAND_BBT_USE_FLASH
+		| NAND_BBT_NO_OOB_BBM | NAND_BBT_LASTBLOCK;
+#endif
 
 	nand_chip->ecc.mode	= NAND_ECC_HW;
 
@@ -886,7 +891,6 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
 
 	priv->mem_status_mask = BM_CTRL_MEM0_RDY;
-	//priv->ctrl_cache = BM_CTRL_READ_STAT
 	priv->ctrl_cache = addr_cycles << BM_CTRL_ADDR_CYCLE1_S
 		| ((nand->page_shift - 8) & 0x7) << BM_CTRL_PAGE_SIZE_S
 		| ((block_shift - 5) & 0x3) << BM_CTRL_BLOCK_SIZE_S

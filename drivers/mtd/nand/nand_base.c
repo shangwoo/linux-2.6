@@ -1096,6 +1096,7 @@ EXPORT_SYMBOL(nand_lock);
 static int nand_read_page_raw(struct mtd_info *mtd, struct nand_chip *chip,
 			      uint8_t *buf, int oob_required, int page)
 {
+	printk("%s:%i\n", __func__, __LINE__);
 	chip->read_buf(mtd, buf, mtd->writesize);
 	if (oob_required)
 		chip->read_buf(mtd, chip->oob_poi, mtd->oobsize);

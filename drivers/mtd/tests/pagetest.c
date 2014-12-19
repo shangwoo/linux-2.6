@@ -33,7 +33,7 @@
 
 #include "mtd_test.h"
 
-static int dev = -EINVAL;
+static int dev = 0;
 module_param(dev, int, S_IRUGO);
 MODULE_PARM_DESC(dev, "MTD device number to use");
 

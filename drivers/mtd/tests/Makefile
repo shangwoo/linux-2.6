@@ -8,6 +8,8 @@ obj-$(CONFIG_MTD_TESTS) += mtd_torturetest.o
 obj-$(CONFIG_MTD_TESTS) += mtd_nandecctest.o
 obj-$(CONFIG_MTD_TESTS) += mtd_nandbiterrs.o
 
+#obj-y += mtd_pagetest.o
+
 mtd_oobtest-objs := oobtest.o mtd_test.o
 mtd_pagetest-objs := pagetest.o mtd_test.o
 mtd_readtest-objs := readtest.o mtd_test.o

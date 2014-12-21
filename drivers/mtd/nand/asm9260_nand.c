@@ -829,7 +829,8 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 
 		ecc_err = ioread32(priv->base + HW_ECC_ERR_CNT);
 		/* check if it is erased page (all_DATA_OOB == 0xff) */
-		/* FIXME: should be tested if it is a bullet proof solution. */
+		/* FIXME: should be tested if it is a bullet proof solution.
+		 *  if not, use is_buf_blank. */
 		if (ecc_err != 0x8421) {
 			mtd->ecc_stats.failed++;
 			max_bitflips = ecc_err;

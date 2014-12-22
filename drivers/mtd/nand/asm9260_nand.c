@@ -714,15 +714,23 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	dma_addr_t dma_addr;
-	int dma_ok;
+	int dma_ok = 0;
 
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
 	}
 
-	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
-	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	/*
+	 * I hate you UBI for your all vmalloc. Be slow as hell with PIO.
+	 * ~ with love from ZeroCopy ~
+	 */
+	if (!is_vmalloc_addr(buf)) {
+		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
+		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	} else
+		printk("vmalloc r!\n");
+	//dma_ok = 0;
 	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
@@ -742,15 +750,19 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	dma_addr_t dma_addr;
-	int dma_ok;
+	int dma_ok = 0;
 
 	if (len & 0x3) {
 		dev_err(priv->dev, "Unsupported length (%x)\n", len);
 		return;
 	}
 
-	dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
-	dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	if (!is_vmalloc_addr(buf)) {
+		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
+		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
+	} else
+		printk("vmalloc w!\n");
+
 	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	if (dma_ok)
 		dma_sync_single_for_device(priv->dev, dma_addr, len,

@@ -188,6 +188,7 @@ static int vtbl_check(const struct ubi_device *ubi,
 		name_len = be16_to_cpu(vtbl[i].name_len);
 		name = &vtbl[i].name[0];
 
+		printk("vtbl size %x\n", sizeof(struct ubi_vtbl_record));
 		crc = crc32(UBI_CRC32_INIT, &vtbl[i], UBI_VTBL_RECORD_SIZE_CRC);
 		if (be32_to_cpu(vtbl[i].crc) != crc) {
 			ubi_err("bad CRC at record %u: %#08x, not %#08x",

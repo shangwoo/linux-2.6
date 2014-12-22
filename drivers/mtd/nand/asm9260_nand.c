@@ -571,7 +571,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 	switch (command) {
 	case NAND_CMD_RESET:
-		//printk("RESET\n");
 		asm9260_nand_cmd_prep(priv, NAND_CMD_RESET, 0, 0, SEQ0);
 		asm9260_nand_cmd_comp(mtd, 0);
 		break;
@@ -597,7 +596,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		column += mtd->writesize;
 		command = NAND_CMD_READ0;
 	case NAND_CMD_READ0:
-		//printk("READ0\n");
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 
 		if (column == 0) {
@@ -620,8 +618,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		priv->read_cache_cnt = 0;
 		break;
 	case NAND_CMD_SEQIN:
-
-		//printk("SEQIN\n");
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 
 		if (column == 0) {
@@ -640,7 +636,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 
 		break;
 	case NAND_CMD_STATUS:
-		//printk("STATUS\n");
 		iowrite32(1, priv->base + HW_FIFO_INIT);
 		asm9260_nand_ctrl(priv, BM_CTRL_CUSTOM_PAGE_SIZE);
 
@@ -658,7 +653,6 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		break;
 
 	case NAND_CMD_ERASE1:
-		//printk("ERASE1\n");
 		asm9260_nand_set_addr(priv, page_addr, column);
 
 		asm9260_nand_ctrl(priv, 0);
@@ -728,14 +722,12 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 	if (!is_vmalloc_addr(buf)) {
 		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
-	} else
-		printk("vmalloc r!\n");
-	//dma_ok = 0;
-	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
+	}
 	asm9260_nand_cmd_comp(mtd, dma_ok);
 
 	if (dma_ok) {
-		dma_sync_single_for_cpu(priv->dev, dma_addr, len, DMA_FROM_DEVICE);
+		dma_sync_single_for_cpu(priv->dev, dma_addr, len,
+				DMA_FROM_DEVICE);
 		dma_unmap_single(priv->dev, dma_addr, len, DMA_FROM_DEVICE);
 		return;
 	}
@@ -760,10 +752,8 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	if (!is_vmalloc_addr(buf)) {
 		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
 		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
-	} else
-		printk("vmalloc w!\n");
+	}
 
-	//printk("%s:%i len:%i dma:%x\n", __func__, __LINE__, len, dma_ok);
 	if (dma_ok)
 		dma_sync_single_for_device(priv->dev, dma_addr, len,
 				DMA_TO_DEVICE);
@@ -834,7 +824,6 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);
-	//status = 0;
 
 	if (status & BM_ECC_ERR_UNC) {
 		u32 ecc_err;
@@ -843,10 +832,9 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 		/* check if it is erased page (all_DATA_OOB == 0xff) */
 		/* FIXME: should be tested if it is a bullet proof solution.
 		 *  if not, use is_buf_blank. */
-		if (ecc_err != 0x8421) {
+		if (ecc_err != 0x8421)
 			mtd->ecc_stats.failed++;
-			max_bitflips = ecc_err;
-		}
+
 	} else if (status & BM_ECC_ERR_CORRECT) {
 		max_bitflips = asm9260_nand_count_ecc(priv);
 		mtd->ecc_stats.corrected += max_bitflips;
@@ -855,8 +843,6 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	if (oob_required)
 		chip->ecc.read_oob(mtd, chip, page);
 
-//	printk("%s:%i oob:%i: bad:%x\n", __func__, __LINE__, oob_required,
-//			max_bitflips);
 	return max_bitflips;
 }
 
@@ -1033,9 +1019,6 @@ static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
-
-	//printk("strenght: %i %i\n", nand->ecc_strength_ds, nand->ecc_step_ds);
-	//printk("timeing: %i \n", nand->onfi_timing_mode_default);
 
 	if (nand->ecc.mode == NAND_ECC_HW) {
 		/* ECC is calculated for the whole page (1 step) */

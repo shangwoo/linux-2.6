@@ -24,6 +24,9 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <1>;
+	nand-ecc-strength = <4>;
+	nand-max-chips = <1>;
+	nand-on-flash-bbt;
 
 	partition@00a00000 {
 		label = "logo";

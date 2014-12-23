@@ -20,6 +20,7 @@
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
 #include <linux/of_platform.h>
+#include <linux/of_mtd.h>
 
 #define ASM9260_ECC_STEP		512
 
@@ -988,8 +989,8 @@ static int __init asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 	return ecc_bytes;
 }
 
-#if 0
-static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
+#if 1
+static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
 {
 	struct device_node *np = priv->dev->of_node;
 	struct nand_chip *nand = &priv->nand;
@@ -1002,7 +1003,7 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 		if (nand->ecc_strength_ds <= 0) {
 			/* No ONFI and no DT - it is bad. */
 			dev_err(priv->dev,
-					"ecc_strength is not set by DT or ONFI. Please set nand-ecc-strength in DT.\n");
+					"nand-ecc-strength is not set by DT or ONFI. Please set nand-ecc-strength in DT or add chip quirk in nand_ids.c.\n");
 			return -EINVAL;
 		} else if (nand->ecc_step_ds == ASM9260_ECC_STEP)
 			ecc_strength = nand->ecc_strength_ds;
@@ -1011,14 +1012,21 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 			return -EINVAL;
 		}
 	} else if (ecc_strength == 0) {
-		
+		dev_err(priv->dev,
+				"DT has not supported nand-ecc-strength value: %i\n",
+				ecc_strength);
 	}
+	/* FIXME: check if ECC can be stored in OOB. */
+	printk("!!!!!!!!! ecc %x\n", ecc_strength);
+}
 #endif
 
 static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
+
+	asm9260_nand_ecc_confi1(priv);
 
 	if (nand->ecc.mode == NAND_ECC_HW) {
 		/* ECC is calculated for the whole page (1 step) */

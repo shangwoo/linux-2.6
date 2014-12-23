@@ -990,7 +990,7 @@ static int __init asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 	return ecc_bytes;
 }
 
-static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
+static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
 	struct device_node *np = priv->dev->of_node;
 	struct nand_chip *nand = &priv->nand;
@@ -1049,83 +1049,6 @@ static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
 	for (i = 0; i < ecc_layout->eccbytes; i++)
 		ecc_layout->eccpos[i] = priv->spare_size + i;
 
-}
-
-static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
-{
-	struct nand_chip *nand = &priv->nand;
-	struct mtd_info *mtd = &priv->mtd;
-
-	asm9260_nand_ecc_confi1(priv);
-	return;
-
-	if (nand->ecc.mode == NAND_ECC_HW) {
-		/* ECC is calculated for the whole page (1 step) */
-		nand->ecc.size = mtd->writesize;
-
-		/* set ECC page size and oob layout */
-		switch (mtd->writesize) {
-			case 2048:
-				nand->ecc.bytes  =
-					asm9260_ecc_cap_select(priv, 2048,
-							mtd->oobsize);
-				nand->ecc.layout = &asm9260_nand_oob_64;
-				nand->ecc.strength = 4;
-				break;
-
-			case 4096:
-				nand->ecc.bytes =
-					asm9260_ecc_cap_select(priv, 4096,
-							mtd->oobsize);
-
-				if (mtd->oobsize == 128) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_128;
-					nand->ecc.strength = 6;
-				} else if (mtd->oobsize == 218) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_218;
-					nand->ecc.strength = 14;
-				} else if (mtd->oobsize == 224) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_224;
-					nand->ecc.strength = 14;
-				} else
-					dev_err(priv->dev, "Unsupported Oob size [%d].\n",
-							mtd->oobsize);
-
-				break;
-
-			case 8192:
-				nand->ecc.bytes =
-					asm9260_ecc_cap_select(priv, 8192,
-							mtd->oobsize);
-
-				if (mtd->oobsize == 256) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_256;
-					nand->ecc.strength = 8;
-				} else if (mtd->oobsize == 436) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_436;
-					nand->ecc.strength = 14;
-				} else if (mtd->oobsize == 448) {
-					nand->ecc.layout =
-						&asm9260_nand_oob_448;
-					nand->ecc.strength = 16;
-				} else
-					dev_err(priv->dev, "Unsupported Oob size [%d].\n",
-							mtd->oobsize);
-				break;
-
-			default:
-				dev_err(priv->dev, "Unsupported Page size [%d].\n",
-						mtd->writesize);
-				break;
-		}
-	}
-
-	priv->spare_size = mtd->oobsize - nand->ecc.bytes;
 }
 
 static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)

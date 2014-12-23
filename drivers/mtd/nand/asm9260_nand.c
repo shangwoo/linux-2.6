@@ -197,6 +197,7 @@ struct asm9260_nand_priv {
 	struct device		*dev;
 	struct mtd_info		mtd;
 	struct nand_chip	nand;
+	struct nand_ecclayout	ecc_layout;
 
 	struct clk		*clk;
 	struct clk		*clk_ahb;
@@ -989,13 +990,13 @@ static int __init asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
 	return ecc_bytes;
 }
 
-#if 1
 static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
 {
 	struct device_node *np = priv->dev->of_node;
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
-	int ecc_strength;
+	struct nand_ecclayout *ecc_layout = &priv->ecc_layout;
+	int i, ecc_strength, ecc_blocks, calc_ecc_size, tmp;
 
 	ecc_strength = of_get_nand_ecc_strength(np);
 	if (ecc_strength < nand->ecc_strength_ds) {
@@ -1005,9 +1006,11 @@ static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
 			dev_err(priv->dev,
 					"nand-ecc-strength is not set by DT or ONFI. Please set nand-ecc-strength in DT or add chip quirk in nand_ids.c.\n");
 			return -EINVAL;
-		} else if (nand->ecc_step_ds == ASM9260_ECC_STEP)
+		} else if (nand->ecc_step_ds == ASM9260_ECC_STEP) {
 			ecc_strength = nand->ecc_strength_ds;
-		else if (nand->ecc_step_ds != ASM9260_ECC_STEP) {
+			dev_info(priv->dev, "Using ONFI:nand-ecc-strength = %i\n",
+					ecc_strength);
+		} else if (nand->ecc_step_ds != ASM9260_ECC_STEP) {
 			dev_err(priv->dev, "FIXME: calculate ecc_strength!\n");
 			return -EINVAL;
 		}
@@ -1015,11 +1018,38 @@ static int __init asm9260_nand_ecc_confi1(struct asm9260_nand_priv *priv)
 		dev_err(priv->dev,
 				"DT has not supported nand-ecc-strength value: %i\n",
 				ecc_strength);
-	}
-	/* FIXME: check if ECC can be stored in OOB. */
-	printk("!!!!!!!!! ecc %x\n", ecc_strength);
+		return -EINVAL;
+	} else
+		dev_info(priv->dev, "Using DT:nand-ecc-strength = %i\n",
+				ecc_strength);
+
+	/* FIXME: do we have max or min page size? */
+	ecc_blocks = mtd->writesize / ASM9260_ECC_STEP;
+	/* 13 - the smallest integer for 512 (ASM9260_ECC_STEP). Div to 8bit. */
+	calc_ecc_size = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
+	/* FIXME: 4 is random reserve */
+	tmp = calc_ecc_size * ecc_blocks;
+	printk("!!!!! %i\n", tmp);
+	//if (tmp + 4 > mtd->oobsize)
+	ecc_layout->eccbytes = nand->ecc.bytes = tmp;
+	nand->ecc.layout = ecc_layout;
+	nand->ecc.strength = ecc_strength;
+	/* FIXME: is it true? actually 512B?! */
+	nand->ecc.size = mtd->writesize;
+
+	tmp = asm9260_ecc_cap_select(priv, mtd->writesize, mtd->oobsize);
+	printk("!!!!! %i\n", tmp);
+
+	priv->spare_size = mtd->oobsize - nand->ecc.bytes;
+
+	ecc_layout->oobfree[0].offset = 2;
+	ecc_layout->oobfree[0].length = priv->spare_size - 2;
+
+	/* FIXME: can we use same layout as SW_ECC? */
+	for (i = 0; i < ecc_layout->eccbytes; i++)
+		ecc_layout->eccpos[i] = priv->spare_size + i;
+
 }
-#endif
 
 static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
@@ -1027,6 +1057,7 @@ static void __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	struct mtd_info *mtd = &priv->mtd;
 
 	asm9260_nand_ecc_confi1(priv);
+	return;
 
 	if (nand->ecc.mode == NAND_ECC_HW) {
 		/* ECC is calculated for the whole page (1 step) */

@@ -219,34 +219,6 @@ struct asm9260_nand_priv {
 	unsigned int spare_size;
 };
 
-/**
- * struct ecc_info - ASAP1826T ECC INFO Structure
- * @ecc_cap:	The ECC module correction ability.
- * @ecc_threshold:		The acceptable errors level
- * @ecc_bytes_per_sector:		ECC bytes per sector
- */
-struct ecc_info {
-	int ecc_cap;
-	int ecc_threshold;
-	int ecc_bytes_per_sector;
-};
-
-/*
-*	ECC info list
-*
-*	ecc_cap, ecc_threshold, ecc bytes per sector
-*/
-struct ecc_info ecc_info_table[8] = {
-	{ECC_CAP_2, ECC_THRESHOLD_2, 4},
-	{ECC_CAP_4, ECC_THRESHOLD_4, 7},
-	{ECC_CAP_6, ECC_THRESHOLD_6, 10},
-	{ECC_CAP_8, ECC_THRESHOLD_8, 13},
-	{ECC_CAP_10, ECC_THRESHOLD_10, 17},
-	{ECC_CAP_12, ECC_THRESHOLD_12, 20},
-	{ECC_CAP_14, ECC_THRESHOLD_14, 23},
-	{ECC_CAP_16, ECC_THRESHOLD_15, 26},
-};
-
 static void asm9260_reg_rmw(struct asm9260_nand_priv *priv,
 		u32 reg_offset, u32 set, u32 clr)
 {
@@ -718,8 +690,7 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 		| BM_CTRL_INT_EN
 		| addr_cycles << BM_CTRL_ADDR_CYCLE0_S;
 
-	iowrite32(nand->ecc.strength << BM_ECC_ERR_THRESHOLD_S
-			| BM_ECC_CAPn(nand->ecc.strength) << BM_ECC_CAP_S,
+	iowrite32(BM_ECC_CAPn(nand->ecc.strength) << BM_ECC_CAP_S,
 			priv->base + HW_ECC_CTRL);
 
 	iowrite32(mtd->writesize + priv->spare_size,
@@ -773,30 +744,6 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 			priv->base + HW_TIM_SEQ_1);
 }
 
-static int __init asm9260_ecc_cap_select(struct asm9260_nand_priv *priv,
-		int nand_page_size, int nand_oob_size)
-{
-	int ecc_bytes = 0;
-	int i;
-
-	for (i=(ARRAY_SIZE(ecc_info_table) - 1); i>=0; i--)
-	{
-		if ((nand_oob_size - ecc_info_table[i].ecc_bytes_per_sector
-					* (nand_page_size >> 9)) > (28 + 2))
-		{
-			priv->ecc_cap =
-				ecc_info_table[i].ecc_cap;
-			priv->ecc_threshold =
-				ecc_info_table[i].ecc_threshold;
-			ecc_bytes = ecc_info_table[i].ecc_bytes_per_sector
-				* (nand_page_size >> 9);
-			break;
-		}
-	}
-
-	return ecc_bytes;
-}
-
 static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 {
 	struct device_node *np = priv->dev->of_node;
@@ -846,11 +793,9 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	/* 13 - the smallest integer for 512 (ASM9260_ECC_STEP). Div to 8bit. */
 	nand->ecc.bytes = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
 
-	ecc_layout->eccbytes =
-		nand->ecc.bytes * nand->ecc.steps;
+	ecc_layout->eccbytes = nand->ecc.bytes * nand->ecc.steps;
 	nand->ecc.layout = ecc_layout;
 	nand->ecc.strength = ecc_strength;
-	/* FIXME: is it true? actually 512B?! */
 
 	priv->spare_size = mtd->oobsize - ecc_layout->eccbytes;
 

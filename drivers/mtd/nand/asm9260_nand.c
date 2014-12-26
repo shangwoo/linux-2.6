@@ -23,6 +23,7 @@
 #include <linux/of_mtd.h>
 
 #define ASM9260_ECC_STEP		512
+#define ASM9260_ECC_MAX_BIT		16
 
 #define mtd_to_priv(m)	container_of(m, struct asm9260_nand_priv, mtd)
 
@@ -112,6 +113,7 @@
 #define HW_ECC_CTRL			0x14
 /* bits per 512 bytes */
 #define	BM_ECC_CAP_S			5
+#define BM_ECC_CAPn(x)			(((x) >> 1) - 1)
 /* FIXME: reduce all this defines */
 #define  ECC_CAP_2			0x0
 #define  ECC_CAP_4			0x1
@@ -716,9 +718,10 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 		| BM_CTRL_INT_EN
 		| addr_cycles << BM_CTRL_ADDR_CYCLE0_S;
 
-	iowrite32(priv->ecc_threshold << BM_ECC_ERR_THRESHOLD_S
-			| priv->ecc_cap << BM_ECC_CAP_S,
+	iowrite32(nand->ecc.strength << BM_ECC_ERR_THRESHOLD_S
+			| BM_ECC_CAPn(nand->ecc.strength) << BM_ECC_CAP_S,
 			priv->base + HW_ECC_CTRL);
+
 	iowrite32(mtd->writesize + priv->spare_size,
 			priv->base + HW_ECC_OFFSET);
 
@@ -800,7 +803,7 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
 	struct nand_ecclayout *ecc_layout = &priv->ecc_layout;
-	int i, ecc_strength, ecc_blocks, calc_ecc_size, tmp;
+	int i, ecc_strength;
 
 	ecc_strength = of_get_nand_ecc_strength(np);
 	if (ecc_strength < nand->ecc_strength_ds) {
@@ -818,33 +821,38 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 			dev_err(priv->dev, "FIXME: calculate ecc_strength!\n");
 			return -EINVAL;
 		}
-	} else if (ecc_strength == 0) {
-		dev_err(priv->dev,
-				"DT has not supported nand-ecc-strength value: %i\n",
-				ecc_strength);
-		return -EINVAL;
 	} else
-		dev_info(priv->dev, "Using DT:nand-ecc-strength = %i\n",
+		dev_info(priv->dev, "Found DT:nand-ecc-strength = %i\n",
 				ecc_strength);
 
+	if (ecc_strength == 0 || ecc_strength > ASM9260_ECC_MAX_BIT) {
+		dev_err(priv->dev,
+				"Not supported ecc_strength value: %i\n",
+				ecc_strength);
+		return -EINVAL;
+	}
+
+	if (ecc_strength & 0x1) {
+		ecc_strength++;
+		dev_info(priv->dev,
+				"Only even ecc_strength value is supported. Recalculating: %i\n",
+		       ecc_strength);
+	}
+
 	/* FIXME: do we have max or min page size? */
-	ecc_blocks = mtd->writesize / ASM9260_ECC_STEP;
+
+	nand->ecc.size = ASM9260_ECC_STEP;
+	nand->ecc.steps = mtd->writesize / nand->ecc.size;
 	/* 13 - the smallest integer for 512 (ASM9260_ECC_STEP). Div to 8bit. */
-	calc_ecc_size = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
-	/* FIXME: 4 is random reserve */
-	tmp = calc_ecc_size * ecc_blocks;
-	printk("!!!!! %i\n", tmp);
-	//if (tmp + 4 > mtd->oobsize)
-	ecc_layout->eccbytes = nand->ecc.bytes = tmp;
+	nand->ecc.bytes = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
+
+	ecc_layout->eccbytes =
+		nand->ecc.bytes * nand->ecc.steps;
 	nand->ecc.layout = ecc_layout;
 	nand->ecc.strength = ecc_strength;
 	/* FIXME: is it true? actually 512B?! */
-	nand->ecc.size = mtd->writesize;
 
-	tmp = asm9260_ecc_cap_select(priv, mtd->writesize, mtd->oobsize);
-	printk("!!!!! %i\n", tmp);
-
-	priv->spare_size = mtd->oobsize - nand->ecc.bytes;
+	priv->spare_size = mtd->oobsize - ecc_layout->eccbytes;
 
 	ecc_layout->oobfree[0].offset = 2;
 	ecc_layout->oobfree[0].length = priv->spare_size - 2;
@@ -852,7 +860,6 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	/* FIXME: can we use same layout as SW_ECC? */
 	for (i = 0; i < ecc_layout->eccbytes; i++)
 		ecc_layout->eccpos[i] = priv->spare_size + i;
-
 }
 
 static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)

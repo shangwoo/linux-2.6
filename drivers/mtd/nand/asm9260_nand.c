@@ -214,8 +214,6 @@ struct asm9260_nand_priv {
 	u32 mem_status_mask;
 	u32 page_cache;
 
-	unsigned int ecc_cap;
-	unsigned int ecc_threshold;
 	unsigned int spare_size;
 };
 
@@ -753,23 +751,27 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	int i, ecc_strength;
 
 	ecc_strength = of_get_nand_ecc_strength(np);
+	nand->ecc.size = ASM9260_ECC_STEP;
+	nand->ecc.steps = mtd->writesize / nand->ecc.size;
+
 	if (ecc_strength < nand->ecc_strength_ds) {
+		int ds_corr;
+
 		/* Let's check if ONFI can help us. */
 		if (nand->ecc_strength_ds <= 0) {
 			/* No ONFI and no DT - it is bad. */
 			dev_err(priv->dev,
 					"nand-ecc-strength is not set by DT or ONFI. Please set nand-ecc-strength in DT or add chip quirk in nand_ids.c.\n");
 			return -EINVAL;
-		} else if (nand->ecc_step_ds == ASM9260_ECC_STEP) {
-			ecc_strength = nand->ecc_strength_ds;
-			dev_info(priv->dev, "Using ONFI:nand-ecc-strength = %i\n",
-					ecc_strength);
-		} else if (nand->ecc_step_ds != ASM9260_ECC_STEP) {
-			dev_err(priv->dev, "FIXME: calculate ecc_strength!\n");
-			return -EINVAL;
 		}
+
+		ds_corr = (mtd->writesize * chip->ecc_strength_ds) /
+			chip->ecc_step_ds;
+		ecc_strength = ds_corr / nand->ecc.steps;
+		dev_info(priv->dev, "ONFI:nand-ecc-strength = %i\n",
+				ecc_strength);
 	} else
-		dev_info(priv->dev, "Found DT:nand-ecc-strength = %i\n",
+		dev_info(priv->dev, "DT:nand-ecc-strength = %i\n",
 				ecc_strength);
 
 	if (ecc_strength == 0 || ecc_strength > ASM9260_ECC_MAX_BIT) {
@@ -788,8 +790,6 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 
 	/* FIXME: do we have max or min page size? */
 
-	nand->ecc.size = ASM9260_ECC_STEP;
-	nand->ecc.steps = mtd->writesize / nand->ecc.size;
 	/* 13 - the smallest integer for 512 (ASM9260_ECC_STEP). Div to 8bit. */
 	nand->ecc.bytes = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
 

@@ -708,6 +708,8 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 	int mode;
 
 	mode = nand->onfi_timing_mode_default;
+	dev_info(priv->dev, "ONFI timing mode: %i\n", mode);
+
 	time = onfi_async_timing_mode_to_sdr_timings(mode);
 	if (IS_ERR_OR_NULL(time)) {
 		dev_err(priv->dev, "Can't get onfi_timing_mode: %i\n", mode);
@@ -885,14 +887,16 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-	if (of_get_nand_on_flash_bbt(np))
-		nand->bbt_options = NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB_BBM
-			| NAND_BBT_LASTBLOCK;
-
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
 		dev_err(&pdev->dev, "scan_ident filed!\n");
 		return -ENXIO;
+	}
+
+	if (of_get_nand_on_flash_bbt(np)) {
+		dev_info(&pdev->dev, "Use On Flash BBT\n");
+		nand->bbt_options = NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB_BBM
+			| NAND_BBT_LASTBLOCK;
 	}
 
 	asm9260_nand_timing_config(priv);

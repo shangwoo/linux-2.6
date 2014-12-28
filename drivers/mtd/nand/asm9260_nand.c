@@ -749,9 +749,9 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	switch (nand->ecc.mode) {
 	case NAND_ECC_SOFT:
 	case NAND_ECC_SOFT_BCH:
-		dev_info(priv->dev, "Using soft ECC\n");
+		dev_info(priv->dev, "Using soft ECC %i\n", nand->ecc.mode);
 		/* nand_base will find needed settings */
-		return;
+		return 0;
 	case NAND_ECC_HW:
 	default:
 		dev_info(priv->dev, "Using default NAND_ECC_HW\n");
@@ -814,6 +814,8 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	/* FIXME: can we use same layout as SW_ECC? */
 	for (i = 0; i < ecc_layout->eccbytes; i++)
 		ecc_layout->eccpos[i] = priv->spare_size + i;
+
+	return 0;
 }
 
 static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)

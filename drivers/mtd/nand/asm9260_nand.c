@@ -655,11 +655,6 @@ static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->dev_ready	= asm9260_nand_dev_ready;
 	nand_chip->chip_delay	= 100;
 	nand_chip->options	|= NAND_NO_SUBPAGE_WRITE;
-	/* FIXME: use of_get_nand_on_flash_bbt(np); */
-#if 1
-	nand_chip->bbt_options	= NAND_BBT_USE_FLASH
-		| NAND_BBT_NO_OOB_BBM | NAND_BBT_LASTBLOCK;
-#endif
 
 	nand_chip->ecc.mode	= NAND_ECC_HW;
 
@@ -890,6 +885,9 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
+	if (of_get_nand_on_flash_bbt(np))
+		nand->bbt_options = NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB_BBM
+			| NAND_BBT_LASTBLOCK;
 
 	/* first scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {

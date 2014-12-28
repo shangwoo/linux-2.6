@@ -528,7 +528,7 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	}
 
 	if (!is_vmalloc_addr(buf)) {
-		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_TO_DEVICE, len);
+		dma_addr = asm9260_nand_dma_set(mtd, (void *)buf, DMA_TO_DEVICE, len);
 		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
 	}
 

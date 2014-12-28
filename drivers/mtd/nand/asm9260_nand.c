@@ -656,8 +656,6 @@ static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->chip_delay	= 100;
 	nand_chip->options	|= NAND_NO_SUBPAGE_WRITE;
 
-	nand_chip->ecc.mode	= NAND_ECC_HW;
-
 	nand_chip->ecc.write_page	= asm9260_nand_write_page_hwecc;
 	nand_chip->ecc.write_page_raw	= asm9260_nand_write_page_raw;
 	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
@@ -746,6 +744,20 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	struct mtd_info *mtd = &priv->mtd;
 	struct nand_ecclayout *ecc_layout = &priv->ecc_layout;
 	int i, ecc_strength;
+
+	nand->ecc.mode = of_get_nand_ecc_mode(np);
+	switch (nand->ecc.mode) {
+	case NAND_ECC_SOFT:
+	case NAND_ECC_SOFT_BCH:
+		dev_info(priv->dev, "Using soft ECC\n");
+		/* nand_base will find needed settings */
+		return;
+	case NAND_ECC_HW:
+	default:
+		dev_info(priv->dev, "Using default NAND_ECC_HW\n");
+		nand->ecc.mode = NAND_ECC_HW;
+		break;
+	}
 
 	ecc_strength = of_get_nand_ecc_strength(np);
 	nand->ecc.size = ASM9260_ECC_STEP;

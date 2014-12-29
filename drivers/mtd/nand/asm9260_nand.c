@@ -107,6 +107,7 @@
 #define HW_INT_MASK			0x0c
 #define HW_INT_STATUS			0x10
 #define BM_INT_FIFO_ERROR		BIT(12)
+#define BM_INT_MEM_RDY_S		4
 /* MEM1_RDY (BIT5) - MEM7_RDY (BIT11) */
 #define BM_INT_MEM0_RDY			BIT(4)
 #define BM_INT_ECC_TRSH_ERR		BIT(3)
@@ -191,8 +192,9 @@ struct asm9260_nand_priv {
 	int read_cache_cnt;
 	u32 cmd_cache;
 	u32 ctrl_cache;
-	u32 mem_status_mask;
+	u32 mem_mask;
 	u32 page_cache;
+	unsigned int wait_time;
 
 	unsigned int spare_size;
 };
@@ -267,8 +269,8 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	if (dma) {
 		priv->cmd_cache |= BM_CMD_DMA;
 		priv->irq_done = 0;
-		/* FIXME: should we allow all MEM* device? */
-		iowrite32(BM_INT_MEM0_RDY, priv->base + HW_INT_MASK);
+		iowrite32(priv->mem_mask << BM_INT_MEM_RDY_S,
+				priv->base + HW_INT_MASK);
 	}
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
@@ -278,9 +280,10 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 	if (dma) {
 		struct nand_chip *nand = &priv->nand;
 
-		/* FIXME: change timeout value */
 		timeout = wait_event_timeout(nand->controller->wq,
-				priv->irq_done, 1 * HZ);
+				priv->irq_done,
+				msecs_to_jiffies(priv->wait_time ?
+					priv->wait_time : 20));
 		if (timeout <= 0) {
 			dev_info(priv->dev,
 					"Request 0x%08x timed out\n", cmd);
@@ -289,6 +292,7 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 			 * reset NFC. On asm9260 it is possible only with global
 			 * reset register. How can we use it here? */
 		}
+		priv->wait_time = 0;
 	} else
 		nand_wait_ready(mtd);
 }
@@ -300,9 +304,8 @@ static int asm9260_nand_dev_ready(struct mtd_info *mtd)
 
 	tmp = ioread32(priv->base + HW_STATUS);
 
-	/* FIXME: use define instead of 0x1 */
 	return (!(tmp & BM_CTRL_NFC_BUSY) &&
-			(tmp & 0x1));
+			(tmp & priv->mem_mask));
 }
 
 static void asm9260_nand_ctrl(struct asm9260_nand_priv *priv, u32 set)
@@ -411,6 +414,7 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 		break;
 
 	case NAND_CMD_ERASE1:
+		priv->wait_time = 400;
 		asm9260_nand_set_addr(priv, page_addr, column);
 
 		asm9260_nand_ctrl(priv, 0);
@@ -654,7 +658,6 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 	addr_cycles = col_cycles +
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
 
-	priv->mem_status_mask = BM_CTRL_MEM0_RDY;
 	priv->ctrl_cache = addr_cycles << BM_CTRL_ADDR_CYCLE1_S
 		| ((nand->page_shift - 8) & 0x7) << BM_CTRL_PAGE_SIZE_S
 		| ((block_shift - 5) & 0x3) << BM_CTRL_BLOCK_SIZE_S
@@ -881,7 +884,12 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-	/* first scan to find the device and get the page size */
+	/*
+	 * Currently we support only one chip devices. No HW with two chips is
+	 * available.
+	 */
+	priv->mem_mask = BM_CTRL_MEM0_RDY;
+	/* First scan to find the device and get the page size */
 	if (nand_scan_ident(mtd, 1, NULL)) {
 		dev_err(&pdev->dev, "scan_ident filed!\n");
 		return -ENXIO;

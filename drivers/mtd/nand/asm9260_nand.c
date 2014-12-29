@@ -227,7 +227,7 @@ static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
 {
 }
 
-/* TODO: 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
+/* 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
 static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
 {
@@ -252,7 +252,6 @@ static dma_addr_t asm9260_nand_dma_set(struct mtd_info *mtd, void *buf,
 	iowrite32(size, priv->base + HW_DMA_CNT);
 	iowrite32(BM_DMA_CTRL_START
 		  | (dir == DMA_FROM_DEVICE ? BM_DMA_CTRL_FROM_DEVICE : 0)
-			/* TODO: check different DMA_BURST_INCR16 settings */
 		  | (DMA_BURST_INCR16 << BM_DMA_CTRL_BURST_S),
 		  priv->base + HW_DMA_CTRL);
 	return dma_addr;

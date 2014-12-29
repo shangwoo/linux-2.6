@@ -80,6 +80,7 @@
 /* Overwrite BM_CTRL_PAGE_SIZE with HW_DATA_SIZE */
 #define BM_CTRL_CUSTOM_PAGE_SIZE	BIT(11)
 #define BM_CTRL_PAGE_SIZE_S		8
+#define BM_CTRL_PAGE_SIZE(x)		((ffs((x) >> 8) - 1) & 0x7)
 #define  PAGE_SIZE_256B			0x0
 #define  PAGE_SIZE_512B			0x1
 #define  PAGE_SIZE_1024B		0x2
@@ -89,6 +90,7 @@
 #define  PAGE_SIZE_16384B		0x6
 #define  PAGE_SIZE_32768B		0x7
 #define BM_CTRL_BLOCK_SIZE_S		6
+#define BM_CTRL_BLOCK_SIZE(x)		((ffs((x) >> 5) - 1) & 0x3)
 #define  BLOCK_SIZE_32P			0x0
 #define  BLOCK_SIZE_64P			0x1
 #define  BLOCK_SIZE_128P		0x2
@@ -645,22 +647,34 @@ static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 	nand_chip->ecc.read_page	= asm9260_nand_read_page_hwecc;
 }
 
-static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
+static int __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 {
 	struct nand_chip *nand = &priv->nand;
 	struct mtd_info *mtd = &priv->mtd;
-	u32 addr_cycles, col_cycles, block_shift;
+	u32 addr_cycles, col_cycles, pages_per_block;
 
-	/* FIXME: remove it or replace it */
-	/* FIXME: these complete part need fixing  */
-	block_shift = __ffs(mtd->erasesize) - nand->page_shift;
+	pages_per_block = mtd->erasesize / mtd->writesize;
+	/* max 256P, min 32P */
+	if (pages_per_block & ~(0x000001e0)) {
+		dev_err(priv->dev, "Unsuported erasesize 0x%x\n",
+				mtd->erasesize);
+		return -EINVAL;
+	}
+
+	/* max 32K, min 256. */
+	if (mtd->writesize & ~(0x0000ff00)) {
+		dev_err(priv->dev, "Unsuported writesize 0x%x\n",
+				mtd->erasesize);
+		return -EINVAL;
+	}
+
 	col_cycles  = 2;
 	addr_cycles = col_cycles +
 		(((mtd->size >> mtd->writesize) > 65536) ? 3 : 2);
 
 	priv->ctrl_cache = addr_cycles << BM_CTRL_ADDR_CYCLE1_S
-		| ((nand->page_shift - 8) & 0x7) << BM_CTRL_PAGE_SIZE_S
-		| ((block_shift - 5) & 0x3) << BM_CTRL_BLOCK_SIZE_S
+		| BM_CTRL_PAGE_SIZE(mtd->writesize) << BM_CTRL_PAGE_SIZE_S
+		| BM_CTRL_BLOCK_SIZE(pages_per_block) << BM_CTRL_BLOCK_SIZE_S
 		| BM_CTRL_INT_EN
 		| addr_cycles << BM_CTRL_ADDR_CYCLE0_S;
 
@@ -670,6 +684,7 @@ static void __init asm9260_nand_cached_config(struct asm9260_nand_priv *priv)
 	iowrite32(mtd->writesize + priv->spare_size,
 			priv->base + HW_ECC_OFFSET);
 
+	return 0;
 }
 
 static unsigned long __init clk_get_cyc_from_ns(struct clk *clk,
@@ -903,7 +918,9 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_timing_config(priv);
 	asm9260_nand_ecc_conf(priv);
-	asm9260_nand_cached_config(priv);
+	ret = asm9260_nand_cached_config(priv);
+	if (ret)
+		return ret;
 
 	/* second phase scan */
 	if (nand_scan_tail(mtd)) {

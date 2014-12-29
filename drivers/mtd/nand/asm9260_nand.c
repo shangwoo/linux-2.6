@@ -36,26 +36,29 @@
 /* 0 - PIO, 1 - DMA */
 #define BM_CMD_DMA			BIT(6)
 #define BM_CMD_CMDSEQ_S			0
-/* FIXME: some description for SEQ? */
-#define  SEQ1				0x21 /* 6'b100001 */
-#define  SEQ2				0x22 /* 6'b100010 */
-#define  SEQ4				0x24 /* 6'b100100 */
-#define  SEQ5				0x25 /* 6'b100101 */
-#define  SEQ6				0x26 /* 6'b100110 */
-#define  SEQ7				0x27 /* 6'b100111 */
-#define  SEQ9				0x29 /* 6'b101001 */
-#define  SEQ10				0x2a /* 6'b101010 */
-#define  SEQ11				0x2b /* 6'b101011 */
-#define  SEQ15				0x2f /* 6'b101111 */
-#define  SEQ0				0x00 /* 6'b000000 */
-#define  SEQ3				0x03 /* 6'b000011 */
-#define  SEQ8				0x08 /* 6'b001000 */
-#define  SEQ12				0x0c /* 6'b001100 */
-#define  SEQ13				0x0d /* 6'b001101 */
-#define  SEQ14				0x0e /* 6'b001110 */
-#define  SEQ16				0x30 /* 6'b110000 */
-#define  SEQ17				0x15 /* 6'b010101 */
-#define  SEQ18				0x32 /* 6'h110010 */
+/* single command, wait for ready */
+#define  SEQ0				0x00
+/* send one cmd, one addr, fetch data */
+#define  SEQ1				0x21
+#define  SEQ2				0x22
+#define  SEQ3				0x03
+/* single cycle write then read */
+#define  SEQ4				0x24
+#define  SEQ5				0x25
+#define  SEQ6				0x26
+#define  SEQ7				0x27
+#define  SEQ8				0x08
+#define  SEQ9				0x29
+/* read page */
+#define  SEQ10				0x2a
+#define  SEQ11				0x2b
+/* write page, don't wait for R/B */
+#define  SEQ12				0x0c
+#define  SEQ13				0x0d
+/* 3 address cycles, for block erase */
+#define  SEQ14				0x0e
+#define  SEQ15				0x2f
+#define  SEQ17				0x15
 
 #define HW_CTRL				0x04
 #define BM_CTRL_DIS_STATUS		BIT(23)
@@ -113,34 +116,11 @@
 #define HW_ECC_CTRL			0x14
 /* bits per 512 bytes */
 #define	BM_ECC_CAP_S			5
-#define BM_ECC_CAPn(x)			(((x) >> 1) - 1)
-/* FIXME: reduce all this defines */
-#define  ECC_CAP_2			0x0
-#define  ECC_CAP_4			0x1
-#define  ECC_CAP_6			0x2
-#define  ECC_CAP_8			0x3
-#define  ECC_CAP_10			0x4
-#define  ECC_CAP_12			0x5
-#define  ECC_CAP_14			0x6
-#define  ECC_CAP_16			0x7
+/* support ecc strange 2, 4, 6, 8, 10, 12, 14, 16. */
+#define BM_ECC_CAPn(x)			((((x) >> 1) - 1) & 0x7)
+/* Warn if some bitflip level (threshold) reached. Max 15 bits. */
 #define BM_ECC_ERR_THRESHOLD_S		8
-/* FIXME: reduce all this defines */
-#define  ECC_THRESHOLD_0		0x0
-#define  ECC_THRESHOLD_1		0x1
-#define  ECC_THRESHOLD_2		0x2
-#define  ECC_THRESHOLD_3		0x3
-#define  ECC_THRESHOLD_4		0x4
-#define  ECC_THRESHOLD_5		0x5
-#define  ECC_THRESHOLD_6		0x6
-#define  ECC_THRESHOLD_7		0x7
-#define  ECC_THRESHOLD_8		0x8
-#define  ECC_THRESHOLD_9		0x9
-#define  ECC_THRESHOLD_10		0xa
-#define  ECC_THRESHOLD_11		0xb
-#define  ECC_THRESHOLD_12		0xc
-#define  ECC_THRESHOLD_13		0xd
-#define  ECC_THRESHOLD_14		0xe
-#define  ECC_THRESHOLD_15		0xf
+#define BM_ECC_ERR_THRESHOLD_M		0xf
 #define BM_ECC_ERR_OVER			BIT(2)
 /* Uncorrected error. */
 #define BM_ECC_ERR_UNC			BIT(1)

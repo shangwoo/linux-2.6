@@ -2,9 +2,10 @@
  * NAND controller driver for Alphascale ASM9260, which is probably
  * based on Evatronix NANDFLASH-CTRL IP (version unknown)
  *
- * Copyright (C), 2007-2013, Alphascale Tech. Co., Ltd.
- * 		  2014 Oleksij Rempel <linux@rempel-privat.de>
+ * Copyright (C), 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
+ * Inspired by asm9260_nand.c,
+ *	Copyright (C), 2007-2013, Alphascale Tech. Co., Ltd.
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
@@ -451,8 +452,7 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u8 tmp;
 
-	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4))
-	{
+	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4)) {
 		asm9260_nand_cmd_comp(mtd, 0);
 		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;
@@ -520,7 +520,8 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	}
 
 	if (!is_vmalloc_addr(buf)) {
-		dma_addr = asm9260_nand_dma_set(mtd, (void *)buf, DMA_TO_DEVICE, len);
+		dma_addr = asm9260_nand_dma_set(mtd,
+				(void *)buf, DMA_TO_DEVICE, len);
 		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
 	}
 
@@ -628,10 +629,10 @@ static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 
 	iowrite32(0, priv->base + HW_INT_MASK);
 	iowrite32(0, priv->base + HW_INT_STATUS);
-        priv->irq_done = 1;
-        wake_up(&nand->controller->wq);
+	priv->irq_done = 1;
+	wake_up(&nand->controller->wq);
 
-        return IRQ_HANDLED;
+	return IRQ_HANDLED;
 }
 
 static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
@@ -869,14 +870,12 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
 			GFP_KERNEL);
-	if (!priv) {
-		dev_err(&pdev->dev, "Allocation filed!\n");
+	if (!priv)
 		return -ENOMEM;
-	}
 
 	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	priv->base = devm_ioremap_resource(&pdev->dev, r);
-        if (!priv->base) {
+	if (!priv->base) {
 		dev_err(&pdev->dev, "Unable to map resource!\n");
 		return -EINVAL;
 	}
@@ -957,8 +956,7 @@ static int asm9260_nand_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static const struct of_device_id asm9260_nand_match[] =
-{
+static const struct of_device_id asm9260_nand_match[] = {
 	{
 		.compatible   = "alphascale,asm9260-nand",
 	},

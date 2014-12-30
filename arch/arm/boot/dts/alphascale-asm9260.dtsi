@@ -169,6 +169,7 @@
 			compatible = "alphascale,asm9260-nand";
 			reg = <0x80600000 0x100>;
 			clocks = <&acc CLKID_SYS_NAND>, <&acc CLKID_AHB_NAND>;
+			clock-names = "sys", "ahb";
 			interrupts = <14>;
 			status = "disabled";
 		};

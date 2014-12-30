@@ -891,9 +891,6 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	mtd->owner = THIS_MODULE;
 	mtd->name = dev_name(&pdev->dev);
 
-	priv->read_cache_cnt = 0;
-        priv->irq_done = 0;
-
 	/* FIXME: add more dt options? for example chip number? */
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;

@@ -234,10 +234,6 @@ static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 			  priv->base + HW_MEM_CTRL);
 }
 
-static void asm9260_cmd_ctrl(struct mtd_info *mtd, int dat, unsigned int ctrl)
-{
-}
-
 /* 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
 static void asm9260_nand_cmd_prep(struct asm9260_nand_priv *priv,
 		u8 cmd0, u8 cmd1, u8 cmd2, u8 seq)
@@ -641,7 +637,6 @@ static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 static void __init asm9260_nand_init_chip(struct nand_chip *nand_chip)
 {
 	nand_chip->select_chip	= asm9260_select_chip;
-	nand_chip->cmd_ctrl	= asm9260_cmd_ctrl;
 	nand_chip->cmdfunc	= asm9260_nand_command_lp;
 	nand_chip->read_byte	= asm9260_nand_read_byte;
 	nand_chip->read_word	= asm9260_nand_read_word;

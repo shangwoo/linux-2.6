@@ -36,28 +36,39 @@
 /* 0 - PIO, 1 - DMA */
 #define BM_CMD_DMA			BIT(6)
 #define BM_CMD_CMDSEQ_S			0
-/* single command, wait for ready */
+/* single command, wait for RnB */
 #define  SEQ0				0x00
-/* send one cmd, one addr, fetch data */
+/* send  cmd, addr, wait tWHR, fetch data */
 #define  SEQ1				0x21
+/* send  cmd, addr, wait RnB, fetch data */
 #define  SEQ2				0x22
+/* send  cmd, addr, wait tADL, send data, wait RnB */
 #define  SEQ3				0x03
-/* single cycle write then read */
+/* send  cmd, wait tWHR, fetch data */
 #define  SEQ4				0x24
+/* send  cmd, 3 x addr, wait tWHR, fetch data */
 #define  SEQ5				0x25
+/* wait tRHW, send  cmd, 2 x addr, cmd, wait tCCS, fetch data */
 #define  SEQ6				0x26
+/* wait tRHW, send  cmd, 35 x addr, cmd, wait tCCS, fetch data */
 #define  SEQ7				0x27
+/* send  cmd, 2 x addr, wait tCCS, fetch data */
 #define  SEQ8				0x08
+/* send  cmd, 5 x addr, wait RnB */
 #define  SEQ9				0x29
-/* read page */
+/* send  cmd, 5 x addr, cmd, wait RnB, fetch data  */
 #define  SEQ10				0x2a
+/* send  cmd, wait RnB, fetch data  */
 #define  SEQ11				0x2b
-/* write page, don't wait for R/B */
+/* send  cmd, 5 x addr, wait tADL, send data, cmd  */
 #define  SEQ12				0x0c
+/* send  cmd, 5 x addr, wait tADL, send data  */
 #define  SEQ13				0x0d
-/* 3 address cycles, for block erase */
+/* send  cmd, 3 x addr, cmd, wait RnB */
 #define  SEQ14				0x0e
+/* send  cmd, 5 x addr, cmd, 5 x addr, cmd, wait RnB, fetch data */
 #define  SEQ15				0x2f
+/* send  cmd, 5 x addr, wait RnB, fetch data */
 #define  SEQ17				0x15
 
 #define HW_CTRL				0x04

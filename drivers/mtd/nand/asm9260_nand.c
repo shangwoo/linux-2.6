@@ -840,8 +840,10 @@ static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 		dev_err(priv->dev, "Failed to enable ahb_clk!\n");
 
 	err = clk_set_rate(priv->clk, clk_get_rate(priv->clk_ahb));
-	if (err)
+	if (err) {
+		clk_disable_unprepare(priv->clk_ahb);
 		dev_err(priv->dev, "Failed to set rate!\n");
+	}
 
 	err = clk_prepare_enable(priv->clk);
 	if (err) {
@@ -861,6 +863,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	struct nand_chip *nand;
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
+	struct resource *r;
 	int ret;
 	unsigned int irq;
 
@@ -871,7 +874,8 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	priv->base = of_io_request_and_map(np, 0, np->full_name);
+	r = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	priv->base = devm_ioremap_resource(&pdev->dev, r);
         if (!priv->base) {
 		dev_err(&pdev->dev, "Unable to map resource!\n");
 		return -EINVAL;

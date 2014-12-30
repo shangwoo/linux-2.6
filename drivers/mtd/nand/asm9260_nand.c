@@ -865,8 +865,9 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
 	struct resource *r;
-	int ret;
+	int ret, i;
 	unsigned int irq;
+	u32 val;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_nand_priv),
 			GFP_KERNEL);
@@ -905,15 +906,17 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 
 	asm9260_nand_init_chip(nand);
 
-	/*
-	 * Currently we support only one chip devices. No HW with two chips is
-	 * available.
-	 */
-	priv->mem_mask = BM_CTRL_MEM0_RDY;
-	/* First scan to find the device and get the page size */
-	if (nand_scan_ident(mtd, 1, NULL)) {
+	ret = of_property_read_u32(np, "nand-max-chips", &val);
+	if (ret)
+		val = 1;
+
+	for (i = 0; i < val; i++)
+		priv->mem_mask |= BM_CTRL_MEM0_RDY << i;
+
+	ret = nand_scan_ident(mtd, val, NULL);
+	if (ret) {
 		dev_err(&pdev->dev, "scan_ident filed!\n");
-		return -ENXIO;
+		return ret;
 	}
 
 	if (of_get_nand_on_flash_bbt(np)) {

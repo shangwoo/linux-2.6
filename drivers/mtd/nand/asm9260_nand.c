@@ -898,7 +898,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;
 
-	irq = irq_of_parse_and_map(np, 0);
+	irq = platform_get_irq(pdev, 0);
 	if (!irq)
 		return -ENODEV;
 
@@ -953,6 +953,8 @@ static int asm9260_nand_remove(struct platform_device *pdev)
 {
 	struct asm9260_nand_priv *priv = platform_get_drvdata(pdev);
 
+	clk_disable_unprepare(priv->clk);
+	clk_disable_unprepare(priv->clk_ahb);
 	nand_release(&priv->mtd);
 
 	return 0;

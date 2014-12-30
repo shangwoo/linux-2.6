@@ -25,6 +25,7 @@
 
 #define ASM9260_ECC_STEP		512
 #define ASM9260_ECC_MAX_BIT		16
+#define ASM9260_MAX_CHIPS		2
 
 #define mtd_to_priv(m)	container_of(m, struct asm9260_nand_priv, mtd)
 
@@ -891,7 +892,6 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	mtd->owner = THIS_MODULE;
 	mtd->name = dev_name(&pdev->dev);
 
-	/* FIXME: add more dt options? for example chip number? */
 	if (asm9260_nand_get_dt_clks(priv))
 		return -ENODEV;
 
@@ -909,6 +909,12 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	ret = of_property_read_u32(np, "nand-max-chips", &val);
 	if (ret)
 		val = 1;
+
+	if (val > ASM9260_MAX_CHIPS) {
+		dev_err(&pdev->dev, "Unsupported nand-max-chips value: %i\n",
+				val);
+		return -ENODEV;
+	}
 
 	for (i = 0; i < val; i++)
 		priv->mem_mask |= BM_CTRL_MEM0_RDY << i;

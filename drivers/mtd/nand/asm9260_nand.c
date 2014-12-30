@@ -823,16 +823,15 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 
 static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 {
-	struct device_node *np = priv->dev->of_node;
 	int clk_idx = 0, err;
 
-	priv->clk = of_clk_get(np, clk_idx);
+	priv->clk = devm_clk_get(priv->dev, "sys");
 	if (IS_ERR(priv->clk))
 		goto out_err;
 
 	/* configure AHB clock */
 	clk_idx = 1;
-	priv->clk_ahb = of_clk_get(np, clk_idx);
+	priv->clk_ahb = devm_clk_get(priv->dev, "ahb");
 	if (IS_ERR(priv->clk_ahb))
 		goto out_err;
 
@@ -845,8 +844,10 @@ static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 		dev_err(priv->dev, "Failed to set rate!\n");
 
 	err = clk_prepare_enable(priv->clk);
-	if (err)
+	if (err) {
+		clk_disable_unprepare(priv->clk_ahb);
 		dev_err(priv->dev, "Failed to enable clk!\n");
+	}
 
 	return 0;
 out_err:

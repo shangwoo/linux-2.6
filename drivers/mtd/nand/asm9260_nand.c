@@ -232,11 +232,13 @@ static void asm9260_select_chip(struct mtd_info *mtd, int chip)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	if (chip == -1)
+	if (chip == -1) {
 		iowrite32(BM_MEM_CTRL_WP_STATE_MASK, priv->base + HW_MEM_CTRL);
-	else
+	} else {
+		priv->mem_mask = BM_CTRL_MEM0_RDY << chip;
 		iowrite32(BM_MEM_CTRL_UNWPn(chip) | BM_MEM_CTRL_CEn(chip),
 			  priv->base + HW_MEM_CTRL);
+	}
 }
 
 /* 3 commands are supported by HW. 3-d can be used for TWO PLANE. */
@@ -918,9 +920,6 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 				val);
 		return -ENODEV;
 	}
-
-	for (i = 0; i < val; i++)
-		priv->mem_mask |= BM_CTRL_MEM0_RDY << i;
 
 	ret = nand_scan_ident(mtd, val, NULL);
 	if (ret) {

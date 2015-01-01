@@ -38,39 +38,42 @@
 /* 0 - PIO, 1 - DMA */
 #define BM_CMD_DMA			BIT(6)
 #define BM_CMD_CMDSEQ_S			0
-/* single command, wait for RnB */
+/*
+ * ASM9260 Sequences:
+ * SEQ0:  single command, wait for RnB
+ * SEQ1:  send  cmd, addr, wait tWHR, fetch data
+ * SEQ2:  send  cmd, addr, wait RnB, fetch data
+ * SEQ3:  send  cmd, addr, wait tADL, send data, wait RnB
+ * SEQ4:  send  cmd, wait tWHR, fetch data
+ * SEQ5:  send  cmd, 3 x addr, wait tWHR, fetch data
+ * SEQ6:  wait tRHW, send  cmd, 2 x addr, cmd, wait tCCS, fetch data
+ * SEQ7:  wait tRHW, send  cmd, 35 x addr, cmd, wait tCCS, fetch data
+ * SEQ8:  send  cmd, 2 x addr, wait tCCS, fetch data
+ * SEQ9:  send  cmd, 5 x addr, wait RnB
+ * SEQ10: send  cmd, 5 x addr, cmd, wait RnB, fetch data
+ * SEQ11: send  cmd, wait RnB, fetch data
+ * SEQ12: send  cmd, 5 x addr, wait tADL, send data, cmd
+ * SEQ13: send  cmd, 5 x addr, wait tADL, send data
+ * SEQ14: send  cmd, 3 x addr, cmd, wait RnB
+ * SEQ15: send  cmd, 5 x addr, cmd, 5 x addr, cmd, wait RnB, fetch data
+ * SEQ17: send  cmd, 5 x addr, wait RnB, fetch data
+*/
 #define  SEQ0				0x00
-/* send  cmd, addr, wait tWHR, fetch data */
 #define  SEQ1				0x21
-/* send  cmd, addr, wait RnB, fetch data */
 #define  SEQ2				0x22
-/* send  cmd, addr, wait tADL, send data, wait RnB */
 #define  SEQ3				0x03
-/* send  cmd, wait tWHR, fetch data */
 #define  SEQ4				0x24
-/* send  cmd, 3 x addr, wait tWHR, fetch data */
 #define  SEQ5				0x25
-/* wait tRHW, send  cmd, 2 x addr, cmd, wait tCCS, fetch data */
 #define  SEQ6				0x26
-/* wait tRHW, send  cmd, 35 x addr, cmd, wait tCCS, fetch data */
 #define  SEQ7				0x27
-/* send  cmd, 2 x addr, wait tCCS, fetch data */
 #define  SEQ8				0x08
-/* send  cmd, 5 x addr, wait RnB */
 #define  SEQ9				0x29
-/* send  cmd, 5 x addr, cmd, wait RnB, fetch data  */
 #define  SEQ10				0x2a
-/* send  cmd, wait RnB, fetch data  */
 #define  SEQ11				0x2b
-/* send  cmd, 5 x addr, wait tADL, send data, cmd  */
 #define  SEQ12				0x0c
-/* send  cmd, 5 x addr, wait tADL, send data  */
 #define  SEQ13				0x0d
-/* send  cmd, 3 x addr, cmd, wait RnB */
 #define  SEQ14				0x0e
-/* send  cmd, 5 x addr, cmd, 5 x addr, cmd, wait RnB, fetch data */
 #define  SEQ15				0x2f
-/* send  cmd, 5 x addr, wait RnB, fetch data */
 #define  SEQ17				0x15
 
 #define HW_CTRL				0x04
@@ -132,7 +135,7 @@
 #define HW_ECC_CTRL			0x14
 /* bits per 512 bytes */
 #define	BM_ECC_CAP_S			5
-/* support ecc strange 2, 4, 6, 8, 10, 12, 14, 16. */
+/* support ecc strength 2, 4, 6, 8, 10, 12, 14, 16. */
 #define BM_ECC_CAPn(x)			((((x) >> 1) - 1) & 0x7)
 /* Warn if some bitflip level (threshold) reached. Max 15 bits. */
 #define BM_ECC_ERR_THRESHOLD_S		8

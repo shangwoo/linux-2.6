@@ -458,7 +458,7 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	u8 tmp;
 
-	if ((priv->read_cache_cnt <= 0) || (priv->read_cache_cnt > 4)) {
+	if (priv->read_cache_cnt <= 0) {
 		asm9260_nand_cmd_comp(mtd, 0);
 		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
 		priv->read_cache_cnt = 4;

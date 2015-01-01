@@ -217,7 +217,7 @@ struct asm9260_nand_priv {
 	unsigned int spare_size;
 };
 
-static void asm9260_reg_rmw(struct asm9260_nand_priv *priv,
+static void asm9260_reg_update_bits(struct asm9260_nand_priv *priv,
 		u32 reg_offset, u32 set, u32 clr)
 {
 	u32 val;
@@ -563,7 +563,7 @@ static int asm9260_nand_write_page_hwecc(struct mtd_info *mtd,
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 
-	asm9260_reg_rmw(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
+	asm9260_reg_update_bits(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
 	chip->ecc.write_page_raw(mtd, chip, buf, oob_required);
 
 	return 0;
@@ -595,7 +595,7 @@ static int asm9260_nand_read_page_hwecc(struct mtd_info *mtd,
 	temp_ptr = buf;
 
 	/* enable ecc */
-	asm9260_reg_rmw(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
+	asm9260_reg_update_bits(priv, HW_CTRL, BM_CTRL_ECC_EN, 0);
 	chip->read_buf(mtd, temp_ptr, mtd->writesize);
 
 	status = ioread32(priv->base + HW_ECC_CTRL);

@@ -773,7 +773,7 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	nand->ecc.size = ASM9260_ECC_STEP;
 	nand->ecc.steps = mtd->writesize / nand->ecc.size;
 
-	if (ecc_strength < nand->ecc_strength_ds) {
+	if (ecc_strength < 0) {
 		int ds_corr;
 
 		/* Let's check if ONFI can help us. */

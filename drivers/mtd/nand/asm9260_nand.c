@@ -208,6 +208,7 @@ struct asm9260_nand_priv {
 
 	u32 read_cache;
 	int read_cache_cnt;
+	int read_req_cnt;
 	u32 cmd_cache;
 	u32 ctrl_cache;
 	u32 mem_mask;
@@ -286,7 +287,8 @@ static void asm9260_nand_cmd_comp(struct mtd_info *mtd, int dma)
 		priv->irq_done = 0;
 		iowrite32(priv->mem_mask << BM_INT_MEM_RDY_S,
 				priv->base + HW_INT_MASK);
-	}
+	} else
+		priv->read_req_cnt = ioread32(priv->base + HW_DATA_SIZE);
 
 	iowrite32(priv->cmd_cache, priv->base + HW_CMD);
 	cmd = priv->cmd_cache;
@@ -456,11 +458,18 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 {
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
-	u8 tmp;
+	u32 tmp;
 
 	if (priv->read_cache_cnt <= 0) {
 		asm9260_nand_cmd_comp(mtd, 0);
-		priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
+
+		/* if we read more then requested, the SoC will die. */
+		if (priv->read_req_cnt >= sizeof(u32))
+			priv->read_cache = ioread32(priv->base + HW_FIFO_DATA);
+		else
+			BUG();
+
+		priv->read_req_cnt -= sizeof(u32);
 		priv->read_cache_cnt = 4;
 	}
 
@@ -472,12 +481,27 @@ static u32 asm9260_nand_read_cached(struct mtd_info *mtd, int size)
 
 static u8 asm9260_nand_read_byte(struct mtd_info *mtd)
 {
-	return 0xff & asm9260_nand_read_cached(mtd, 1);
+	return 0xff & asm9260_nand_read_cached(mtd, sizeof(u8));
 }
 
 static u16 asm9260_nand_read_word(struct mtd_info *mtd)
 {
-	return 0xffff & asm9260_nand_read_cached(mtd, 2);
+	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
+	/*
+	 * In case some one used mixed sequnece like:
+	 * [read_byte, read_word, read_word] > u32, we will try not to fail.
+	 * If priv->read_req_cnt triggers BUG warning, make sure
+	 * we requested enough (u32 * x) data before reading it.
+	 */
+	if (priv->read_cache_cnt &&
+			priv->read_cache_cnt - sizeof(u16) < 0) {
+		u16 val;
+
+		val = 0xff & asm9260_nand_read_cached(mtd, sizeof(u8));
+		val |= (0xff & asm9260_nand_read_cached(mtd, sizeof(u8))) << 8;
+		return val;
+	} else
+		return 0xffff & asm9260_nand_read_cached(mtd, sizeof(u16));
 }
 
 static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
@@ -486,15 +510,6 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 	dma_addr_t dma_addr;
 	int dma_ok = 0;
 
-	if (len & 0x3) {
-		dev_err(priv->dev, "Unsupported length (%x)\n", len);
-		return;
-	}
-
-	/*
-	 * I hate you UBI for your all vmalloc. Be slow as hell with PIO.
-	 * ~ with love from ZeroCopy ~
-	 */
 	if (!is_vmalloc_addr(buf)) {
 		dma_addr = asm9260_nand_dma_set(mtd, buf, DMA_FROM_DEVICE, len);
 		dma_ok = !(dma_mapping_error(priv->dev, dma_addr));
@@ -508,6 +523,9 @@ static void asm9260_nand_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 		return;
 	}
 
+	/* We can't use fifo if requested size is not aligned on 4 bytes. */
+	BUG_ON(len & 0x3);
+
 	/* fall back to pio mode */
 	len >>= 2;
 	ioread32_rep(priv->base + HW_FIFO_DATA, buf, len);
@@ -519,11 +537,6 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 	struct asm9260_nand_priv *priv = mtd_to_priv(mtd);
 	dma_addr_t dma_addr;
 	int dma_ok = 0;
-
-	if (len & 0x3) {
-		dev_err(priv->dev, "Unsupported length (%x)\n", len);
-		return;
-	}
 
 	if (!is_vmalloc_addr(buf)) {
 		dma_addr = asm9260_nand_dma_set(mtd,
@@ -540,6 +553,9 @@ static void asm9260_nand_write_buf(struct mtd_info *mtd,
 		dma_unmap_single(priv->dev, dma_addr, len, DMA_TO_DEVICE);
 		return;
 	}
+
+	/* We can't use fifo if requested size is not aligned on 4 bytes. */
+	BUG_ON(len & 0x3);
 
 	/* fall back to pio mode */
 	len >>= 2;
@@ -871,7 +887,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
 	struct resource *r;
-	int ret, i;
+	int ret;
 	unsigned int irq;
 	u32 val;
 

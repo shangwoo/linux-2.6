@@ -832,7 +832,7 @@ static int __init asm9260_nand_get_dt_clks(struct asm9260_nand_priv *priv)
 {
 	int clk_idx = 0, err;
 
-	priv->clk = devm_clk_get(priv->dev, "sys");
+	priv->clk = devm_clk_get(priv->dev, "mod");
 	if (IS_ERR(priv->clk))
 		goto out_err;
 

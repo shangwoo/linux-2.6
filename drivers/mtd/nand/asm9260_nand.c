@@ -646,7 +646,7 @@ static irqreturn_t asm9260_nand_irq(int irq, void *device_info)
 	u32 status;
 
 	status = ioread32(priv->base + HW_INT_STATUS);
-	if (!status)
+	if (!(status & (priv->mem_mask << BM_INT_MEM_RDY_S)))
 		return IRQ_NONE;
 
 	iowrite32(0, priv->base + HW_INT_MASK);
@@ -799,7 +799,7 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 		if (nand->ecc_strength_ds <= 0) {
 			/* No ONFI and no DT - it is bad. */
 			dev_err(priv->dev,
-					"nand-ecc-strength is not set by DT or ONFI. Please set nand-ecc-strength in DT or add chip quirk in nand_ids.c.\n");
+					"nand-ecc-strength is not set by DT, ONFI or nand_ids table. Please set nand-ecc-strength in DT or add chip quirk in nand_ids.c.\n");
 			return -EINVAL;
 		}
 

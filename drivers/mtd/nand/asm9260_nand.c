@@ -731,7 +731,10 @@ static void __init asm9260_nand_timing_config(struct asm9260_nand_priv *priv)
 	u32 twhr, trhw, trwh, trwp, tadl, tccs, tsync, trr, twb;
 	int mode;
 
-	mode = nand->onfi_timing_mode_default;
+	mode = onfi_get_async_timing_mode(nand);
+	if (mode == ONFI_TIMING_MODE_UNKNOWN)
+		mode = nand->onfi_timing_mode_default;
+
 	dev_info(priv->dev, "ONFI timing mode: %i\n", mode);
 
 	time = onfi_async_timing_mode_to_sdr_timings(mode);
@@ -886,6 +889,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	struct nand_chip *nand;
 	struct mtd_info *mtd;
 	struct device_node *np = pdev->dev.of_node;
+	struct mtd_part_parser_data ppdata;
 	struct resource *r;
 	int ret;
 	unsigned int irq;
@@ -962,11 +966,8 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	}
 
 
-	ret = mtd_device_parse_register(mtd, NULL,
-			&(struct mtd_part_parser_data) {
-				.of_node = pdev->dev.of_node,
-			},
-			NULL, 0);
+	ppdata.of_node = np;
+	ret = mtd_device_parse_register(mtd, NULL, &ppdata, NULL, 0);
 
 	return ret;
 }

@@ -955,6 +955,12 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
+	if (val > 1) {
+		dev_err(&pdev->dev, "FIXME: This driver was designed and tested only with one chip HW. If you have dual chip HW pleas contact author of this driver or add support by your self.\n",
+				val);
+		return -ENODEV;
+	}
+
 	ret = nand_scan_ident(mtd, val, NULL);
 	if (ret) {
 		dev_err(&pdev->dev, "scan_ident filed!\n");

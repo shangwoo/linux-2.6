@@ -793,8 +793,6 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	nand->ecc.steps = mtd->writesize / nand->ecc.size;
 
 	if (ecc_strength < 0) {
-		int ds_corr;
-
 		/* Let's check if ONFI can help us. */
 		if (nand->ecc_strength_ds <= 0) {
 			/* No ONFI and no DT - it is bad. */
@@ -803,11 +801,8 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 			return -EINVAL;
 		}
 
-		ds_corr = (mtd->writesize * nand->ecc_strength_ds) /
-			nand->ecc_step_ds;
-		ecc_strength = ds_corr / nand->ecc.steps;
 		dev_info(priv->dev, "ONFI:nand-ecc-strength = %i\n",
-				ecc_strength);
+				nand->ecc_strength_ds);
 	} else
 		dev_info(priv->dev, "DT:nand-ecc-strength = %i\n",
 				ecc_strength);

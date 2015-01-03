@@ -826,10 +826,20 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 		       ecc_strength);
 	}
 
-	/* FIXME: do we have max or min page size? */
-
 	/* 13 - the smallest integer for 512 (ASM9260_ECC_STEP). Div to 8bit. */
-	nand->ecc.bytes = DIV_ROUND_CLOSEST(ecc_strength * 13, 8);
+	nand->ecc.bytes = DIV_ROUND_UP(ecc_strength * 13, 8);
+
+	if (nand->ecc_step_ds != 0 && nand->ecc_step_ds != ASM9260_ECC_STEP) {
+		int step = of_get_nand_ecc_step_size(np);
+		if (step < 0 || step != ASM9260_ECC_STEP) {
+			dev_err(priv->dev, "This ECC step size (%i) is not supported by HW_ECC. Please, configure DT with nand-ecc-mode = \"soft\" or \"soft_bch\"; or set nand-ecc-step-size = %i\n",
+					step > 0 ? step : nand->ecc_step_ds,
+					ASM9260_ECC_STEP);
+			return -EINVAL;
+		} else
+			dev_info(priv->dev, "Overwriting ECC step size: %i -> %i\n",
+					nand->ecc_step_ds, step);
+	}
 
 	ecc_layout->eccbytes = nand->ecc.bytes * nand->ecc.steps;
 	nand->ecc.layout = ecc_layout;
@@ -968,7 +978,11 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	}
 
 	asm9260_nand_timing_config(priv);
-	asm9260_nand_ecc_conf(priv);
+
+	ret = asm9260_nand_ecc_conf(priv);
+	if (ret)
+		return ret;
+
 	ret = asm9260_nand_cached_config(priv);
 	if (ret)
 		return ret;

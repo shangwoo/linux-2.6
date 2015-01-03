@@ -25,6 +25,7 @@
 	#address-cells = <1>;
 	#size-cells = <1>;
 	nand-ecc-strength = <4>;
+	nand-ecc-step-size = <512>;
 	nand-max-chips = <1>;
 	nand-on-flash-bbt;
 

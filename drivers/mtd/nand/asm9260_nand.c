@@ -842,6 +842,15 @@ static int __init asm9260_nand_ecc_conf(struct asm9260_nand_priv *priv)
 	}
 
 	ecc_layout->eccbytes = nand->ecc.bytes * nand->ecc.steps;
+
+	/* 2 bytes for bad block marker. */
+	if (ecc_layout->eccbytes + 2 > mtd->oobsize) {
+		dev_err(priv->dev, "ECC need more place then OOB can provide: ECC = %i + 2, OOB = %i. Try to reduce nand-ecc-strength.\n",
+				ecc_layout->eccbytes,
+				mtd->oobsize);
+		return -EINVAL;
+	}
+
 	nand->ecc.layout = ecc_layout;
 	nand->ecc.strength = ecc_strength;
 

@@ -444,7 +444,12 @@ static void asm9260_nand_command_lp(struct mtd_info *mtd,
 				0, SEQ14);
 		asm9260_nand_cmd_comp(mtd, 0);
 		break;
+	case NAND_CMD_ERASE2:
+	case NAND_CMD_PAGEPROG:
+	case NAND_CMD_READSTART:
+		break;
 	default:
+		dev_err(priv->dev, "FIXME: Unsupported cmd 0x%x\n", command);
 		break;
 	}
 }
@@ -956,8 +961,7 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 	}
 
 	if (val > 1) {
-		dev_err(&pdev->dev, "FIXME: This driver was designed and tested only with one chip HW. If you have dual chip HW pleas contact author of this driver or add support by your self.\n",
-				val);
+		dev_err(&pdev->dev, "FIXME: This driver was designed and tested only with one chip HW. If you have dual chip HW pleas contact author of this driver or add support by your self.\n");
 		return -ENODEV;
 	}
 

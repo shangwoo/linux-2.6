@@ -947,6 +947,20 @@ static int __init asm9260_nand_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/*
+	 * If you got this message, please add new page size to this filter
+	 * and make sure asm9260_nand_count_ecc() and other parts working
+	 * correctly.
+	 */
+	switch(mtd->writesize) {
+	case 2048:
+		break;
+	default:
+		dev_err(&pdev->dev, "Found NAND with not tested pagesize: %i! Exit.\n",
+				mtd->writesize);
+		return -ENODEV;
+	}
+
 	if (of_get_nand_on_flash_bbt(np)) {
 		dev_info(&pdev->dev, "Use On Flash BBT\n");
 		nand->bbt_options = NAND_BBT_USE_FLASH | NAND_BBT_NO_OOB_BBM

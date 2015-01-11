@@ -142,7 +142,7 @@ static int asm9260_wdt_settimeout(struct watchdog_device *wdd, unsigned int to)
 static const struct watchdog_info asm9260_wdt_ident = {
 	.options          =     OPTIONS,
 	.firmware_version =	0,
-	.identity         =	"SiRFSOC Watchdog",
+	.identity         =	"Alphascale asm9260 Watchdog",
 };
 
 static struct watchdog_ops asm9260_wdt_ops = {

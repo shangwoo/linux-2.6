@@ -69,8 +69,8 @@ static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 	int time_left;
 
 	wdt_base = watchdog_get_drvdata(wdd);
-	counter = readl(wdt_base + SIRFSOC_TIMER_COUNTER_LO);
-	match = readl(wdt_base +
+	counter = ioread32(wdt_base + SIRFSOC_TIMER_COUNTER_LO);
+	match = ioread32(wdt_base +
 		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
 
 	time_left = match - counter;
@@ -87,14 +87,14 @@ static int asm9260_wdt_updatetimeout(struct watchdog_device *wdd)
 	wdt_base = watchdog_get_drvdata(wdd);
 
 	/* Enable the latch before reading the LATCH_LO register */
-	writel(1, wdt_base + SIRFSOC_TIMER_LATCH);
+	iowrite32(1, wdt_base + SIRFSOC_TIMER_LATCH);
 
 	/* Set the TO value */
-	counter = readl(wdt_base + SIRFSOC_TIMER_LATCHED_LO);
+	counter = ioread32(wdt_base + SIRFSOC_TIMER_LATCHED_LO);
 
 	counter += timeout_ticks;
 
-	writel(counter, wdt_base +
+	iowrite32(counter, wdt_base +
 		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
 
 	return 0;
@@ -109,10 +109,10 @@ static int asm9260_wdt_enable(struct watchdog_device *wdd)
 	 * NOTE: If interrupt is not enabled
 	 * then WD-Reset doesn't get generated at all.
 	 */
-	writel(readl(wdt_base + SIRFSOC_TIMER_INT_EN)
+	iowrite32(ioread32(wdt_base + SIRFSOC_TIMER_INT_EN)
 		| (1 << SIRFSOC_TIMER_WDT_INDEX),
 		wdt_base + SIRFSOC_TIMER_INT_EN);
-	writel(1, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
+	iowrite32(1, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
 
 	return 0;
 }
@@ -121,8 +121,8 @@ static int asm9260_wdt_disable(struct watchdog_device *wdd)
 {
 	void __iomem *wdt_base = watchdog_get_drvdata(wdd);
 
-	writel(0, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
-	writel(readl(wdt_base + SIRFSOC_TIMER_INT_EN)
+	iowrite32(0, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
+	iowrite32(ioread32(wdt_base + SIRFSOC_TIMER_INT_EN)
 		& (~(1 << SIRFSOC_TIMER_WDT_INDEX)),
 		wdt_base + SIRFSOC_TIMER_INT_EN);
 

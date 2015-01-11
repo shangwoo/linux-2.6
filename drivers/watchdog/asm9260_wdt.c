@@ -12,6 +12,7 @@
 #include <linux/moduleparam.h>
 #include <linux/of.h>
 #include <linux/io.h>
+#include <linux/clk.h>
 #include <linux/uaccess.h>
 
 #define CLOCK_FREQ	1000000
@@ -40,7 +41,7 @@
 
 #define ASM9260_WDT_DEFAULT_TIMEOUT	30		/* 30 secs */
 
-static unsigned int timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT;
+static unsigned int timeout = ASM9260_WDT_DEFAULT_TIMEOUT;
 static bool nowayout = WATCHDOG_NOWAYOUT;
 
 module_param(timeout, uint, 0);
@@ -52,16 +53,18 @@ MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
 
 struct asm9260_wdt_priv {
 	struct device		*dev;
-	struct watchdog_device	*wdd;
+	struct watchdog_device	wdd;
 	void __iomem		*iobase;
 
 	struct clk		*clk;
 	struct clk		*clk_ahb;
-	static unsigned long	wdt_freq;
-}
+	unsigned long		wdt_freq;
+};
 
 static int asm9260_wdt_feed(struct watchdog_device *wdd)
 {
+	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
+
 	iowrite32(0xaa, priv->iobase + HW_WDFEED);
 	iowrite32(0x55, priv->iobase + HW_WDFEED);
 
@@ -81,7 +84,7 @@ static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 static int asm9260_wdt_updatetimeout(struct watchdog_device *wdd)
 {
 	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
-	u32 counter, timeout_ticks;
+	u32 counter;
 
 	counter = wdd->timeout * priv->wdt_freq;
 
@@ -188,6 +191,8 @@ static int asm9260_wdt_probe(struct platform_device *pdev)
 	if (!priv)
 		return -ENOMEM;
 
+	priv->dev = &pdev->dev;
+
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(priv->iobase))
@@ -227,7 +232,12 @@ static void asm9260_wdt_shutdown(struct platform_device *pdev)
 
 static int asm9260_wdt_remove(struct platform_device *pdev)
 {
+	struct asm9260_wdt_priv *priv = platform_get_drvdata(pdev);
+
 	asm9260_wdt_shutdown(pdev);
+	clk_disable_unprepare(priv->clk);
+	clk_disable_unprepare(priv->clk_ahb);
+
 	return 0;
 }
 

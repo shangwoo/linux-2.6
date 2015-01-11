@@ -144,6 +144,13 @@ config XILINX_WATCHDOG
 
 # ARM Architecture
 
+config ASM9260_WATCHDOG
+	tristate "Alphascale ASM9260 watchdog"
+	depends on MACH_ASM9260
+	help
+	  Watchdog timer embedded into AT91RM9200 chips. This will reboot your
+	  system when the timeout is reached.
+
 config ARM_SP805_WATCHDOG
 	tristate "ARM SP805 Watchdog"
 	depends on (ARM || ARM64) && ARM_AMBA

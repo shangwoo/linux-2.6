@@ -29,7 +29,6 @@
  * depends on used clock: T = WDCLK * (0xff + 1) * 4
  */
 #define HW_WDTC				0x04
-#define HW_WDTC				0x04
 
 /* Watchdog Feed register */
 #define HW_WDFEED			0x08
@@ -39,18 +38,11 @@
 
 
 
-#define SIRFSOC_TIMER_COUNTER_LO	0x0000
-#define SIRFSOC_TIMER_MATCH_0		0x0008
-#define SIRFSOC_TIMER_INT_EN		0x0024
-#define SIRFSOC_TIMER_WATCHDOG_EN	0x0028
-#define SIRFSOC_TIMER_LATCH		0x0030
-#define SIRFSOC_TIMER_LATCHED_LO	0x0034
-
 #define SIRFSOC_TIMER_WDT_INDEX		5
 
 #define SIRFSOC_WDT_MIN_TIMEOUT		30		/* 30 secs */
 #define SIRFSOC_WDT_MAX_TIMEOUT		(10 * 60)	/* 10 mins */
-#define SIRFSOC_WDT_DEFAULT_TIMEOUT	30		/* 30 secs */
+#define ASM9260_WDT_DEFAULT_TIMEOUT	30		/* 30 secs */
 
 static unsigned int timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT;
 static bool nowayout = WATCHDOG_NOWAYOUT;
@@ -63,74 +55,63 @@ MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
 			__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 
 struct asm9260_wdt_priv {
-	struct watchdog_device *wdd;
-	void __iomem *iobase;
+	struct device		*dev;
+	struct watchdog_device	*wdd;
+	void __iomem		*iobase;
+
+	struct clk		*clk;
+	struct clk		*clk_ahb;
+	static unsigned long	wdt_freq;
+}
+
+static int asm9260_wdt_feed(struct watchdog_device *wdd)
+{
+	iowrite32(0xaa, priv->iobase + HW_WDFEED);
+	iowrite32(0x55, priv->iobase + HW_WDFEED);
+
+	return 0;
 }
 
 static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 {
-	u32 counter, match;
-	void __iomem *iobase;
-	int time_left;
+	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
+	u32 counter;
 
-	iobase = watchdog_get_drvdata(wdd);
-	counter = ioread32(iobase + SIRFSOC_TIMER_COUNTER_LO);
-	match = ioread32(iobase +
-		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
+	counter = ioread32(priv->iobase + HW_WDTV);
 
-	time_left = match - counter;
-
-	return time_left / CLOCK_FREQ;
+	return DIV_ROUND_CLOSEST(counter, priv->wdt_freq);
 }
 
 static int asm9260_wdt_updatetimeout(struct watchdog_device *wdd)
 {
+	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
 	u32 counter, timeout_ticks;
-	void __iomem *iobase;
 
-	timeout_ticks = wdd->timeout * CLOCK_FREQ;
-	iobase = watchdog_get_drvdata(wdd);
+	counter = wdd->timeout * priv->wdt_freq;
 
-	/* Enable the latch before reading the LATCH_LO register */
-	iowrite32(1, iobase + SIRFSOC_TIMER_LATCH);
-
-	/* Set the TO value */
-	counter = ioread32(iobase + SIRFSOC_TIMER_LATCHED_LO);
-
-	counter += timeout_ticks;
-
-	iowrite32(counter, iobase +
-		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
+	iowrite32(counter, priv->iobase + HW_WDTC);
 
 	return 0;
 }
 
 static int asm9260_wdt_enable(struct watchdog_device *wdd)
 {
-	void __iomem *iobase = watchdog_get_drvdata(wdd);
+	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
+
+	iowrite32(BM_MOD_WDEN | BM_MOD_WDRESET, priv->iobase + HW_WDMOD);
+
 	asm9260_wdt_updatetimeout(wdd);
 
-	/*
-	 * NOTE: If interrupt is not enabled
-	 * then WD-Reset doesn't get generated at all.
-	 */
-	iowrite32(ioread32(iobase + SIRFSOC_TIMER_INT_EN)
-		| (1 << SIRFSOC_TIMER_WDT_INDEX),
-		iobase + SIRFSOC_TIMER_INT_EN);
-	iowrite32(1, iobase + SIRFSOC_TIMER_WATCHDOG_EN);
+	asm9260_wdt_feed(wdd);
 
 	return 0;
 }
 
 static int asm9260_wdt_disable(struct watchdog_device *wdd)
 {
-	void __iomem *iobase = watchdog_get_drvdata(wdd);
+	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
 
-	iowrite32(0, iobase + SIRFSOC_TIMER_WATCHDOG_EN);
-	iowrite32(ioread32(iobase + SIRFSOC_TIMER_INT_EN)
-		& (~(1 << SIRFSOC_TIMER_WDT_INDEX)),
-		iobase + SIRFSOC_TIMER_INT_EN);
-
+	iowrite32(BM_MOD_WDEN | BM_MOD_WDRESET, priv->iobase + HW_WDMOD);
 	return 0;
 }
 
@@ -151,13 +132,49 @@ static const struct watchdog_info asm9260_wdt_ident = {
 };
 
 static struct watchdog_ops asm9260_wdt_ops = {
-	.owner = THIS_MODULE,
-	.start = asm9260_wdt_enable,
-	.stop = asm9260_wdt_disable,
-	.get_timeleft = asm9260_wdt_gettimeleft,
-	.ping = asm9260_wdt_updatetimeout,
-	.set_timeout = asm9260_wdt_settimeout,
+	.owner		= THIS_MODULE,
+	.start		= asm9260_wdt_enable,
+	.stop		= asm9260_wdt_disable,
+	.get_timeleft	= asm9260_wdt_gettimeleft,
+	.ping		= asm9260_wdt_feed,
+	.set_timeout	= asm9260_wdt_settimeout,
 };
+
+static int __init asm9260_wdt_get_dt_clks(struct asm9260_wdt_priv *priv)
+{
+	int clk_idx = 0, err;
+
+	priv->clk = devm_clk_get(priv->dev, "mod");
+	if (IS_ERR(priv->clk))
+		goto out_err;
+
+	/* configure AHB clock */
+	clk_idx = 1;
+	priv->clk_ahb = devm_clk_get(priv->dev, "ahb");
+	if (IS_ERR(priv->clk_ahb))
+		goto out_err;
+
+	err = clk_prepare_enable(priv->clk_ahb);
+	if (err)
+		dev_err(priv->dev, "Failed to enable ahb_clk!\n");
+
+	err = clk_set_rate(priv->clk, clk_get_rate(priv->clk_ahb));
+	if (err) {
+		clk_disable_unprepare(priv->clk_ahb);
+		dev_err(priv->dev, "Failed to set rate!\n");
+	}
+
+	err = clk_prepare_enable(priv->clk);
+	if (err) {
+		clk_disable_unprepare(priv->clk_ahb);
+		dev_err(priv->dev, "Failed to enable clk!\n");
+	}
+
+	return 0;
+out_err:
+	dev_err(priv->dev, "%s: Failed to get clk (%i)\n", __func__, clk_idx);
+	return 1;
+}
 
 static int asm9260_wdt_probe(struct platform_device *pdev)
 {
@@ -179,7 +196,7 @@ static int asm9260_wdt_probe(struct platform_device *pdev)
 	wdd = &priv->wdd;
 	wdd->info = &asm9260_wdt_ident,
 	wdd->ops = &asm9260_wdt_ops,
-	wdd->timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT,
+	wdd->timeout = ASM9260_WDT_DEFAULT_TIMEOUT,
 	wdd->min_timeout = SIRFSOC_WDT_MIN_TIMEOUT,
 	wdd->max_timeout = SIRFSOC_WDT_MAX_TIMEOUT,
 
@@ -221,6 +238,7 @@ static int asm9260_wdt_resume(struct device *dev)
 	struct asm9260_wdt_priv *priv = dev_get_drvdata(dev);
 
 	/*
+	 * FIXME: need this?
 	 * NOTE: Since timer controller registers settings are saved
 	 * and restored back by the timer-prima2.c, so we need not
 	 * update WD settings except refreshing timeout.

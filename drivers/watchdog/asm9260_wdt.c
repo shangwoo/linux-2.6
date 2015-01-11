@@ -65,12 +65,12 @@ MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
 static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 {
 	u32 counter, match;
-	void __iomem *wdt_base;
+	void __iomem *iobase;
 	int time_left;
 
-	wdt_base = watchdog_get_drvdata(wdd);
-	counter = ioread32(wdt_base + SIRFSOC_TIMER_COUNTER_LO);
-	match = ioread32(wdt_base +
+	iobase = watchdog_get_drvdata(wdd);
+	counter = ioread32(iobase + SIRFSOC_TIMER_COUNTER_LO);
+	match = ioread32(iobase +
 		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
 
 	time_left = match - counter;
@@ -81,20 +81,20 @@ static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 static int asm9260_wdt_updatetimeout(struct watchdog_device *wdd)
 {
 	u32 counter, timeout_ticks;
-	void __iomem *wdt_base;
+	void __iomem *iobase;
 
 	timeout_ticks = wdd->timeout * CLOCK_FREQ;
-	wdt_base = watchdog_get_drvdata(wdd);
+	iobase = watchdog_get_drvdata(wdd);
 
 	/* Enable the latch before reading the LATCH_LO register */
-	iowrite32(1, wdt_base + SIRFSOC_TIMER_LATCH);
+	iowrite32(1, iobase + SIRFSOC_TIMER_LATCH);
 
 	/* Set the TO value */
-	counter = ioread32(wdt_base + SIRFSOC_TIMER_LATCHED_LO);
+	counter = ioread32(iobase + SIRFSOC_TIMER_LATCHED_LO);
 
 	counter += timeout_ticks;
 
-	iowrite32(counter, wdt_base +
+	iowrite32(counter, iobase +
 		SIRFSOC_TIMER_MATCH_0 + (SIRFSOC_TIMER_WDT_INDEX << 2));
 
 	return 0;
@@ -102,29 +102,29 @@ static int asm9260_wdt_updatetimeout(struct watchdog_device *wdd)
 
 static int asm9260_wdt_enable(struct watchdog_device *wdd)
 {
-	void __iomem *wdt_base = watchdog_get_drvdata(wdd);
+	void __iomem *iobase = watchdog_get_drvdata(wdd);
 	asm9260_wdt_updatetimeout(wdd);
 
 	/*
 	 * NOTE: If interrupt is not enabled
 	 * then WD-Reset doesn't get generated at all.
 	 */
-	iowrite32(ioread32(wdt_base + SIRFSOC_TIMER_INT_EN)
+	iowrite32(ioread32(iobase + SIRFSOC_TIMER_INT_EN)
 		| (1 << SIRFSOC_TIMER_WDT_INDEX),
-		wdt_base + SIRFSOC_TIMER_INT_EN);
-	iowrite32(1, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
+		iobase + SIRFSOC_TIMER_INT_EN);
+	iowrite32(1, iobase + SIRFSOC_TIMER_WATCHDOG_EN);
 
 	return 0;
 }
 
 static int asm9260_wdt_disable(struct watchdog_device *wdd)
 {
-	void __iomem *wdt_base = watchdog_get_drvdata(wdd);
+	void __iomem *iobase = watchdog_get_drvdata(wdd);
 
-	iowrite32(0, wdt_base + SIRFSOC_TIMER_WATCHDOG_EN);
-	iowrite32(ioread32(wdt_base + SIRFSOC_TIMER_INT_EN)
+	iowrite32(0, iobase + SIRFSOC_TIMER_WATCHDOG_EN);
+	iowrite32(ioread32(iobase + SIRFSOC_TIMER_INT_EN)
 		& (~(1 << SIRFSOC_TIMER_WDT_INDEX)),
-		wdt_base + SIRFSOC_TIMER_INT_EN);
+		iobase + SIRFSOC_TIMER_INT_EN);
 
 	return 0;
 }

@@ -29,6 +29,8 @@
  * depends on used clock: T = WDCLK * (0xff + 1) * 4
  */
 #define HW_WDTC				0x04
+#define BM_WDTC_MIN(freq)		DIV_ROUND_CLOSEST(0xff + 1, freq)
+#define BM_WDTC_MAX(freq)		DIV_ROUND_CLOSEST(0xffffffff, freq)
 
 /* Watchdog Feed register */
 #define HW_WDFEED			0x08
@@ -36,12 +38,6 @@
 /* Watchdog Timer Value register */
 #define HW_WDTV				0x0c
 
-
-
-#define SIRFSOC_TIMER_WDT_INDEX		5
-
-#define SIRFSOC_WDT_MIN_TIMEOUT		30		/* 30 secs */
-#define SIRFSOC_WDT_MAX_TIMEOUT		(10 * 60)	/* 10 mins */
 #define ASM9260_WDT_DEFAULT_TIMEOUT	30		/* 30 secs */
 
 static unsigned int timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT;
@@ -112,6 +108,7 @@ static int asm9260_wdt_disable(struct watchdog_device *wdd)
 	struct asm9260_wdt_priv *priv = watchdog_get_drvdata(wdd);
 
 	iowrite32(BM_MOD_WDEN | BM_MOD_WDRESET, priv->iobase + HW_WDMOD);
+	/* FIXME: disable clocks here? */
 	return 0;
 }
 
@@ -158,7 +155,7 @@ static int __init asm9260_wdt_get_dt_clks(struct asm9260_wdt_priv *priv)
 	if (err)
 		dev_err(priv->dev, "Failed to enable ahb_clk!\n");
 
-	err = clk_set_rate(priv->clk, clk_get_rate(priv->clk_ahb));
+	err = clk_set_rate(priv->clk, CLOCK_FREQ);
 	if (err) {
 		clk_disable_unprepare(priv->clk_ahb);
 		dev_err(priv->dev, "Failed to set rate!\n");
@@ -169,6 +166,9 @@ static int __init asm9260_wdt_get_dt_clks(struct asm9260_wdt_priv *priv)
 		clk_disable_unprepare(priv->clk_ahb);
 		dev_err(priv->dev, "Failed to enable clk!\n");
 	}
+
+	/* wdt has internal divider */
+	priv->wdt_freq = clk_get_rate(priv->clk) / 4;
 
 	return 0;
 out_err:
@@ -193,12 +193,16 @@ static int asm9260_wdt_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->iobase))
 		return PTR_ERR(priv->iobase);
 
+	ret = asm9260_wdt_get_dt_clks(priv);
+	if (ret)
+		return ret;
+
 	wdd = &priv->wdd;
-	wdd->info = &asm9260_wdt_ident,
-	wdd->ops = &asm9260_wdt_ops,
-	wdd->timeout = ASM9260_WDT_DEFAULT_TIMEOUT,
-	wdd->min_timeout = SIRFSOC_WDT_MIN_TIMEOUT,
-	wdd->max_timeout = SIRFSOC_WDT_MAX_TIMEOUT,
+	wdd->info = &asm9260_wdt_ident;
+	wdd->ops = &asm9260_wdt_ops;
+	wdd->timeout = ASM9260_WDT_DEFAULT_TIMEOUT;
+	wdd->min_timeout = BM_WDTC_MIN(priv->wdt_freq);
+	wdd->max_timeout = BM_WDTC_MAX(priv->wdt_freq);
 
 	watchdog_set_drvdata(wdd, priv);
 

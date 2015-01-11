@@ -62,6 +62,11 @@ MODULE_PARM_DESC(timeout, "Default watchdog timeout (in seconds)");
 MODULE_PARM_DESC(nowayout, "Watchdog cannot be stopped once started (default="
 			__MODULE_STRING(WATCHDOG_NOWAYOUT) ")");
 
+struct asm9260_wdt_priv {
+	struct watchdog_device *wdd;
+	void __iomem *iobase;
+}
+
 static unsigned int asm9260_wdt_gettimeleft(struct watchdog_device *wdd)
 {
 	u32 counter, match;
@@ -154,44 +159,49 @@ static struct watchdog_ops asm9260_wdt_ops = {
 	.set_timeout = asm9260_wdt_settimeout,
 };
 
-static struct watchdog_device asm9260_wdd = {
-	.info = &asm9260_wdt_ident,
-	.ops = &asm9260_wdt_ops,
-	.timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT,
-	.min_timeout = SIRFSOC_WDT_MIN_TIMEOUT,
-	.max_timeout = SIRFSOC_WDT_MAX_TIMEOUT,
-};
-
 static int asm9260_wdt_probe(struct platform_device *pdev)
 {
+	struct asm9260_wdt_priv *priv;
+	struct watchdog_device *wdd;
 	struct resource *res;
 	int ret;
-	void __iomem *base;
+
+	priv = devm_kzalloc(&pdev->dev, sizeof(struct asm9260_wdt_priv),
+			GFP_KERNEL);
+	if (!priv)
+		return -ENOMEM;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	base = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(base))
-		return PTR_ERR(base);
+	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(priv->iobase))
+		return PTR_ERR(priv->iobase);
 
-	watchdog_set_drvdata(&asm9260_wdd, base);
+	wdd = &priv->wdd;
+	wdd->info = &asm9260_wdt_ident,
+	wdd->ops = &asm9260_wdt_ops,
+	wdd->timeout = SIRFSOC_WDT_DEFAULT_TIMEOUT,
+	wdd->min_timeout = SIRFSOC_WDT_MIN_TIMEOUT,
+	wdd->max_timeout = SIRFSOC_WDT_MAX_TIMEOUT,
 
-	watchdog_init_timeout(&asm9260_wdd, timeout, &pdev->dev);
-	watchdog_set_nowayout(&asm9260_wdd, nowayout);
+	watchdog_set_drvdata(wdd, priv);
 
-	ret = watchdog_register_device(&asm9260_wdd);
+	watchdog_init_timeout(wdd, timeout, &pdev->dev);
+	watchdog_set_nowayout(wdd, nowayout);
+
+	ret = watchdog_register_device(wdd);
 	if (ret)
 		return ret;
 
-	platform_set_drvdata(pdev, &asm9260_wdd);
+	platform_set_drvdata(pdev, priv);
 
 	return 0;
 }
 
 static void asm9260_wdt_shutdown(struct platform_device *pdev)
 {
-	struct watchdog_device *wdd = platform_get_drvdata(pdev);
+	struct asm9260_wdt_priv *priv = platform_get_drvdata(pdev);
 
-	asm9260_wdt_disable(wdd);
+	asm9260_wdt_disable(&priv->wdd);
 }
 
 static int asm9260_wdt_remove(struct platform_device *pdev)
@@ -208,14 +218,14 @@ static int asm9260_wdt_suspend(struct device *dev)
 
 static int asm9260_wdt_resume(struct device *dev)
 {
-	struct watchdog_device *wdd = dev_get_drvdata(dev);
+	struct asm9260_wdt_priv *priv = dev_get_drvdata(dev);
 
 	/*
 	 * NOTE: Since timer controller registers settings are saved
 	 * and restored back by the timer-prima2.c, so we need not
 	 * update WD settings except refreshing timeout.
 	 */
-	asm9260_wdt_updatetimeout(wdd);
+	asm9260_wdt_updatetimeout(&priv->wdd);
 
 	return 0;
 }

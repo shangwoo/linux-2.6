@@ -69,7 +69,7 @@
 #define VT8500_RTC_IS_ALARM	(1 << 0)	/* Alarm interrupt status */
 
 struct asm9260_rtc_priv {
-	void __iomem		*regbase;
+	void __iomem		*iobase;
 	int			irq_alarm;
 	struct rtc_device	*rtc;
 	spinlock_t		lock;		/* Protects this structure */
@@ -84,8 +84,8 @@ static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 	spin_lock(&asm9260_rtc_priv->lock);
 
 	/* clear interrupt sources */
-	isr = readl(asm9260_rtc_priv->regbase + VT8500_RTC_IS);
-	writel(isr, asm9260_rtc_priv->regbase + VT8500_RTC_IS);
+	isr = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_IS);
+	iowrite32(isr, asm9260_rtc_priv->iobase + VT8500_RTC_IS);
 
 	spin_unlock(&asm9260_rtc_priv->lock);
 
@@ -102,8 +102,8 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 	u32 date, time;
 
-	date = readl(asm9260_rtc_priv->regbase + VT8500_RTC_DR);
-	time = readl(asm9260_rtc_priv->regbase + VT8500_RTC_TR);
+	date = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_DR);
+	time = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_TR);
 
 	tm->tm_sec = bcd2bin(time & TIME_SEC_MASK);
 	tm->tm_min = bcd2bin((time & TIME_MIN_MASK) >> TIME_MIN_S);
@@ -127,16 +127,16 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 		return -EINVAL;
 	}
 
-	writel((bin2bcd(tm->tm_year % 100) << DATE_YEAR_S)
+	iowrite32((bin2bcd(tm->tm_year % 100) << DATE_YEAR_S)
 		| (bin2bcd(tm->tm_mon + 1) << DATE_MONTH_S)
 		| (bin2bcd(tm->tm_mday))
 		| ((tm->tm_year >= 200) << DATE_CENTURY_S),
-		asm9260_rtc_priv->regbase + VT8500_RTC_DS);
-	writel((bin2bcd(tm->tm_wday) << TIME_DOW_S)
+		asm9260_rtc_priv->iobase + VT8500_RTC_DS);
+	iowrite32((bin2bcd(tm->tm_wday) << TIME_DOW_S)
 		| (bin2bcd(tm->tm_hour) << TIME_HOUR_S)
 		| (bin2bcd(tm->tm_min) << TIME_MIN_S)
 		| (bin2bcd(tm->tm_sec)),
-		asm9260_rtc_priv->regbase + VT8500_RTC_TS);
+		asm9260_rtc_priv->iobase + VT8500_RTC_TS);
 
 	return 0;
 }
@@ -146,8 +146,8 @@ static int asm9260_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 	u32 isr, alarm;
 
-	alarm = readl(asm9260_rtc_priv->regbase + VT8500_RTC_AS);
-	isr = readl(asm9260_rtc_priv->regbase + VT8500_RTC_IS);
+	alarm = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_AS);
+	isr = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_IS);
 
 	alrm->time.tm_mday = bcd2bin((alarm & ALARM_DAY_MASK) >> ALARM_DAY_S);
 	alrm->time.tm_hour = bcd2bin((alarm & TIME_HOUR_MASK) >> TIME_HOUR_S);
@@ -164,12 +164,12 @@ static int asm9260_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 
-	writel((alrm->enabled ? ALARM_ENABLE_MASK : 0)
+	iowrite32((alrm->enabled ? ALARM_ENABLE_MASK : 0)
 		| (bin2bcd(alrm->time.tm_mday) << ALARM_DAY_S)
 		| (bin2bcd(alrm->time.tm_hour) << TIME_HOUR_S)
 		| (bin2bcd(alrm->time.tm_min) << TIME_MIN_S)
 		| (bin2bcd(alrm->time.tm_sec)),
-		asm9260_rtc_priv->regbase + VT8500_RTC_AS);
+		asm9260_rtc_priv->iobase + VT8500_RTC_AS);
 
 	return 0;
 }
@@ -177,23 +177,23 @@ static int asm9260_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 static int asm9260_alarm_irq_enable(struct device *dev, unsigned int enabled)
 {
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
-	unsigned long tmp = readl(asm9260_rtc_priv->regbase + VT8500_RTC_AS);
+	unsigned long tmp = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_AS);
 
 	if (enabled)
 		tmp |= ALARM_ENABLE_MASK;
 	else
 		tmp &= ~ALARM_ENABLE_MASK;
 
-	writel(tmp, asm9260_rtc_priv->regbase + VT8500_RTC_AS);
+	iowrite32(tmp, asm9260_rtc_priv->iobase + VT8500_RTC_AS);
 	return 0;
 }
 
 static const struct rtc_class_ops asm9260_rtc_ops = {
-	.read_time = asm9260_rtc_read_time,
-	.set_time = asm9260_rtc_set_time,
-	.read_alarm = asm9260_rtc_read_alarm,
-	.set_alarm = asm9260_rtc_set_alarm,
-	.alarm_irq_enable = asm9260_alarm_irq_enable,
+	.read_time		= asm9260_rtc_read_time,
+	.set_time		= asm9260_rtc_set_time,
+	.read_alarm		= asm9260_rtc_read_alarm,
+	.set_alarm		= asm9260_rtc_set_alarm,
+	.alarm_irq_enable	= asm9260_alarm_irq_enable,
 };
 
 static int asm9260_rtc_probe(struct platform_device *pdev)
@@ -217,13 +217,13 @@ static int asm9260_rtc_probe(struct platform_device *pdev)
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	asm9260_rtc_priv->regbase = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(asm9260_rtc_priv->regbase))
-		return PTR_ERR(asm9260_rtc_priv->regbase);
+	asm9260_rtc_priv->iobase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(asm9260_rtc_priv->iobase))
+		return PTR_ERR(asm9260_rtc_priv->iobase);
 
 	/* Enable RTC and set it to 24-hour mode */
-	writel(VT8500_RTC_CR_ENABLE,
-	       asm9260_rtc_priv->regbase + VT8500_RTC_CR);
+	iowrite32(VT8500_RTC_CR_ENABLE,
+	       asm9260_rtc_priv->iobase + VT8500_RTC_CR);
 
 	asm9260_rtc_priv->rtc = devm_rtc_device_register(&pdev->dev, "asm9260-rtc",
 					      &asm9260_rtc_ops, THIS_MODULE);
@@ -253,7 +253,7 @@ static int asm9260_rtc_remove(struct platform_device *pdev)
 	struct asm9260_rtc_priv *asm9260_rtc_priv = platform_get_drvdata(pdev);
 
 	/* Disable alarm matching */
-	writel(0, asm9260_rtc_priv->regbase + VT8500_RTC_IS);
+	iowrite32(0, asm9260_rtc_priv->iobase + VT8500_RTC_IS);
 
 	return 0;
 }

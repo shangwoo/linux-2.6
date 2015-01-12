@@ -15,6 +15,8 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 #include <linux/of.h>
+#include <linux/delay.h>
+#include <linux/clk.h>
 
 /* Miscellaneous registers */
 /* Interrupt Location Register */
@@ -126,6 +128,7 @@ struct asm9260_rtc_priv {
 	int			irq_alarm;
 	struct rtc_device	*rtc;
 	spinlock_t		lock;		/* Protects this structure */
+	struct clk		*clk;
 };
 
 #if 0
@@ -196,14 +199,14 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	 */
 	iowrite32(0, priv->iobase + HW_SEC);
 
-	iowrite32((bin2bcd(tm->tm_year), priv->iobase + HW_YEAR);
-	iowrite32((bin2bcd(tm->tm_mon),  priv->iobase + HW_MONTH);
-	iowrite32((bin2bcd(tm->tm_mday), priv->iobase + HW_DOM);
-	iowrite32((bin2bcd(tm->tm_wday), priv->iobase + HW_DOW);
-	iowrite32((bin2bcd(tm->tm_yday), priv->iobase + HW_DOY);
-	iowrite32((bin2bcd(tm->tm_hour), priv->iobase + HW_HOUR);
-	iowrite32((bin2bcd(tm->tm_min),  priv->iobase + HW_MIN);
-	iowrite32((bin2bcd(tm->tm_sec),  priv->iobase + HW_SEC);
+	iowrite32(bin2bcd(tm->tm_year), priv->iobase + HW_YEAR);
+	iowrite32(bin2bcd(tm->tm_mon),  priv->iobase + HW_MONTH);
+	iowrite32(bin2bcd(tm->tm_mday), priv->iobase + HW_DOM);
+	iowrite32(bin2bcd(tm->tm_wday), priv->iobase + HW_DOW);
+	iowrite32(bin2bcd(tm->tm_yday), priv->iobase + HW_DOY);
+	iowrite32(bin2bcd(tm->tm_hour), priv->iobase + HW_HOUR);
+	iowrite32(bin2bcd(tm->tm_min),  priv->iobase + HW_MIN);
+	iowrite32(bin2bcd(tm->tm_sec),  priv->iobase + HW_SEC);
 
 	return 0;
 }
@@ -292,6 +295,13 @@ static int asm9260_rtc_probe(struct platform_device *pdev)
 	if (IS_ERR(priv->iobase))
 		return PTR_ERR(priv->iobase);
 
+	priv->clk = devm_clk_get(&pdev->dev, "ahb");
+	ret = clk_prepare_enable(priv->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to enable clk!\n");
+		return ret;
+	}
+
 	/* FIXME: do sanity checks. Do clock is ok? */
 	/* Enable RTC and set it to 24-hour mode */
 	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
@@ -329,11 +339,11 @@ err_return:
 
 static int asm9260_rtc_remove(struct platform_device *pdev)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = platform_get_drvdata(pdev);
+	struct asm9260_rtc_priv *priv = platform_get_drvdata(pdev);
 
 	/* Disable alarm matching */
 	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
-
+	clk_disable_unprepare(priv->clk);
 	return 0;
 }
 

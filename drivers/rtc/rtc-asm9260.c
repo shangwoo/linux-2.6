@@ -1,18 +1,9 @@
 /*
- * drivers/rtc/rtc-vt8500.c
- *
- *  Copyright (C) 2010 Alexey Charkov <alchark@gmail.com>
- *
- * Based on rtc-pxa.c
+ * Copyright (C) 2014 Oleksij Rempel <linux@rempel-privat.de>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
  * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
  */
 
 #include <linux/module.h>
@@ -77,42 +68,42 @@
 
 #define VT8500_RTC_IS_ALARM	(1 << 0)	/* Alarm interrupt status */
 
-struct vt8500_rtc {
+struct asm9260_rtc_priv {
 	void __iomem		*regbase;
 	int			irq_alarm;
 	struct rtc_device	*rtc;
 	spinlock_t		lock;		/* Protects this structure */
 };
 
-static irqreturn_t vt8500_rtc_irq(int irq, void *dev_id)
+static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_id;
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_id;
 	u32 isr;
 	unsigned long events = 0;
 
-	spin_lock(&vt8500_rtc->lock);
+	spin_lock(&asm9260_rtc_priv->lock);
 
 	/* clear interrupt sources */
-	isr = readl(vt8500_rtc->regbase + VT8500_RTC_IS);
-	writel(isr, vt8500_rtc->regbase + VT8500_RTC_IS);
+	isr = readl(asm9260_rtc_priv->regbase + VT8500_RTC_IS);
+	writel(isr, asm9260_rtc_priv->regbase + VT8500_RTC_IS);
 
-	spin_unlock(&vt8500_rtc->lock);
+	spin_unlock(&asm9260_rtc_priv->lock);
 
 	if (isr & VT8500_RTC_IS_ALARM)
 		events |= RTC_AF | RTC_IRQF;
 
-	rtc_update_irq(vt8500_rtc->rtc, 1, events);
+	rtc_update_irq(asm9260_rtc_priv->rtc, 1, events);
 
 	return IRQ_HANDLED;
 }
 
-static int vt8500_rtc_read_time(struct device *dev, struct rtc_time *tm)
+static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 	u32 date, time;
 
-	date = readl(vt8500_rtc->regbase + VT8500_RTC_DR);
-	time = readl(vt8500_rtc->regbase + VT8500_RTC_TR);
+	date = readl(asm9260_rtc_priv->regbase + VT8500_RTC_DR);
+	time = readl(asm9260_rtc_priv->regbase + VT8500_RTC_TR);
 
 	tm->tm_sec = bcd2bin(time & TIME_SEC_MASK);
 	tm->tm_min = bcd2bin((time & TIME_MIN_MASK) >> TIME_MIN_S);
@@ -126,9 +117,9 @@ static int vt8500_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
-static int vt8500_rtc_set_time(struct device *dev, struct rtc_time *tm)
+static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 
 	if (tm->tm_year < 100) {
 		dev_warn(dev, "Only years 2000-2199 are supported by the "
@@ -140,23 +131,23 @@ static int vt8500_rtc_set_time(struct device *dev, struct rtc_time *tm)
 		| (bin2bcd(tm->tm_mon + 1) << DATE_MONTH_S)
 		| (bin2bcd(tm->tm_mday))
 		| ((tm->tm_year >= 200) << DATE_CENTURY_S),
-		vt8500_rtc->regbase + VT8500_RTC_DS);
+		asm9260_rtc_priv->regbase + VT8500_RTC_DS);
 	writel((bin2bcd(tm->tm_wday) << TIME_DOW_S)
 		| (bin2bcd(tm->tm_hour) << TIME_HOUR_S)
 		| (bin2bcd(tm->tm_min) << TIME_MIN_S)
 		| (bin2bcd(tm->tm_sec)),
-		vt8500_rtc->regbase + VT8500_RTC_TS);
+		asm9260_rtc_priv->regbase + VT8500_RTC_TS);
 
 	return 0;
 }
 
-static int vt8500_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+static int asm9260_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 	u32 isr, alarm;
 
-	alarm = readl(vt8500_rtc->regbase + VT8500_RTC_AS);
-	isr = readl(vt8500_rtc->regbase + VT8500_RTC_IS);
+	alarm = readl(asm9260_rtc_priv->regbase + VT8500_RTC_AS);
+	isr = readl(asm9260_rtc_priv->regbase + VT8500_RTC_IS);
 
 	alrm->time.tm_mday = bcd2bin((alarm & ALARM_DAY_MASK) >> ALARM_DAY_S);
 	alrm->time.tm_hour = bcd2bin((alarm & TIME_HOUR_MASK) >> TIME_HOUR_S);
@@ -169,85 +160,85 @@ static int vt8500_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	return rtc_valid_tm(&alrm->time);
 }
 
-static int vt8500_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
+static int asm9260_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 
 	writel((alrm->enabled ? ALARM_ENABLE_MASK : 0)
 		| (bin2bcd(alrm->time.tm_mday) << ALARM_DAY_S)
 		| (bin2bcd(alrm->time.tm_hour) << TIME_HOUR_S)
 		| (bin2bcd(alrm->time.tm_min) << TIME_MIN_S)
 		| (bin2bcd(alrm->time.tm_sec)),
-		vt8500_rtc->regbase + VT8500_RTC_AS);
+		asm9260_rtc_priv->regbase + VT8500_RTC_AS);
 
 	return 0;
 }
 
-static int vt8500_alarm_irq_enable(struct device *dev, unsigned int enabled)
+static int asm9260_alarm_irq_enable(struct device *dev, unsigned int enabled)
 {
-	struct vt8500_rtc *vt8500_rtc = dev_get_drvdata(dev);
-	unsigned long tmp = readl(vt8500_rtc->regbase + VT8500_RTC_AS);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
+	unsigned long tmp = readl(asm9260_rtc_priv->regbase + VT8500_RTC_AS);
 
 	if (enabled)
 		tmp |= ALARM_ENABLE_MASK;
 	else
 		tmp &= ~ALARM_ENABLE_MASK;
 
-	writel(tmp, vt8500_rtc->regbase + VT8500_RTC_AS);
+	writel(tmp, asm9260_rtc_priv->regbase + VT8500_RTC_AS);
 	return 0;
 }
 
-static const struct rtc_class_ops vt8500_rtc_ops = {
-	.read_time = vt8500_rtc_read_time,
-	.set_time = vt8500_rtc_set_time,
-	.read_alarm = vt8500_rtc_read_alarm,
-	.set_alarm = vt8500_rtc_set_alarm,
-	.alarm_irq_enable = vt8500_alarm_irq_enable,
+static const struct rtc_class_ops asm9260_rtc_ops = {
+	.read_time = asm9260_rtc_read_time,
+	.set_time = asm9260_rtc_set_time,
+	.read_alarm = asm9260_rtc_read_alarm,
+	.set_alarm = asm9260_rtc_set_alarm,
+	.alarm_irq_enable = asm9260_alarm_irq_enable,
 };
 
-static int vt8500_rtc_probe(struct platform_device *pdev)
+static int asm9260_rtc_probe(struct platform_device *pdev)
 {
-	struct vt8500_rtc *vt8500_rtc;
+	struct asm9260_rtc_priv *asm9260_rtc_priv;
 	struct resource	*res;
 	int ret;
 
-	vt8500_rtc = devm_kzalloc(&pdev->dev,
-			   sizeof(struct vt8500_rtc), GFP_KERNEL);
-	if (!vt8500_rtc)
+	asm9260_rtc_priv = devm_kzalloc(&pdev->dev,
+			   sizeof(struct asm9260_rtc_priv), GFP_KERNEL);
+	if (!asm9260_rtc_priv)
 		return -ENOMEM;
 
-	spin_lock_init(&vt8500_rtc->lock);
-	platform_set_drvdata(pdev, vt8500_rtc);
+	spin_lock_init(&asm9260_rtc_priv->lock);
+	platform_set_drvdata(pdev, asm9260_rtc_priv);
 
-	vt8500_rtc->irq_alarm = platform_get_irq(pdev, 0);
-	if (vt8500_rtc->irq_alarm < 0) {
+	asm9260_rtc_priv->irq_alarm = platform_get_irq(pdev, 0);
+	if (asm9260_rtc_priv->irq_alarm < 0) {
 		dev_err(&pdev->dev, "No alarm IRQ resource defined\n");
-		return vt8500_rtc->irq_alarm;
+		return asm9260_rtc_priv->irq_alarm;
 	}
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	vt8500_rtc->regbase = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(vt8500_rtc->regbase))
-		return PTR_ERR(vt8500_rtc->regbase);
+	asm9260_rtc_priv->regbase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(asm9260_rtc_priv->regbase))
+		return PTR_ERR(asm9260_rtc_priv->regbase);
 
 	/* Enable RTC and set it to 24-hour mode */
 	writel(VT8500_RTC_CR_ENABLE,
-	       vt8500_rtc->regbase + VT8500_RTC_CR);
+	       asm9260_rtc_priv->regbase + VT8500_RTC_CR);
 
-	vt8500_rtc->rtc = devm_rtc_device_register(&pdev->dev, "vt8500-rtc",
-					      &vt8500_rtc_ops, THIS_MODULE);
-	if (IS_ERR(vt8500_rtc->rtc)) {
-		ret = PTR_ERR(vt8500_rtc->rtc);
+	asm9260_rtc_priv->rtc = devm_rtc_device_register(&pdev->dev, "asm9260-rtc",
+					      &asm9260_rtc_ops, THIS_MODULE);
+	if (IS_ERR(asm9260_rtc_priv->rtc)) {
+		ret = PTR_ERR(asm9260_rtc_priv->rtc);
 		dev_err(&pdev->dev,
 			"Failed to register RTC device -> %d\n", ret);
 		goto err_return;
 	}
 
-	ret = devm_request_irq(&pdev->dev, vt8500_rtc->irq_alarm,
-				vt8500_rtc_irq, 0, "rtc alarm", vt8500_rtc);
+	ret = devm_request_irq(&pdev->dev, asm9260_rtc_priv->irq_alarm,
+				asm9260_rtc_irq, 0, "rtc alarm", asm9260_rtc_priv);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "can't get irq %i, err %d\n",
-			vt8500_rtc->irq_alarm, ret);
+			asm9260_rtc_priv->irq_alarm, ret);
 		goto err_return;
 	}
 
@@ -257,34 +248,33 @@ err_return:
 	return ret;
 }
 
-static int vt8500_rtc_remove(struct platform_device *pdev)
+static int asm9260_rtc_remove(struct platform_device *pdev)
 {
-	struct vt8500_rtc *vt8500_rtc = platform_get_drvdata(pdev);
+	struct asm9260_rtc_priv *asm9260_rtc_priv = platform_get_drvdata(pdev);
 
 	/* Disable alarm matching */
-	writel(0, vt8500_rtc->regbase + VT8500_RTC_IS);
+	writel(0, asm9260_rtc_priv->regbase + VT8500_RTC_IS);
 
 	return 0;
 }
 
 static const struct of_device_id wmt_dt_ids[] = {
-	{ .compatible = "via,vt8500-rtc", },
+	{ .compatible = "alphascale,asm9260-rtc", },
 	{}
 };
 
-static struct platform_driver vt8500_rtc_driver = {
-	.probe		= vt8500_rtc_probe,
-	.remove		= vt8500_rtc_remove,
+static struct platform_driver asm9260_rtc_driver = {
+	.probe		= asm9260_rtc_probe,
+	.remove		= asm9260_rtc_remove,
 	.driver		= {
-		.name	= "vt8500-rtc",
+		.name	= "asm9260-rtc",
 		.owner	= THIS_MODULE,
 		.of_match_table = wmt_dt_ids,
 	},
 };
 
-module_platform_driver(vt8500_rtc_driver);
+module_platform_driver(asm9260_rtc_driver);
 
-MODULE_AUTHOR("Alexey Charkov <alchark@gmail.com>");
-MODULE_DESCRIPTION("VIA VT8500 SoC Realtime Clock Driver (RTC)");
+MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
+MODULE_DESCRIPTION("Alphascale asm9260 SoC Realtime Clock Driver (RTC)");
 MODULE_LICENSE("GPL v2");
-MODULE_ALIAS("platform:vt8500-rtc");

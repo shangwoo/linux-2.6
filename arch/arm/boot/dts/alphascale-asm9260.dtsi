@@ -174,7 +174,7 @@
 		};
 
 		rtc0: rtc@800a0000 {
-			compatible = "alphascale,asm9260-timer";
+			compatible = "alphascale,asm9260-rtc";
 			reg = <0x800a0000 0x100>;
 			clocks = <&acc CLKID_AHB_RTC>;
 			clock-names = "ahb";

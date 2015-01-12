@@ -44,14 +44,15 @@
 
 /* Alarm Mask Register */
 #define HW_AMR			0x10
-#define BM_CMR_IMYEAR		BIT(7)
-#define BM_CMR_IMMON		BIT(6)
-#define BM_CMR_IMDOY		BIT(5)
-#define BM_CMR_IMDOW		BIT(4)
-#define BM_CMR_IMDOM		BIT(3)
-#define BM_CMR_IMHOUR		BIT(2)
-#define BM_CMR_IMMIN		BIT(1)
-#define BM_CMR_IMSEC		BIT(0)
+#define BM_AMR_IMYEAR		BIT(7)
+#define BM_AMR_IMMON		BIT(6)
+#define BM_AMR_IMDOY		BIT(5)
+#define BM_AMR_IMDOW		BIT(4)
+#define BM_AMR_IMDOM		BIT(3)
+#define BM_AMR_IMHOUR		BIT(2)
+#define BM_AMR_IMMIN		BIT(1)
+#define BM_AMR_IMSEC		BIT(0)
+#define BM_AMR_OFF		0xff
 
 /* Consolidated time registers */
 #define HW_CTIME0		0x14
@@ -120,60 +121,6 @@
 #define HW_ALMON		0x78
 #define HW_ALYEAR		0x7C
 
-
-
-/*
- * Register definitions
- */
-#define VT8500_RTC_TS		0x00	/* Time set */
-#define VT8500_RTC_DS		0x04	/* Date set */
-#define VT8500_RTC_AS		0x08	/* Alarm set */
-#define VT8500_RTC_CR		0x0c	/* Control */
-#define VT8500_RTC_TR		0x10	/* Time read */
-#define VT8500_RTC_DR		0x14	/* Date read */
-#define VT8500_RTC_WS		0x18	/* Write status */
-#define VT8500_RTC_CL		0x20	/* Calibration */
-#define VT8500_RTC_IS		0x24	/* Interrupt status */
-#define VT8500_RTC_ST		0x28	/* Status */
-
-#define INVALID_TIME_BIT	(1 << 31)
-
-#define DATE_CENTURY_S		19
-#define DATE_YEAR_S		11
-#define DATE_YEAR_MASK		(0xff << DATE_YEAR_S)
-#define DATE_MONTH_S		6
-#define DATE_MONTH_MASK		(0x1f << DATE_MONTH_S)
-#define DATE_DAY_MASK		0x3f
-
-#define TIME_DOW_S		20
-#define TIME_DOW_MASK		(0x07 << TIME_DOW_S)
-#define TIME_HOUR_S		14
-#define TIME_HOUR_MASK		(0x3f << TIME_HOUR_S)
-#define TIME_MIN_S		7
-#define TIME_MIN_MASK		(0x7f << TIME_MIN_S)
-#define TIME_SEC_MASK		0x7f
-
-#define ALARM_DAY_S		20
-#define ALARM_DAY_MASK		(0x3f << ALARM_DAY_S)
-
-#define ALARM_DAY_BIT		(1 << 29)
-#define ALARM_HOUR_BIT		(1 << 28)
-#define ALARM_MIN_BIT		(1 << 27)
-#define ALARM_SEC_BIT		(1 << 26)
-
-#define ALARM_ENABLE_MASK	(ALARM_DAY_BIT \
-				| ALARM_HOUR_BIT \
-				| ALARM_MIN_BIT \
-				| ALARM_SEC_BIT)
-
-#define VT8500_RTC_CR_ENABLE	(1 << 0)	/* Enable RTC */
-#define VT8500_RTC_CR_12H	(1 << 1)	/* 12h time format */
-#define VT8500_RTC_CR_SM_ENABLE	(1 << 2)	/* Enable periodic irqs */
-#define VT8500_RTC_CR_SM_SEC	(1 << 3)	/* 0: 1Hz/60, 1: 1Hz */
-#define VT8500_RTC_CR_CALIB	(1 << 4)	/* Enable calibration */
-
-#define VT8500_RTC_IS_ALARM	(1 << 0)	/* Alarm interrupt status */
-
 struct asm9260_rtc_priv {
 	void __iomem		*iobase;
 	int			irq_alarm;
@@ -181,6 +128,7 @@ struct asm9260_rtc_priv {
 	spinlock_t		lock;		/* Protects this structure */
 };
 
+#if 0
 static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 {
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_id;
@@ -202,6 +150,7 @@ static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+#endif
 
 static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
@@ -239,7 +188,7 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 
 static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
 
 	/*
 	 * make sure SEC counter will not flip other counter on write time,
@@ -248,17 +197,18 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	iowrite32(0, priv->iobase + HW_SEC);
 
 	iowrite32((bin2bcd(tm->tm_year), priv->iobase + HW_YEAR);
-	iowrite32((bin2bcd(tm->tm_mon), priv->iobase + HW_MONTH);
+	iowrite32((bin2bcd(tm->tm_mon),  priv->iobase + HW_MONTH);
 	iowrite32((bin2bcd(tm->tm_mday), priv->iobase + HW_DOM);
 	iowrite32((bin2bcd(tm->tm_wday), priv->iobase + HW_DOW);
 	iowrite32((bin2bcd(tm->tm_yday), priv->iobase + HW_DOY);
 	iowrite32((bin2bcd(tm->tm_hour), priv->iobase + HW_HOUR);
-	iowrite32((bin2bcd(tm->tm_min), priv->iobase + HW_MIN);
-	iowrite32((bin2bcd(tm->tm_sec), priv->iobase + HW_SEC);
+	iowrite32((bin2bcd(tm->tm_min),  priv->iobase + HW_MIN);
+	iowrite32((bin2bcd(tm->tm_sec),  priv->iobase + HW_SEC);
 
 	return 0;
 }
 
+#if 0
 static int asm9260_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
@@ -305,60 +255,71 @@ static int asm9260_alarm_irq_enable(struct device *dev, unsigned int enabled)
 	iowrite32(tmp, asm9260_rtc_priv->iobase + VT8500_RTC_AS);
 	return 0;
 }
+#endif
 
 static const struct rtc_class_ops asm9260_rtc_ops = {
 	.read_time		= asm9260_rtc_read_time,
 	.set_time		= asm9260_rtc_set_time,
-	.read_alarm		= asm9260_rtc_read_alarm,
-	.set_alarm		= asm9260_rtc_set_alarm,
-	.alarm_irq_enable	= asm9260_alarm_irq_enable,
+//	.read_alarm		= asm9260_rtc_read_alarm,
+//	.set_alarm		= asm9260_rtc_set_alarm,
+//	.alarm_irq_enable	= asm9260_alarm_irq_enable,
 };
 
 static int asm9260_rtc_probe(struct platform_device *pdev)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv;
+	struct asm9260_rtc_priv *priv;
 	struct resource	*res;
 	int ret;
 
-	asm9260_rtc_priv = devm_kzalloc(&pdev->dev,
+	priv = devm_kzalloc(&pdev->dev,
 			   sizeof(struct asm9260_rtc_priv), GFP_KERNEL);
-	if (!asm9260_rtc_priv)
+	if (!priv)
 		return -ENOMEM;
 
-	spin_lock_init(&asm9260_rtc_priv->lock);
-	platform_set_drvdata(pdev, asm9260_rtc_priv);
+	spin_lock_init(&priv->lock);
+	platform_set_drvdata(pdev, priv);
 
-	asm9260_rtc_priv->irq_alarm = platform_get_irq(pdev, 0);
-	if (asm9260_rtc_priv->irq_alarm < 0) {
+#if 0
+	priv->irq_alarm = platform_get_irq(pdev, 0);
+	if (priv->irq_alarm < 0) {
 		dev_err(&pdev->dev, "No alarm IRQ resource defined\n");
-		return asm9260_rtc_priv->irq_alarm;
+		return priv->irq_alarm;
 	}
+#endif
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	asm9260_rtc_priv->iobase = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(asm9260_rtc_priv->iobase))
-		return PTR_ERR(asm9260_rtc_priv->iobase);
+	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(priv->iobase))
+		return PTR_ERR(priv->iobase);
 
+	/* FIXME: do sanity checks. Do clock is ok? */
 	/* Enable RTC and set it to 24-hour mode */
-	iowrite32(VT8500_RTC_CR_ENABLE,
-	       asm9260_rtc_priv->iobase + VT8500_RTC_CR);
+	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
+	msleep(1);
+	iowrite32(0, priv->iobase + HW_CCR);
+	iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
 
-	asm9260_rtc_priv->rtc = devm_rtc_device_register(&pdev->dev, "asm9260-rtc",
+	iowrite32(0, priv->iobase + HW_CIIR);
+	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
+
+	priv->rtc = devm_rtc_device_register(&pdev->dev, "asm9260-rtc",
 					      &asm9260_rtc_ops, THIS_MODULE);
-	if (IS_ERR(asm9260_rtc_priv->rtc)) {
-		ret = PTR_ERR(asm9260_rtc_priv->rtc);
+	if (IS_ERR(priv->rtc)) {
+		ret = PTR_ERR(priv->rtc);
 		dev_err(&pdev->dev,
 			"Failed to register RTC device -> %d\n", ret);
 		goto err_return;
 	}
 
-	ret = devm_request_irq(&pdev->dev, asm9260_rtc_priv->irq_alarm,
-				asm9260_rtc_irq, 0, "rtc alarm", asm9260_rtc_priv);
+#if 0
+	ret = devm_request_irq(&pdev->dev, priv->irq_alarm,
+				asm9260_rtc_irq, 0, "rtc alarm", priv);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "can't get irq %i, err %d\n",
-			asm9260_rtc_priv->irq_alarm, ret);
+			priv->irq_alarm, ret);
 		goto err_return;
 	}
+#endif
 
 	return 0;
 
@@ -371,7 +332,7 @@ static int asm9260_rtc_remove(struct platform_device *pdev)
 	struct asm9260_rtc_priv *asm9260_rtc_priv = platform_get_drvdata(pdev);
 
 	/* Disable alarm matching */
-	iowrite32(0, asm9260_rtc_priv->iobase + VT8500_RTC_IS);
+	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
 
 	return 0;
 }

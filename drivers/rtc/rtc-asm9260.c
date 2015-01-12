@@ -205,11 +205,12 @@ static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 
 static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
+	u32 ctime0, ctime1;
 	u32 date, time;
 
-	date = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_DR);
-	time = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_TR);
+	ctime0 = ioread32(priv->iobase + HW_CTIME0);
+	ctime1 = ioread32(priv->iobase + HW_CTIME1);
 
 	tm->tm_sec = bcd2bin(time & TIME_SEC_MASK);
 	tm->tm_min = bcd2bin((time & TIME_MIN_MASK) >> TIME_MIN_S);

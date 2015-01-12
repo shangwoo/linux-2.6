@@ -179,7 +179,7 @@ out_err:
 	return 1;
 }
 
-static int asm9260_wdt_probe(struct platform_device *pdev)
+static int __init asm9260_wdt_probe(struct platform_device *pdev)
 {
 	struct asm9260_wdt_priv *priv;
 	struct watchdog_device *wdd;
@@ -216,12 +216,17 @@ static int asm9260_wdt_probe(struct platform_device *pdev)
 
 	ret = watchdog_register_device(wdd);
 	if (ret)
-		return ret;
+		goto clk_off;
 
 	platform_set_drvdata(pdev, priv);
 
 	dev_info(&pdev->dev, "initialized.\n");
 	return 0;
+
+clk_off:
+	clk_disable_unprepare(priv->clk);
+	clk_disable_unprepare(priv->clk_ahb);
+	return ret;
 }
 
 static void asm9260_wdt_shutdown(struct platform_device *pdev)
@@ -236,36 +241,12 @@ static int asm9260_wdt_remove(struct platform_device *pdev)
 	struct asm9260_wdt_priv *priv = platform_get_drvdata(pdev);
 
 	asm9260_wdt_shutdown(pdev);
+
 	clk_disable_unprepare(priv->clk);
 	clk_disable_unprepare(priv->clk_ahb);
 
 	return 0;
 }
-
-#ifdef	CONFIG_PM_SLEEP
-static int asm9260_wdt_suspend(struct device *dev)
-{
-	return 0;
-}
-
-static int asm9260_wdt_resume(struct device *dev)
-{
-	struct asm9260_wdt_priv *priv = dev_get_drvdata(dev);
-
-	/*
-	 * FIXME: need this?
-	 * NOTE: Since timer controller registers settings are saved
-	 * and restored back by the timer-prima2.c, so we need not
-	 * update WD settings except refreshing timeout.
-	 */
-	asm9260_wdt_updatetimeout(&priv->wdd);
-
-	return 0;
-}
-#endif
-
-static SIMPLE_DEV_PM_OPS(asm9260_wdt_pm_ops,
-		asm9260_wdt_suspend, asm9260_wdt_resume);
 
 static const struct of_device_id asm9260_wdt_of_match[] = {
 	{ .compatible = "alphascale,asm9260-wdt"},
@@ -277,7 +258,6 @@ static struct platform_driver asm9260_wdt_driver = {
 	.driver = {
 		.name = "asm9260-wdt",
 		.owner = THIS_MODULE,
-		.pm = &asm9260_wdt_pm_ops,
 		.of_match_table	= asm9260_wdt_of_match,
 	},
 	.probe = asm9260_wdt_probe,

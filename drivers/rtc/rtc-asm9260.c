@@ -208,11 +208,20 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
 	u32 ctime0, ctime1, ctime2;
 
-	/* FIXME: should we recheck if ctime0 flipped? with day, year filp or what
-	 * ever. */
 	ctime0 = ioread32(priv->iobase + HW_CTIME0);
 	ctime1 = ioread32(priv->iobase + HW_CTIME1);
 	ctime2 = ioread32(priv->iobase + HW_CTIME2);
+
+	if (ctime1 != ioread32(priv->iobase + HW_CTIME1)) {
+		/*
+		 * woops, counter flipped right now. Now we are safe
+		 * to reread.
+		 */
+		ctime0 = ioread32(priv->iobase + HW_CTIME0);
+		ctime1 = ioread32(priv->iobase + HW_CTIME1);
+		ctime2 = ioread32(priv->iobase + HW_CTIME2);
+	}
+
 
 	tm->tm_sec  = bcd2bin((ctime0 >> BM_CTIME0_SEC_S)  & BM_CTIME0_SEC_M);
 	tm->tm_min  = bcd2bin((ctime0 >> BM_CTIME0_MIN_S)  & BM_CTIME0_MIN_M);
@@ -232,22 +241,20 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
 	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
 
-	if (tm->tm_year < 100) {
-		dev_warn(dev, "Only years 2000-2199 are supported by the "
-			      "hardware!\n");
-		return -EINVAL;
-	}
+	/*
+	 * make sure SEC counter will not flip other counter on write time,
+	 * real value will be written at the enf of sequence.
+	 */
+	iowrite32(0, priv->iobase + HW_SEC);
 
-	iowrite32((bin2bcd(tm->tm_year % 100) << DATE_YEAR_S)
-		| (bin2bcd(tm->tm_mon + 1) << DATE_MONTH_S)
-		| (bin2bcd(tm->tm_mday))
-		| ((tm->tm_year >= 200) << DATE_CENTURY_S),
-		asm9260_rtc_priv->iobase + VT8500_RTC_DS);
-	iowrite32((bin2bcd(tm->tm_wday) << TIME_DOW_S)
-		| (bin2bcd(tm->tm_hour) << TIME_HOUR_S)
-		| (bin2bcd(tm->tm_min) << TIME_MIN_S)
-		| (bin2bcd(tm->tm_sec)),
-		asm9260_rtc_priv->iobase + VT8500_RTC_TS);
+	iowrite32((bin2bcd(tm->tm_year), priv->iobase + HW_YEAR);
+	iowrite32((bin2bcd(tm->tm_mon), priv->iobase + HW_MONTH);
+	iowrite32((bin2bcd(tm->tm_mday), priv->iobase + HW_DOM);
+	iowrite32((bin2bcd(tm->tm_wday), priv->iobase + HW_DOW);
+	iowrite32((bin2bcd(tm->tm_yday), priv->iobase + HW_DOY);
+	iowrite32((bin2bcd(tm->tm_hour), priv->iobase + HW_HOUR);
+	iowrite32((bin2bcd(tm->tm_min), priv->iobase + HW_MIN);
+	iowrite32((bin2bcd(tm->tm_sec), priv->iobase + HW_SEC);
 
 	return 0;
 }

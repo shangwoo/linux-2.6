@@ -206,20 +206,24 @@ static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
 	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
-	u32 ctime0, ctime1;
-	u32 date, time;
+	u32 ctime0, ctime1, ctime2;
 
+	/* FIXME: should we recheck if ctime0 flipped? with day, year filp or what
+	 * ever. */
 	ctime0 = ioread32(priv->iobase + HW_CTIME0);
 	ctime1 = ioread32(priv->iobase + HW_CTIME1);
+	ctime2 = ioread32(priv->iobase + HW_CTIME2);
 
-	tm->tm_sec = bcd2bin(time & TIME_SEC_MASK);
-	tm->tm_min = bcd2bin((time & TIME_MIN_MASK) >> TIME_MIN_S);
-	tm->tm_hour = bcd2bin((time & TIME_HOUR_MASK) >> TIME_HOUR_S);
-	tm->tm_mday = bcd2bin(date & DATE_DAY_MASK);
-	tm->tm_mon = bcd2bin((date & DATE_MONTH_MASK) >> DATE_MONTH_S) - 1;
-	tm->tm_year = bcd2bin((date & DATE_YEAR_MASK) >> DATE_YEAR_S)
-			+ ((date >> DATE_CENTURY_S) & 1 ? 200 : 100);
-	tm->tm_wday = (time & TIME_DOW_MASK) >> TIME_DOW_S;
+	tm->tm_sec  = bcd2bin((ctime0 >> BM_CTIME0_SEC_S)  & BM_CTIME0_SEC_M);
+	tm->tm_min  = bcd2bin((ctime0 >> BM_CTIME0_MIN_S)  & BM_CTIME0_MIN_M);
+	tm->tm_hour = bcd2bin((ctime0 >> BM_CTIME0_HOUR_S) & BM_CTIME0_HOUR_M);
+	tm->tm_wday = bcd2bin((ctime0 >> BM_CTIME0_DOW_S)  & BM_CTIME0_DOW_M);
+
+	tm->tm_mday = bcd2bin((ctime1 >> BM_CTIME1_DOM_S)  & BM_CTIME1_DOM_M);
+	tm->tm_mon  = bcd2bin((ctime1 >> BM_CTIME1_MON_S)  & BM_CTIME1_MON_M);
+	tm->tm_year = bcd2bin((ctime1 >> BM_CTIME1_YEAR_S) & BM_CTIME1_YEAR_M);
+
+	tm->tm_yday = bcd2bin((ctime2 >> BM_CTIME2_DOY_S)  & BM_CTIME2_DOY_M);
 
 	return 0;
 }

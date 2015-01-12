@@ -16,6 +16,112 @@
 #include <linux/slab.h>
 #include <linux/of.h>
 
+/* Miscellaneous registers */
+/* Interrupt Location Register */
+#define HW_ILR			0x00
+#define BM_RTCALF		BIT(1)
+#define BM_RTCCIF		BIT(0)
+
+/* Clock Control Register */
+#define HW_CCR			0x08
+/* Calibration counter disable */
+#define BM_CCALOFF		BIT(4)
+/* Reset internal oscillator divider */
+#define BM_CTCRST		BIT(1)
+/* Clock Enable */
+#define BM_CLKEN		BIT(0)
+
+/* Counter Increment Interrupt Register */
+#define HW_CIIR			0x0C
+#define BM_CIIR_IMYEAR		BIT(7)
+#define BM_CIIR_IMMON		BIT(6)
+#define BM_CIIR_IMDOY		BIT(5)
+#define BM_CIIR_IMDOW		BIT(4)
+#define BM_CIIR_IMDOM		BIT(3)
+#define BM_CIIR_IMHOUR		BIT(2)
+#define BM_CIIR_IMMIN		BIT(1)
+#define BM_CIIR_IMSEC		BIT(0)
+
+/* Alarm Mask Register */
+#define HW_AMR			0x10
+#define BM_CMR_IMYEAR		BIT(7)
+#define BM_CMR_IMMON		BIT(6)
+#define BM_CMR_IMDOY		BIT(5)
+#define BM_CMR_IMDOW		BIT(4)
+#define BM_CMR_IMDOM		BIT(3)
+#define BM_CMR_IMHOUR		BIT(2)
+#define BM_CMR_IMMIN		BIT(1)
+#define BM_CMR_IMSEC		BIT(0)
+
+/* Consolidated time registers */
+#define HW_CTIME0		0x14
+#define BM_CTIME0_DOW_S		24
+#define BM_CTIME0_DOW_M		0x7
+#define BM_CTIME0_HOUR_S	16
+#define BM_CTIME0_HOUR_M	0x1f
+#define BM_CTIME0_MIN_S		8
+#define BM_CTIME0_MIN_M		0x3f
+#define BM_CTIME0_SEC_S		0
+#define BM_CTIME0_SEC_M		0x3f
+
+#define HW_CTIME1		0x18
+#define BM_CTIME1_YEAR_S	16
+#define BM_CTIME1_YEAR_M	0xfff
+#define BM_CTIME1_MON_S		8
+#define BM_CTIME1_MON_M		0xf
+#define BM_CTIME1_DOM_S		0
+#define BM_CTIME1_DOM_M		0x1f
+
+#define HW_CTIME2		0x1C
+#define BM_CTIME2_DOY_S		0
+#define BM_CTIME2_DOY_M		0xfff
+
+/* Time counter registers */
+#define HW_SEC			0x20
+#define HW_MIN			0x24
+#define HW_HOUR			0x28
+#define HW_DOM			0x2C
+#define HW_DOW			0x30
+#define HW_DOY			0x34
+#define HW_MONTH		0x38
+#define HW_YEAR			0x3C
+#define HW_CALIBRATION		0x40
+
+/* General purpose registers */
+#define HW_GPREG0		0x44
+#define HW_GPREG1		0x48
+#define HW_GPREG2		0x4C
+#define HW_GPREG3		0x50
+#define HW_GPREG4		0x54
+
+/* RTC Auxiliary control register */
+#define HW_RTC_AUX		0x5C
+/*
+ * RTC Oscillator Fail detect flag.
+ * Read: this bit is set if the RTC oscillator stops, and when RTC power is
+ * first turned on. An interrupt will occur when this bit is set, the
+ * RTC_OSCFEN bit in RTC_AUXEN is a 1, and the RTC interrupt is enabled
+ * in the NVIC.
+ * Write: writing a 1 to this bit clears the flag.
+ */
+#define BM_RTC_OSCF		BIT(4)
+/* RTC Auxiliary Enable register */
+#define HW_RTC_AUXEN		0x58
+/* Oscillator Fail Detect interrupt enable. */
+#define BM_RTC_OSCFEN		BIT(4)
+
+/* Alarm register group */
+#define HW_ALSEC		0x60
+#define HW_ALMIN		0x64
+#define HW_ALHOUR		0x68
+#define HW_ALDOM		0x6C
+#define HW_ALDOW		0x70
+#define HW_ALDOY		0x74
+#define HW_ALMON		0x78
+#define HW_ALYEAR		0x7C
+
+
+
 /*
  * Register definitions
  */

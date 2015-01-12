@@ -163,6 +163,7 @@
 			reg = <0x80048000 0x10>;
 			clocks = <&acc CLKID_SYS_WDT>, <&acc CLKID_AHB_WDT>;
 			clock-names = "mod", "ahb";
+			interrupts = <55>;
 		};
 
 		timer0: timer@80088000 {
@@ -170,6 +171,14 @@
 			reg = <0x80088000 0x4000>;
 			clocks = <&acc CLKID_AHB_TIMER0>;
 			interrupts = <29>;
+		};
+
+		rtc0: rtc@800a0000 {
+			compatible = "alphascale,asm9260-timer";
+			reg = <0x800a0000 0x100>;
+			clocks = <&acc CLKID_AHB_RTC>;
+			clock-names = "ahb";
+			interrupts = <2>;
 		};
 
 		nand_controller0: nand@80600000 {

@@ -88,7 +88,10 @@
 #define HW_DOY			0x34
 #define HW_MONTH		0x38
 #define HW_YEAR			0x3C
+
 #define HW_CALIBRATION		0x40
+#define BM_CALDIR		BIT(17)
+#define BM_CALVAL_M		0x1ffff
 
 /* General purpose registers */
 /* We can use one of this registers to detect if battery was removed/off
@@ -273,6 +276,12 @@ static const struct rtc_class_ops asm9260_rtc_ops = {
 //	.alarm_irq_enable	= asm9260_alarm_irq_enable,
 };
 
+# if 0
+static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
+{
+
+}
+#endif
 
 static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
 {
@@ -295,6 +304,18 @@ static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
 
 	iowrite32(0, priv->iobase + HW_CIIR);
 	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
+
+	/* FIXME: need to configure calibration? */
+
+	if (ioread32(priv->iobase + HW_CCR) & BM_CCALOFF)
+		dev_info(priv->dev, "Auto calibration is not enabled\n");
+	else {
+		u32 cal = ioread32(priv->iobase + HW_CALIBRATION);
+
+		dev_info(priv->dev, "%s auto calibration is enabled (%x)\n",
+			 (cal & BM_CALDIR) ? "Backward" : "Forward",
+			 cal & BM_CALVAL_M);
+	}
 
 	return 0;
 }

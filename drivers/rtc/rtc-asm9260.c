@@ -133,35 +133,28 @@
 struct asm9260_rtc_priv {
 	struct device		*dev;
 	void __iomem		*iobase;
-	int			irq_alarm;
 	struct rtc_device	*rtc;
-	spinlock_t		lock;		/* Protects this structure */
 	struct clk		*clk;
 };
 
-#if 0
 static irqreturn_t asm9260_rtc_irq(int irq, void *dev_id)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_id;
+	struct asm9260_rtc_priv *priv = dev_id;
 	u32 isr;
 	unsigned long events = 0;
 
-	spin_lock(&asm9260_rtc_priv->lock);
+	isr = ioread32(priv->iobase + HW_CIIR);
+	if (!isr)
+		return IRQ_NONE;
 
-	/* clear interrupt sources */
-	isr = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_IS);
-	iowrite32(isr, asm9260_rtc_priv->iobase + VT8500_RTC_IS);
+	iowrite32(0, priv->iobase + HW_CIIR);
 
-	spin_unlock(&asm9260_rtc_priv->lock);
+	events |= RTC_AF | RTC_IRQF;
 
-	if (isr & VT8500_RTC_IS_ALARM)
-		events |= RTC_AF | RTC_IRQF;
-
-	rtc_update_irq(asm9260_rtc_priv->rtc, 1, events);
+	rtc_update_irq(priv->rtc, 1, events);
 
 	return IRQ_HANDLED;
 }
-#endif
 
 static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 {
@@ -173,7 +166,6 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	ctime2 = ioread32(priv->iobase + HW_CTIME2);
 
 	if (ctime1 != ioread32(priv->iobase + HW_CTIME1)) {
-		printk("... reread rtc\n");
 		/*
 		 * woops, counter flipped right now. Now we are safe
 		 * to reread.
@@ -219,86 +211,86 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	return 0;
 }
 
-#if 0
 static int asm9260_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
-	u32 isr, alarm;
+	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
 
-	alarm = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_AS);
-	isr = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_IS);
+	alrm->time.tm_year = ioread32(priv->iobase + HW_ALYEAR);
+	alrm->time.tm_mon  = ioread32(priv->iobase + HW_ALMON);
+	alrm->time.tm_mday = ioread32(priv->iobase + HW_ALDOM);
+	alrm->time.tm_wday = ioread32(priv->iobase + HW_ALDOW);
+	alrm->time.tm_yday = ioread32(priv->iobase + HW_ALDOY);
+	alrm->time.tm_hour = ioread32(priv->iobase + HW_ALHOUR);
+	alrm->time.tm_min  = ioread32(priv->iobase + HW_ALMIN);
+	alrm->time.tm_sec  = ioread32(priv->iobase + HW_ALSEC);
 
-	alrm->time.tm_mday = bcd2bin((alarm & ALARM_DAY_MASK) >> ALARM_DAY_S);
-	alrm->time.tm_hour = bcd2bin((alarm & TIME_HOUR_MASK) >> TIME_HOUR_S);
-	alrm->time.tm_min = bcd2bin((alarm & TIME_MIN_MASK) >> TIME_MIN_S);
-	alrm->time.tm_sec = bcd2bin((alarm & TIME_SEC_MASK));
-
-	alrm->enabled = (alarm & ALARM_ENABLE_MASK) ? 1 : 0;
-	alrm->pending = (isr & VT8500_RTC_IS_ALARM) ? 1 : 0;
+	alrm->enabled = ioread32(priv->iobase + HW_AMR) ? 1 : 0;
+	alrm->pending = ioread32(priv->iobase + HW_CIIR) ? 1 : 0;
 
 	return rtc_valid_tm(&alrm->time);
 }
 
 static int asm9260_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
+	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
 
-	iowrite32((alrm->enabled ? ALARM_ENABLE_MASK : 0)
-		| (bin2bcd(alrm->time.tm_mday) << ALARM_DAY_S)
-		| (bin2bcd(alrm->time.tm_hour) << TIME_HOUR_S)
-		| (bin2bcd(alrm->time.tm_min) << TIME_MIN_S)
-		| (bin2bcd(alrm->time.tm_sec)),
-		asm9260_rtc_priv->iobase + VT8500_RTC_AS);
+	iowrite32(alrm->time.tm_year, priv->iobase + HW_ALYEAR);
+	iowrite32(alrm->time.tm_mon,  priv->iobase + HW_ALMON);
+	iowrite32(alrm->time.tm_mday, priv->iobase + HW_ALDOM);
+	iowrite32(alrm->time.tm_wday, priv->iobase + HW_ALDOW);
+	iowrite32(alrm->time.tm_yday, priv->iobase + HW_ALDOY);
+	iowrite32(alrm->time.tm_hour, priv->iobase + HW_ALHOUR);
+	iowrite32(alrm->time.tm_min,  priv->iobase + HW_ALMIN);
+	iowrite32(alrm->time.tm_sec,  priv->iobase + HW_ALSEC);
+
+	iowrite32(alrm->enabled ? 0 : BM_AMR_OFF, priv->iobase + HW_AMR);
 
 	return 0;
 }
 
 static int asm9260_alarm_irq_enable(struct device *dev, unsigned int enabled)
 {
-	struct asm9260_rtc_priv *asm9260_rtc_priv = dev_get_drvdata(dev);
-	unsigned long tmp = ioread32(asm9260_rtc_priv->iobase + VT8500_RTC_AS);
+	struct asm9260_rtc_priv *priv = dev_get_drvdata(dev);
 
-	if (enabled)
-		tmp |= ALARM_ENABLE_MASK;
-	else
-		tmp &= ~ALARM_ENABLE_MASK;
-
-	iowrite32(tmp, asm9260_rtc_priv->iobase + VT8500_RTC_AS);
+	iowrite32(enabled ? 0 : BM_AMR_OFF, priv->iobase + HW_AMR);
 	return 0;
 }
-#endif
 
 static const struct rtc_class_ops asm9260_rtc_ops = {
 	.read_time		= asm9260_rtc_read_time,
 	.set_time		= asm9260_rtc_set_time,
-//	.read_alarm		= asm9260_rtc_read_alarm,
-//	.set_alarm		= asm9260_rtc_set_alarm,
-//	.alarm_irq_enable	= asm9260_alarm_irq_enable,
+	.read_alarm		= asm9260_rtc_read_alarm,
+	.set_alarm		= asm9260_rtc_set_alarm,
+	.alarm_irq_enable	= asm9260_alarm_irq_enable,
 };
 
-# if 0
-static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
+static void __init asm9260_rtc_init(struct asm9260_rtc_priv *priv)
 {
+	dev_info(priv->dev, "Reseting clock\n");
 
+	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
+
+	/*
+	 * Store something to GP register. If battery was removed,
+	 * this data probably will be lost.
+	 */
+	iowrite32(BM_GPREG0_MAGIC, priv->iobase + HW_GPREG0);
+
+	iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
 }
-#endif
 
 static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
 {
+	u32 ccr;
 
-	if (ioread32(priv->iobase + HW_CCR) != BM_CLKEN ||
-			ioread32(priv->iobase + HW_GPREG0) != BM_GPREG0_MAGIC) {
-		dev_info(priv->dev, "Reseting clock\n");
-		iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
-		msleep(1);
-		iowrite32(0, priv->iobase + HW_CCR);
-		iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
+	ccr = ioread32(priv->iobase + HW_CCR);
 
-		/*
-		 * Store some thing to GP register. If battery was removed,
-		 * this data will be lost.
-		 */
-		iowrite32(BM_GPREG0_MAGIC, priv->iobase + HW_GPREG0);
+	if ((ccr & (BM_CLKEN | BM_CTCRST)) != BM_CLKEN) {
+		dev_info(priv->dev, "Not enabled.\n");
+		asm9260_rtc_init(priv);
+	} else if (ioread32(priv->iobase + HW_GPREG0) != BM_GPREG0_MAGIC) {
+		dev_info(priv->dev, "Magic not found.\n");
+		asm9260_rtc_init(priv);
 	} else
 		dev_info(priv->dev, "Ticking clock found.\n");
 
@@ -324,7 +316,7 @@ static int __init asm9260_rtc_probe(struct platform_device *pdev)
 {
 	struct asm9260_rtc_priv *priv;
 	struct resource	*res;
-	int ret;
+	int irq_alarm, ret;
 
 	priv = devm_kzalloc(&pdev->dev,
 			   sizeof(struct asm9260_rtc_priv), GFP_KERNEL);
@@ -332,16 +324,13 @@ static int __init asm9260_rtc_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	priv->dev = &pdev->dev;
-	spin_lock_init(&priv->lock);
 	platform_set_drvdata(pdev, priv);
 
-#if 0
-	priv->irq_alarm = platform_get_irq(pdev, 0);
-	if (priv->irq_alarm < 0) {
+	irq_alarm = platform_get_irq(pdev, 0);
+	if (irq_alarm < 0) {
 		dev_err(&pdev->dev, "No alarm IRQ resource defined\n");
-		return priv->irq_alarm;
+		return irq_alarm;
 	}
-#endif
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
@@ -368,23 +357,23 @@ static int __init asm9260_rtc_probe(struct platform_device *pdev)
 		goto err_return;
 	}
 
-#if 0
-	ret = devm_request_irq(&pdev->dev, priv->irq_alarm,
-				asm9260_rtc_irq, 0, "rtc alarm", priv);
+	ret = devm_request_irq(&pdev->dev, irq_alarm,
+				asm9260_rtc_irq, IRQF_SHARED | IRQF_ONESHOT,
+				"asm9260-rtc", priv);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "can't get irq %i, err %d\n",
-			priv->irq_alarm, ret);
+			irq_alarm, ret);
 		goto err_return;
 	}
-#endif
 
 	return 0;
 
 err_return:
+	clk_disable_unprepare(priv->clk);
 	return ret;
 }
 
-static int asm9260_rtc_remove(struct platform_device *pdev)
+static int __exit asm9260_rtc_remove(struct platform_device *pdev)
 {
 	struct asm9260_rtc_priv *priv = platform_get_drvdata(pdev);
 

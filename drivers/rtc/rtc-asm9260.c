@@ -128,6 +128,7 @@
 #define HW_ALYEAR		0x7C
 
 struct asm9260_rtc_priv {
+	struct device		*dev;
 	void __iomem		*iobase;
 	int			irq_alarm;
 	struct rtc_device	*rtc;
@@ -273,14 +274,24 @@ static const struct rtc_class_ops asm9260_rtc_ops = {
 };
 
 
-static int __init asm9260_rtc_init(struct asm9260_rtc_priv *priv)
+static int __init asm9260_rtc_start(struct asm9260_rtc_priv *priv)
 {
-	/* FIXME: do sanity checks. Do clock is ok? */
-	/* Enable RTC and set it to 24-hour mode */
-	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
-	msleep(1);
-	iowrite32(0, priv->iobase + HW_CCR);
-	iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
+
+	if (ioread32(priv->iobase + HW_CCR) != BM_CLKEN ||
+			ioread32(priv->iobase + HW_GPREG0) != BM_GPREG0_MAGIC) {
+		dev_info(priv->dev, "Reseting clock\n");
+		iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
+		msleep(1);
+		iowrite32(0, priv->iobase + HW_CCR);
+		iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
+
+		/*
+		 * Store some thing to GP register. If battery was removed,
+		 * this data will be lost.
+		 */
+		iowrite32(BM_GPREG0_MAGIC, priv->iobase + HW_GPREG0);
+	} else
+		dev_info(priv->dev, "Ticking clock found.\n");
 
 	iowrite32(0, priv->iobase + HW_CIIR);
 	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
@@ -299,6 +310,7 @@ static int __init asm9260_rtc_probe(struct platform_device *pdev)
 	if (!priv)
 		return -ENOMEM;
 
+	priv->dev = &pdev->dev;
 	spin_lock_init(&priv->lock);
 	platform_set_drvdata(pdev, priv);
 
@@ -322,7 +334,7 @@ static int __init asm9260_rtc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = asm9260_rtc_init(priv);
+	ret = asm9260_rtc_start(priv);
 	if (ret)
 		return ret;
 

@@ -268,7 +268,23 @@ static const struct rtc_class_ops asm9260_rtc_ops = {
 //	.alarm_irq_enable	= asm9260_alarm_irq_enable,
 };
 
-static int asm9260_rtc_probe(struct platform_device *pdev)
+
+static int __init asm9260_rtc_init(struct asm9260_rtc_priv *priv)
+{
+	/* FIXME: do sanity checks. Do clock is ok? */
+	/* Enable RTC and set it to 24-hour mode */
+	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
+	msleep(1);
+	iowrite32(0, priv->iobase + HW_CCR);
+	iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
+
+	iowrite32(0, priv->iobase + HW_CIIR);
+	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
+
+	return 0;
+}
+
+static int __init asm9260_rtc_probe(struct platform_device *pdev)
 {
 	struct asm9260_rtc_priv *priv;
 	struct resource	*res;
@@ -302,15 +318,9 @@ static int asm9260_rtc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* FIXME: do sanity checks. Do clock is ok? */
-	/* Enable RTC and set it to 24-hour mode */
-	iowrite32(BM_CTCRST, priv->iobase + HW_CCR);
-	msleep(1);
-	iowrite32(0, priv->iobase + HW_CCR);
-	iowrite32(BM_CLKEN, priv->iobase + HW_CCR);
-
-	iowrite32(0, priv->iobase + HW_CIIR);
-	iowrite32(BM_AMR_OFF, priv->iobase + HW_AMR);
+	ret = asm9260_rtc_init(priv);
+	if (ret)
+		return ret;
 
 	priv->rtc = devm_rtc_device_register(&pdev->dev, "asm9260-rtc",
 					      &asm9260_rtc_ops, THIS_MODULE);

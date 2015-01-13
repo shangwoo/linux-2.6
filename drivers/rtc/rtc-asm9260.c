@@ -165,6 +165,7 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 	ctime2 = ioread32(priv->iobase + HW_CTIME2);
 
 	if (ctime1 != ioread32(priv->iobase + HW_CTIME1)) {
+		printk("... reread rtc\n");
 		/*
 		 * woops, counter flipped right now. Now we are safe
 		 * to reread.
@@ -174,17 +175,16 @@ static int asm9260_rtc_read_time(struct device *dev, struct rtc_time *tm)
 		ctime2 = ioread32(priv->iobase + HW_CTIME2);
 	}
 
+	tm->tm_sec  = (ctime0 >> BM_CTIME0_SEC_S)  & BM_CTIME0_SEC_M;
+	tm->tm_min  = (ctime0 >> BM_CTIME0_MIN_S)  & BM_CTIME0_MIN_M;
+	tm->tm_hour = (ctime0 >> BM_CTIME0_HOUR_S) & BM_CTIME0_HOUR_M;
+	tm->tm_wday = (ctime0 >> BM_CTIME0_DOW_S)  & BM_CTIME0_DOW_M;
 
-	tm->tm_sec  = bcd2bin((ctime0 >> BM_CTIME0_SEC_S)  & BM_CTIME0_SEC_M);
-	tm->tm_min  = bcd2bin((ctime0 >> BM_CTIME0_MIN_S)  & BM_CTIME0_MIN_M);
-	tm->tm_hour = bcd2bin((ctime0 >> BM_CTIME0_HOUR_S) & BM_CTIME0_HOUR_M);
-	tm->tm_wday = bcd2bin((ctime0 >> BM_CTIME0_DOW_S)  & BM_CTIME0_DOW_M);
+	tm->tm_mday = (ctime1 >> BM_CTIME1_DOM_S)  & BM_CTIME1_DOM_M;
+	tm->tm_mon  = (ctime1 >> BM_CTIME1_MON_S)  & BM_CTIME1_MON_M;
+	tm->tm_year = (ctime1 >> BM_CTIME1_YEAR_S) & BM_CTIME1_YEAR_M;
 
-	tm->tm_mday = bcd2bin((ctime1 >> BM_CTIME1_DOM_S)  & BM_CTIME1_DOM_M);
-	tm->tm_mon  = bcd2bin((ctime1 >> BM_CTIME1_MON_S)  & BM_CTIME1_MON_M);
-	tm->tm_year = bcd2bin((ctime1 >> BM_CTIME1_YEAR_S) & BM_CTIME1_YEAR_M);
-
-	tm->tm_yday = bcd2bin((ctime2 >> BM_CTIME2_DOY_S)  & BM_CTIME2_DOY_M);
+	tm->tm_yday = (ctime2 >> BM_CTIME2_DOY_S)  & BM_CTIME2_DOY_M;
 
 	return 0;
 }
@@ -199,14 +199,14 @@ static int asm9260_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	 */
 	iowrite32(0, priv->iobase + HW_SEC);
 
-	iowrite32(bin2bcd(tm->tm_year), priv->iobase + HW_YEAR);
-	iowrite32(bin2bcd(tm->tm_mon),  priv->iobase + HW_MONTH);
-	iowrite32(bin2bcd(tm->tm_mday), priv->iobase + HW_DOM);
-	iowrite32(bin2bcd(tm->tm_wday), priv->iobase + HW_DOW);
-	iowrite32(bin2bcd(tm->tm_yday), priv->iobase + HW_DOY);
-	iowrite32(bin2bcd(tm->tm_hour), priv->iobase + HW_HOUR);
-	iowrite32(bin2bcd(tm->tm_min),  priv->iobase + HW_MIN);
-	iowrite32(bin2bcd(tm->tm_sec),  priv->iobase + HW_SEC);
+	iowrite32(tm->tm_year, priv->iobase + HW_YEAR);
+	iowrite32(tm->tm_mon,  priv->iobase + HW_MONTH);
+	iowrite32(tm->tm_mday, priv->iobase + HW_DOM);
+	iowrite32(tm->tm_wday, priv->iobase + HW_DOW);
+	iowrite32(tm->tm_yday, priv->iobase + HW_DOY);
+	iowrite32(tm->tm_hour, priv->iobase + HW_HOUR);
+	iowrite32(tm->tm_min,  priv->iobase + HW_MIN);
+	iowrite32(tm->tm_sec,  priv->iobase + HW_SEC);
 
 	return 0;
 }

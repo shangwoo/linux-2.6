@@ -91,7 +91,11 @@
 #define HW_CALIBRATION		0x40
 
 /* General purpose registers */
+/* We can use one of this registers to detect if battery was removed/off
+ * so far we in */
 #define HW_GPREG0		0x44
+#define BM_GPREG0_MAGIC		0x12345678
+
 #define HW_GPREG1		0x48
 #define HW_GPREG2		0x4C
 #define HW_GPREG3		0x50

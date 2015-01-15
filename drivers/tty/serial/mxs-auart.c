@@ -1420,11 +1420,8 @@ out_free_gpio_irq:
 out_free_irq:
 	auart_port[pdev->id] = NULL;
 	free_irq(s->irq, s);
-out_free_clk:
-	clk_put(s->clk);
-out_free:
-	kfree(s);
 out:
+	auart_port[pdev->id] = NULL;
 	return ret;
 }
 

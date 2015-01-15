@@ -52,6 +52,8 @@
 
 #define MXS_AUART_PORTS 5
 #define MXS_AUART_FIFO_SIZE		16
+#define MXS_DEVICENAME			"ttyAPP"
+#define DRIVER_NAME			"mxs-auart"
 
 #define SET_REG				0x4
 #define CLR_REG				0x8
@@ -1136,7 +1138,7 @@ auart_console_setup(struct console *co, char *options)
 }
 
 static struct console auart_console = {
-	.name		= "ttyAPP",
+	.name		= MXS_DEVICENAME,
 	.write		= auart_console_write,
 	.device		= uart_console_device,
 	.setup		= auart_console_setup,
@@ -1148,8 +1150,8 @@ static struct console auart_console = {
 
 static struct uart_driver auart_driver = {
 	.owner		= THIS_MODULE,
-	.driver_name	= "ttyAPP",
-	.dev_name	= "ttyAPP",
+	.driver_name	= MXS_DEVICENAME,
+	.dev_name	= MXS_DEVICENAME,
 	.major		= 0,
 	.minor		= 0,
 	.nr		= MXS_AUART_PORTS,
@@ -1425,6 +1427,8 @@ static struct platform_driver mxs_auart_driver = {
 	.remove = mxs_auart_remove,
 	.driver = {
 		.name = "mxs-auart",
+		.name = DRIVER_NAME,
+		.owner = THIS_MODULE,
 		.of_match_table = mxs_auart_dt_ids,
 	},
 };
@@ -1458,4 +1462,4 @@ module_init(mxs_auart_init);
 module_exit(mxs_auart_exit);
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Freescale MXS application uart driver");
-MODULE_ALIAS("platform:mxs-auart");
+MODULE_ALIAS("platform:" DRIVER_NAME);

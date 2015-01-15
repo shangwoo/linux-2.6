@@ -1384,16 +1384,18 @@ static int mxs_auart_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, s);
 
-	if (!mxs_auart_init_gpios(s, &pdev->dev))
-		dev_err(&pdev->dev,
-			"Failed to initialize GPIOs. The serial port may not work as expected\n");
+	if (!is_asm9260_auart(s)) {
+		if (!mxs_auart_init_gpios(s, &pdev->dev))
+			dev_err(&pdev->dev,
+				"Failed to initialize GPIOs. The serial port may not work as expected\n");
 
-	/*
-	 * Get the GPIO lines IRQ
-	 */
-	ret = mxs_auart_request_gpio_irq(s);
-	if (ret)
-		goto out_free_irq;
+		/*
+		* Get the GPIO lines IRQ
+		 */
+		ret = mxs_auart_request_gpio_irq(s);
+		if (ret)
+			goto out_free_irq;
+	}
 
 	auart_port[s->port.line] = s;
 

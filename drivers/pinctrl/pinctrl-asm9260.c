@@ -1757,7 +1757,6 @@ static const struct asm9260_function asm9260_functions[] = {
 	FUNCTION(UART9_TXD),
 };
 
-#if 1
 /* Sub muxes */
 
 /**
@@ -1958,8 +1957,6 @@ static void __init asm9260_init_mux_pins(void)
 		for (pin = grp->pins, p = 0; p < grp->npins; ++p, ++pin)
 			asm9260_mux_pins[*pin] = g;
 }
-
-#endif
 
 /**
  * struct asm9260_pmx - Private pinctrl data

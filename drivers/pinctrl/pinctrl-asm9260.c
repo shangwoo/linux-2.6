@@ -1962,28 +1962,6 @@ static void __init asm9260_init_mux_pins(void)
 #endif
 
 /**
- * SIMPLE_PG() - Initialise a simple convenience pin group
- * @pg_name:	Pin group name (stringified, _pins appended to get pins array)
- *
- * A simple pin group is simply used for binding pins together so they can be
- * referred to by a single name instead of having to list every pin
- * individually.
- */
-#define SIMPLE_PG(pg_name)					\
-	{							\
-		.name = #pg_name,				\
-		.pins = pg_name##_pins,				\
-		.npins = ARRAY_SIZE(pg_name##_pins),		\
-	}
-
-static struct asm9260_pingroup asm9260_groups[] = {
-	/*        pg_name */
-	SIMPLE_PG(uart1),
-	SIMPLE_PG(uart4_0),
-	SIMPLE_PG(uart4_1),
-};
-
-/**
  * struct asm9260_pmx - Private pinctrl data
  * @dev:	Platform device
  * @pctl:	Pin control device
@@ -2025,14 +2003,7 @@ static int asm9260_pinctrl_get_groups_count(struct pinctrl_dev *pctldev)
 static const char *asm9260_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
 						 unsigned int group)
 {
-	if (group < ARRAY_SIZE(asm9260_groups)) {
-		/* normal pingroup */
-		return asm9260_groups[group].name;
-	} else {
-		/* individual gpio pin pseudo-pingroup */
-		unsigned int pin = group - ARRAY_SIZE(asm9260_groups);
-		return asm9260_pins[pin].name;
-	}
+	return asm9260_pins[group].name;
 }
 
 static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
@@ -2040,16 +2011,8 @@ static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
 					 const unsigned int **pins,
 					 unsigned int *num_pins)
 {
-	if (group < ARRAY_SIZE(asm9260_groups)) {
-		/* normal pingroup */
-		*pins = asm9260_groups[group].pins;
-		*num_pins = asm9260_groups[group].npins;
-	} else {
-		/* individual gpio pin pseudo-pingroup */
-		unsigned int pin = group - ARRAY_SIZE(asm9260_groups);
-		*pins = &asm9260_pins[pin].number;
-		*num_pins = 1;
-	}
+	*pins = &asm9260_pins[group].number;
+	*num_pins = 1;
 
 	return 0;
 }
@@ -2392,8 +2355,10 @@ static void asm9260_pinctrl_perip_select(struct asm9260_pmx *pmx,
 	spin_unlock(&pmx->lock);
 }
 
+#endif
+
 /**
- * asm9260_pinctrl_enable_mux() - Switch a pin mux group to a function.
+ * asm9260_pinctrl_set_mux_mux() - Switch a pin mux group to a function.
  * @pmx:		Pinmux data
  * @desc:		Pinmux description
  * @function:		Function to switch to
@@ -2401,7 +2366,7 @@ static void asm9260_pinctrl_perip_select(struct asm9260_pmx *pmx,
  * Enable a particular function on a pin mux group. Since pin mux descriptions
  * are nested this function is recursive.
  */
-static int asm9260_pinctrl_enable_mux(struct asm9260_pmx *pmx,
+static int asm9260_pinctrl_set_mux_mux(struct asm9260_pmx *pmx,
 				     const struct asm9260_muxdesc *desc,
 				     unsigned int function)
 {
@@ -2423,6 +2388,9 @@ static int asm9260_pinctrl_enable_mux(struct asm9260_pmx *pmx,
 	return -EINVAL;
 found_mux:
 
+	printk("%s:%i mux: %i\n", __func__, __LINE__, mux);
+
+#if 0
 	/* Set up the mux */
 	if (desc->width) {
 		mask = (BIT(desc->width) - 1) << desc->bit;
@@ -2434,12 +2402,12 @@ found_mux:
 		__global_unlock2(flags);
 	}
 
+#endif
 	return 0;
 }
 
-#endif
 /**
- * asm9260_pinctrl_enable() - Enable a function on a pin group.
+ * asm9260_pinctrl_set_mux() - Enable a function on a pin group.
  * @pctldev:		Pin control data
  * @function:		Function index to enable
  * @group:		Group index to enable
@@ -2451,33 +2419,29 @@ found_mux:
  * the effect is the same as enabling the function on each individual pin in the
  * group.
  */
-static int asm9260_pinctrl_enable(struct pinctrl_dev *pctldev,
+static int asm9260_pinctrl_set_mux(struct pinctrl_dev *pctldev,
 				 unsigned int function, unsigned int group)
 {
-	printk("%s: -> %u:%u\n", __func__, function, group);
-#if 0
 	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+	printk("%s: -> %u:%u %u\n", __func__, function, group,
+			asm9260_pins[group].number);
 	struct asm9260_pingroup *grp;
 	int ret;
 	unsigned int pin_num, mux_group, i, npins;
 	const unsigned int *pins;
 
+	grp = &asm9260_mux_groups[group];
+	//grp->func = function;
+	ret = asm9260_pinctrl_set_mux_mux(pmx, &grp->mux, function);
+	if (ret)
+		return ret;
+
+#if 0
+
 	/* group of pins? */
-	if (group < ARRAY_SIZE(asm9260_groups)) {
-		grp = &asm9260_groups[group];
-		npins = grp->npins;
-		pins = grp->pins;
-		/*
-		 * All pins in the group must belong to the same mux group,
-		 * which allows us to just use the mux group of the first pin.
-		 * By explicitly listing permitted pingroups for each function
-		 * the pinmux core should ensure this is always the case.
-		 */
-	} else {
-		pin_num = group - ARRAY_SIZE(asm9260_groups);
-		npins = 1;
-		pins = &pin_num;
-	}
+	pin_num = group;
+	npins = 1;
+	pins = &pin_num;
 	mux_group = asm9260_mux_pins[*pins];
 
 	/* no mux group, but can still be individually muxed to peripheral */
@@ -2488,7 +2452,6 @@ static int asm9260_pinctrl_enable(struct pinctrl_dev *pctldev,
 	}
 
 	/* mux group already set to a different function? */
-	grp = &asm9260_mux_groups[mux_group];
 	if (grp->func_count && grp->func != function) {
 		dev_err(pctldev->dev,
 			"%s: can't mux pin(s) to '%s', group already muxed to '%s'\n",
@@ -2503,7 +2466,7 @@ static int asm9260_pinctrl_enable(struct pinctrl_dev *pctldev,
 	/* if first pin in mux group to be enabled, enable the group mux */
 	if (!grp->func_count) {
 		grp->func = function;
-		ret = asm9260_pinctrl_enable_mux(pmx, &grp->mux, function);
+		ret = asm9260_pinctrl_set_mux_mux(pmx, &grp->mux, function);
 		if (ret)
 			return ret;
 	}
@@ -2557,7 +2520,7 @@ static struct pinmux_ops asm9260_pinmux_ops = {
 	.get_functions_count	= asm9260_pinctrl_get_funcs_count,
 	.get_function_name	= asm9260_pinctrl_get_func_name,
 	.get_function_groups	= asm9260_pinctrl_get_func_groups,
-	.set_mux		= asm9260_pinctrl_enable,
+	.set_mux		= asm9260_pinctrl_set_mux,
 //	.gpio_request_enable	= asm9260_pinctrl_gpio_request_enable,
 //	.gpio_disable_free	= asm9260_pinctrl_gpio_disable_free,
 };

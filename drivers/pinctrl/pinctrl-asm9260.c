@@ -99,7 +99,9 @@ struct asm9260_function {
  * ASM9260 which can be muxed to a set of functions or sub muxes.
  */
 struct asm9260_muxdesc {
-	int	funcs[5];
+	unsigned int	bank;
+	unsigned int	pin;
+	int	funcs[8];
 	u16	reg;
 	u8	bit;
 	u8	width;
@@ -1755,7 +1757,7 @@ static const struct asm9260_function asm9260_functions[] = {
 	FUNCTION(UART9_TXD),
 };
 
-#if 0
+#if 1
 /* Sub muxes */
 
 /**
@@ -1778,6 +1780,7 @@ static const struct asm9260_function asm9260_functions[] = {
 			ASM9260_MUX_ ## f6,			\
 			ASM9260_MUX_ ## f7,			\
 		},						\
+	}
 
 /**
  * MUX_PG() - Initialise a pin group with mux control
@@ -1791,8 +1794,6 @@ static const struct asm9260_function asm9260_functions[] = {
 #define MUX_PG(pg_name, f0, f1, f2, f3, f4, f5, f6, f7)				\
 	{							\
 		.name = #pg_name,				\
-		.pins = pg_name##_pins,				\
-		.npins = ARRAY_SIZE(pg_name##_pins),		\
 		.mux = MUX(f0, f1, f2, f3, f4, f5, f6, f7),		\
 	}
 
@@ -1809,11 +1810,11 @@ static const struct asm9260_function asm9260_functions[] = {
 static struct asm9260_pingroup asm9260_mux_groups[] = {
 	/* Muxing pin groups */
 	/*     pg,		f0,	f1,	f2,	f3,	f4,	f5,	f6, */
-	MUX_PG(GPIO0_0,	GPIO,	NA,	UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	NA,	JTAG_TCK,	NA),
-	MUX_PG(GPIO0_1,	GPIO,	NA,	UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	NA,	JTAG_TDI,	NA),
-	MUX_PG(GPIO0_2,	GPIO,	NA,	UART1_RXD,	I2S0_LRC,	SPI1_MISO,	NA,	JTAG_TDO,	NA),
-	MUX_PG(GPIO0_3,	GPIO,	NA,	UART1_RTS,	I2S0_RX0,	SPI1_MOSI,	NA,	JTAG_TMS,	NA),
-	MUX_PG(GPIO0_4,	GPIO,	NA,	UART1_CTS,	I2S0_TX0,	SPI0_SCK,	NA,	JTAG_RST,	I2C0_SCL),
+	MUX_PG(GPIO0_0,	GPIO,	NA,	UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	NA,	JTAG,	NA),
+	MUX_PG(GPIO0_1,	GPIO,	NA,	UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	NA,	JTAG,	NA),
+	MUX_PG(GPIO0_2,	GPIO,	NA,	UART1_RXD,	I2S0_LRC,	SPI1_MISO,	NA,	JTAG,	NA),
+	MUX_PG(GPIO0_3,	GPIO,	NA,	UART1_RTS,	I2S0_RX0,	SPI1_MOSI,	NA,	JTAG,	NA),
+	MUX_PG(GPIO0_4,	GPIO,	NA,	UART1_CTS,	I2S0_TX0,	SPI0_SCK,	NA,	JTAG,	I2C0_SCL),
 	MUX_PG(GPIO1_4,	GPIO,	CT0_CAP,	UART0_DTR,	LCD_IF_BUSY,	SPI0_SCK,	MII_PPS_OUT,	LCD_CP_OQ,	NA),
 	MUX_PG(GPIO1_5,	GPIO,	NA,	UART0_DSR,	LCD_IF_WR,	SPI0_SEL,	RMII_REFCLK,	LCD_FP_OQ,	NA),
 	MUX_PG(GPIO1_6,	GPIO,	NA,	UART0_DCD,	LCD_IF_RS,	SPI0_MISO,	RMII_REFCLK,	LCD_AC_OQ,	I2C1_SCL),
@@ -1863,7 +1864,7 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
 	MUX_PG(GPIO10_0,	GPIO,	CT1_MAT0,	UART5_TXD,	I2S0_MCLK,	SPI0_SCK,	NA,	NA,	NA),
 	MUX_PG(GPIO10_1,	GPIO,	CT1_MAT1,	UART5_RXD,	I2S0_BCLK,	SPI0_SEL,	RMII_REFCLK,	NA,	NA),
 	MUX_PG(GPIO10_2,	GPIO,	CT1_MAT2,	UART5_RTS,	I2S0_LRC,	SPI0_MISO,	RMII_REFCLK,	NA,	NA),
-	MUX_PG(GPIO10_3,	GPIO,	CT1_MAT3,	UART5_CTS,	I2S0_RX0,	SPI0_MOSI,	,	NA,	CAN0_RX),
+	MUX_PG(GPIO10_3,	GPIO,	CT1_MAT3,	UART5_CTS,	I2S0_RX0,	SPI0_MOSI,	NA,	NA,	CAN0_RX),
 	MUX_PG(GPIO10_4,	GPIO,	CT1_CAP,	UART6_TXD,	I2S0_TX0,	SPI1_SCK,	RMII_REFCLK,	NA,	NA),
 	MUX_PG(GPIO10_5,	GPIO,	NA,	UART6_RXD,	I2S0_TX1,	SPI1_SEL,	RMII_REFCLK,	NA,	CAN1_RX),
 	MUX_PG(GPIO10_6,	GPIO,	NA,	UART6_RTS,	I2S0_TX2,	SPI1_MISO,	RMII_REFCLK,	NA,	CAN1_TX),
@@ -1874,16 +1875,16 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
 	MUX_PG(GPIO11_3,	GPIO,	CT2_MAT3,	UART7_CTS,	I2S1_RX0,	QSPI0_DAT1,	NAND_CLE,	NA,	NA),
 	MUX_PG(GPIO11_4,	GPIO,	CT2_CAP,	UART8_TXD,	I2S1_TX0,	QSPI0_DAT2,	NAND_RDY0,	NA,	NA),
 	MUX_PG(GPIO11_5,	GPIO,	NA,	UART8_RXD,	I2S1_TX1,	QSPI0_DAT3,	NAND_RDY1,	NA,	NA),
-	MUX_PG(GPIO11_6,	GPIO,	NA,	UART9_TXD,	I2S1_TX2,	,	NAND_CE0N,	NA,	I2C0_SCL),
-	MUX_PG(GPIO11_7,	GPIO,	NA,	UART9_RXD,	CAM_MCLK,	,	NAND_CE1N,	NA,	I2C0_SDA),
+	MUX_PG(GPIO11_6,	GPIO,	NA,	UART9_TXD,	I2S1_TX2,	NA,	NAND_CE0N,	NA,	I2C0_SCL),
+	MUX_PG(GPIO11_7,	GPIO,	NA,	UART9_RXD,	CAM_MCLK,	NA,	NAND_CE1N,	NA,	I2C0_SDA),
 	MUX_PG(GPIO12_0,	GPIO,	CT3_MAT0,	UART1_CLK,	NA,	SD0_CLK,	NAND_D0,	NA,	NA),
 	MUX_PG(GPIO12_1,	GPIO,	CT3_MAT1,	UART1_TXD,	NA,	SD0_CMD,	NAND_D1,	NA,	NA),
 	MUX_PG(GPIO12_2,	GPIO,	CT3_MAT2,	UART1_RXD,	NA,	SD0_DAT0,	NAND_D2,	NA,	NA),
 	MUX_PG(GPIO12_3,	GPIO,	CT3_MAT3,	UART1_RTS,	NA,	SD0_DAT1,	NAND_D3,	NA,	NA),
 	MUX_PG(GPIO12_4,	GPIO,	CT3_CAP,	UART1_CTS,	NA,	SD0_DAT2,	NAND_D4,	NA,	NA),
 	MUX_PG(GPIO12_5,	GPIO,	NA,	UART8_TXD,	NA,	SD0_DAT3,	NAND_D5,	NA,	NA),
-	MUX_PG(GPIO12_6,	GPIO,	NA,	UART8_RXD,	CAM_MCLK,	,	NAND_D6,	NA,	I2C1_SCL),
-	MUX_PG(GPIO12_7,	GPIO,	NA,	NA,	CAM_MCLK,	,	NAND_D7,	NA,	I2C1_SDA),
+	MUX_PG(GPIO12_6,	GPIO,	NA,	UART8_RXD,	CAM_MCLK,	NA,	NAND_D6,	NA,	I2C1_SCL),
+	MUX_PG(GPIO12_7,	GPIO,	NA,	NA,	CAM_MCLK,	NA,	NAND_D7,	NA,	I2C1_SDA),
 	MUX_PG(GPIO13_4,	GPIO,	MCI1,	UART2_CTS,	NA,	SPI1_SCK,	NAND_RDY0,	NA,	NA),
 	MUX_PG(GPIO13_5,	GPIO,	MCOA1,	UART9_TXD,	NA,	SPI1_SEL,	NAND_RDY1,	NA,	NA),
 	MUX_PG(GPIO13_6,	GPIO,	MCOB1,	UART9_RXD,	NA,	SPI1_MISO,	NAND_CE0N,	NA,	NA),
@@ -2272,7 +2273,6 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 					  const char * const **groups,
 					  unsigned int * const num_groups)
 {
-	printk("%s:%i\n", __func__, __LINE__);
 	/* pingroup functions */
 	*groups = asm9260_functions[function].groups;
 	*num_groups = asm9260_functions[function].ngroups;
@@ -2911,7 +2911,7 @@ static struct platform_driver asm9260_pinctrl_driver = {
 
 static int __init asm9260_pinctrl_init(void)
 {
-	//asm9260_init_mux_pins();
+	asm9260_init_mux_pins();
 	return platform_driver_register(&asm9260_pinctrl_driver);
 }
 arch_initcall(asm9260_pinctrl_init);

@@ -84,7 +84,7 @@
  */
 struct asm9260_function {
 	const char		*name;
-	const char * const	*groups;
+	const char		*groups;
 	unsigned int		ngroups;
 };
 
@@ -113,889 +113,8 @@ struct asm9260_pingroup {
 	const int		funcs[8];
 };
 
-/////////////////////////////////////////////////
-
-/* Pins in each pin group */
-static const char * const GPIO_groups[] = {
-	"GPIO8_4",
-};
-
-static const char * const CAM_DAT0_groups[] = {
-	"GPIO8_4",
-};
-
-static const char * const CAM_DAT1_groups[] = {
-	"GPIO8_5",
-};
-
-static const char * const CAM_DAT2_groups[] = {
-	"GPIO8_6",
-};
-
-static const char * const CAM_DAT3_groups[] = {
-	"GPIO8_7",
-};
-
-static const char * const CAM_DAT4_groups[] = {
-	"GPIO9_0",
-};
-
-static const char * const CAM_DAT5_groups[] = {
-	"GPIO9_1",
-};
-
-static const char * const CAM_DAT6_groups[] = {
-	"GPIO9_2",
-};
-
-static const char * const CAM_DAT7_groups[] = {
-	"GPIO9_3",
-};
-
-static const char * const CAM_DAT8_groups[] = {
-	"GPIO9_4",
-};
-
-static const char * const CAM_DAT9_groups[] = {
-	"GPIO9_5",
-};
-
-static const char * const CAM_HREF_groups[] = {
-	"GPIO8_3",
-};
-
-static const char * const CAM_MCLK_groups[] = {
-	"GPIO10_7", "GPIO11_7", "GPIO12_6", "GPIO12_7",
-};
-
-static const char * const CAM_PCLK_groups[] = {
-	"GPIO8_1",
-};
-
-static const char * const CAM_VSYN_groups[] = {
-	"GPIO8_2",
-};
-
-static const char * const CAN0_RX_groups[] = {
-	"GPIO5_3", "GPIO10_3",
-};
-
-static const char * const CAN0_TX_groups[] = {
-	"GPIO5_2",
-};
-
-static const char * const CAN1_RX_groups[] = {
-	"GPIO2_7", "GPIO10_5", "GPIO16_7",
-};
-
-static const char * const CAN1_TX_groups[] = {
-	"GPIO2_6", "GPIO10_6", "GPIO16_6",
-};
-
-static const char * const CT0_CAP_groups[] = {
-	"GPIO1_4", "GPIO9_4",
-};
-
-static const char * const CT0_MAT0_groups[] = {
-	"GPIO9_0",
-};
-
-static const char * const CT0_MAT1_groups[] = {
-	"GPIO9_1",
-};
-
-static const char * const CT0_MAT2_groups[] = {
-	"GPIO9_2",
-};
-
-static const char * const CT0_MAT3_groups[] = {
-	"GPIO9_3",
-};
-
-static const char * const CT1_CAP_groups[] = {
-	"GPIO2_4", "GPIO10_4",
-};
-
-static const char * const CT1_MAT0_groups[] = {
-	"GPIO2_0", "GPIO10_0",
-};
-
-static const char * const CT1_MAT1_groups[] = {
-	"GPIO2_1", "GPIO10_1",
-};
-
-static const char * const CT1_MAT2_groups[] = {
-	"GPIO2_2", "GPIO10_2",
-};
-
-static const char * const CT1_MAT3_groups[] = {
-	"GPIO2_3", "GPIO10_3",
-};
-
-static const char * const CT2_CAP_groups[] = {
-	"GPIO3_4", "GPIO11_4", "GPIO16_4",
-};
-
-static const char * const CT2_MAT0_groups[] = {
-	"GPIO3_0", "GPIO11_0", "GPIO16_0",
-};
-
-static const char * const CT2_MAT1_groups[] = {
-	"GPIO3_1", "GPIO11_1", "GPIO16_1",
-};
-
-static const char * const CT2_MAT2_groups[] = {
-	"GPIO3_2", "GPIO11_2", "GPIO16_2",
-};
-
-static const char * const CT2_MAT3_groups[] = {
-	"GPIO3_3", "GPIO11_3", "GPIO16_3",
-};
-
-static const char * const CT3_CAP_groups[] = {
-	"GPIO4_4", "GPIO12_4", "GPIO17_4",
-};
-
-static const char * const CT3_MAT0_groups[] = {
-	"GPIO4_0", "GPIO12_0", "GPIO17_0",
-};
-
-static const char * const CT3_MAT1_groups[] = {
-	"GPIO4_1", "GPIO12_1", "GPIO17_1",
-};
-
-static const char * const CT3_MAT2_groups[] = {
-	"GPIO4_2", "GPIO12_2", "GPIO17_2",
-};
-
-static const char * const CT3_MAT3_groups[] = {
-	"GPIO4_3", "GPIO12_3", "GPIO17_3",
-};
-
-static const char * const I2C0_SCL_groups[] = {
-	"GPIO0_4", "GPIO3_5", "GPIO9_0", "GPIO11_6",
-};
-
-static const char * const I2C0_SDA_groups[] = {
-	"GPIO3_6", "GPIO9_1", "GPIO11_7",
-};
-
-static const char * const I2C1_SCL_groups[] = {
-	"GPIO1_6", "GPIO4_6", "GPIO9_5", "GPIO12_6", "GPIO17_2",
-};
-
-static const char * const I2C1_SDA_groups[] = {
-	"GPIO1_7", "GPIO4_7", "GPIO12_7", "GPIO17_3",
-};
-
-static const char * const I2S0_BCLK_groups[] = {
-	"GPIO0_1", "GPIO10_1", "GPIO14_1", "GPIO15_1",
-};
-
-static const char * const I2S0_LRC_groups[] = {
-	"GPIO0_2", "GPIO10_2", "GPIO14_2", "GPIO15_2",
-};
-
-static const char * const I2S0_MCLK_groups[] = {
-	"GPIO0_0", "GPIO10_0", "GPIO14_0", "GPIO15_0",
-};
-
-static const char * const I2S0_RX0_groups[] = {
-	"GPIO0_3", "GPIO10_3", "GPIO14_3", "GPIO15_3",
-};
-
-static const char * const I2S0_TX0_groups[] = {
-	"GPIO0_4", "GPIO10_4", "GPIO14_4", "GPIO15_4",
-};
-
-static const char * const I2S0_TX1_groups[] = {
-	"GPIO10_5", "GPIO14_5", "GPIO15_5",
-};
-
-static const char * const I2S0_TX2_groups[] = {
-	"GPIO10_6", "GPIO15_6",
-};
-
-static const char * const I2S1_BCLK_groups[] = {
-	"GPIO5_1", "GPIO11_1", "GPIO17_1",
-};
-
-static const char * const I2S1_LRC_groups[] = {
-	"GPIO5_2", "GPIO11_2", "GPIO17_2",
-};
-
-static const char * const I2S1_MCLK_groups[] = {
-	"GPIO5_0", "GPIO11_0", "GPIO17_0",
-};
-
-static const char * const I2S1_RX0_groups[] = {
-	"GPIO5_3", "GPIO11_3", "GPIO17_3",
-};
-
-static const char * const I2S1_TX0_groups[] = {
-	"GPIO5_4", "GPIO11_4", "GPIO17_4",
-};
-
-static const char * const I2S1_TX1_groups[] = {
-	"GPIO11_5", "GPIO17_5",
-};
-
-static const char * const I2S1_TX2_groups[] = {
-	"GPIO11_6", "GPIO17_6",
-};
-
-static const char * const JTAG_groups[] = {
-	"GPIO0_0", "GPIO0_1", "GPIO0_2", "GPIO0_3", "GPIO0_4",
-};
-
-static const char * const LCD_AC_OQ_groups[] = {
-	"GPIO1_6",
-};
-
-static const char * const LCD_CP_OQ_groups[] = {
-	"GPIO1_4",
-};
-
-static const char * const LCD_FP_OQ_groups[] = {
-	"GPIO1_5",
-};
-
-static const char * const LCD_IF_BUSY_groups[] = {
-	"GPIO1_4",
-};
-
-static const char * const LCD_IF_CS_groups[] = {
-	"GPIO1_7",
-};
-
-static const char * const LCD_IF_DAT0_groups[] = {
-	"GPIO2_0",
-};
-
-static const char * const LCD_IF_DAT1_groups[] = {
-	"GPIO2_1",
-};
-
-static const char * const LCD_IF_DAT10_groups[] = {
-	"GPIO3_2",
-};
-
-static const char * const LCD_IF_DAT11_groups[] = {
-	"GPIO3_3",
-};
-
-static const char * const LCD_IF_DAT12_groups[] = {
-	"GPIO3_4",
-};
-
-static const char * const LCD_IF_DAT13_groups[] = {
-	"GPIO3_5",
-};
-
-static const char * const LCD_IF_DAT14_groups[] = {
-	"GPIO3_6",
-};
-
-static const char * const LCD_IF_DAT15_groups[] = {
-	"GPIO3_7",
-};
-
-static const char * const LCD_IF_DAT2_groups[] = {
-	"GPIO2_2",
-};
-
-static const char * const LCD_IF_DAT3_groups[] = {
-	"GPIO2_3",
-};
-
-static const char * const LCD_IF_DAT4_groups[] = {
-	"GPIO2_4",
-};
-
-static const char * const LCD_IF_DAT5_groups[] = {
-	"GPIO2_5",
-};
-
-static const char * const LCD_IF_DAT6_groups[] = {
-	"GPIO2_6",
-};
-
-static const char * const LCD_IF_DAT7_groups[] = {
-	"GPIO2_7",
-};
-
-static const char * const LCD_IF_DAT8_groups[] = {
-	"GPIO3_0",
-};
-
-static const char * const LCD_IF_DAT9_groups[] = {
-	"GPIO3_1",
-};
-
-static const char * const LCD_IF_RS_groups[] = {
-	"GPIO1_6",
-};
-
-static const char * const LCD_IF_WR_groups[] = {
-	"GPIO1_5",
-};
-
-static const char * const LCD_LP_OQ_groups[] = {
-	"GPIO1_7",
-};
-
-static const char * const LCD_PIXEL_OQ0_groups[] = {
-	"GPIO2_0",
-};
-
-static const char * const LCD_PIXEL_OQ1_groups[] = {
-	"GPIO2_1",
-};
-
-static const char * const LCD_PIXEL_OQ10_groups[] = {
-	"GPIO3_2",
-};
-
-static const char * const LCD_PIXEL_OQ11_groups[] = {
-	"GPIO3_3",
-};
-
-static const char * const LCD_PIXEL_OQ12_groups[] = {
-	"GPIO3_4",
-};
-
-static const char * const LCD_PIXEL_OQ13_groups[] = {
-	"GPIO3_5",
-};
-
-static const char * const LCD_PIXEL_OQ14_groups[] = {
-	"GPIO3_6",
-};
-
-static const char * const LCD_PIXEL_OQ15_groups[] = {
-	"GPIO3_7",
-};
-
-static const char * const LCD_PIXEL_OQ16_groups[] = {
-	"GPIO4_0",
-};
-
-static const char * const LCD_PIXEL_OQ17_groups[] = {
-	"GPIO4_1",
-};
-
-static const char * const LCD_PIXEL_OQ18_groups[] = {
-	"GPIO4_2",
-};
-
-static const char * const LCD_PIXEL_OQ19_groups[] = {
-	"GPIO4_3",
-};
-
-static const char * const LCD_PIXEL_OQ2_groups[] = {
-	"GPIO2_2",
-};
-
-static const char * const LCD_PIXEL_OQ20_groups[] = {
-	"GPIO4_4",
-};
-
-static const char * const LCD_PIXEL_OQ21_groups[] = {
-	"GPIO4_5",
-};
-
-static const char * const LCD_PIXEL_OQ22_groups[] = {
-	"GPIO4_6",
-};
-
-static const char * const LCD_PIXEL_OQ23_groups[] = {
-	"GPIO4_7",
-};
-
-static const char * const LCD_PIXEL_OQ3_groups[] = {
-	"GPIO2_3",
-};
-
-static const char * const LCD_PIXEL_OQ4_groups[] = {
-	"GPIO2_4",
-};
-
-static const char * const LCD_PIXEL_OQ5_groups[] = {
-	"GPIO2_5",
-};
-
-static const char * const LCD_PIXEL_OQ6_groups[] = {
-	"GPIO2_6",
-};
-
-static const char * const LCD_PIXEL_OQ7_groups[] = {
-	"GPIO2_7",
-};
-
-static const char * const LCD_PIXEL_OQ8_groups[] = {
-	"GPIO3_0",
-};
-
-static const char * const LCD_PIXEL_OQ9_groups[] = {
-	"GPIO3_1",
-};
-
-static const char * const MCI0_groups[] = {
-	"GPIO5_1",
-};
-
-static const char * const MCI1_groups[] = {
-	"GPIO5_4", "GPIO13_4",
-};
-
-static const char * const MCI2_groups[] = {
-	"GPIO13_7",
-};
-
-static const char * const MCIABORT_groups[] = {
-	"GPIO5_0",
-};
-
-static const char * const MCOA0_groups[] = {
-	"GPIO5_2",
-};
-
-static const char * const MCOA1_groups[] = {
-	"GPIO13_5",
-};
-
-static const char * const MCOA2_groups[] = {
-	"GPIO14_0",
-};
-
-static const char * const MCOB0_groups[] = {
-	"GPIO5_3",
-};
-
-static const char * const MCOB1_groups[] = {
-	"GPIO13_6",
-};
-
-static const char * const MCOB2_groups[] = {
-	"GPIO14_1",
-};
-
-static const char * const MII_COL_groups[] = {
-	"GPIO2_6", "GPIO4_6", "GPIO8_6", "GPIO16_6",
-};
-
-static const char * const MII_CRS_groups[] = {
-	"GPIO2_5", "GPIO4_5", "GPIO8_5", "GPIO16_5",
-};
-
-static const char * const MII_PPS_OUT_groups[] = {
-	"GPIO1_4", "GPIO17_6", "GPIO17_7",
-};
-
-static const char * const MII_RXD2_groups[] = {
-	"GPIO2_0", "GPIO4_0", "GPIO16_0",
-};
-
-static const char * const MII_RXD3_groups[] = {
-	"GPIO2_1", "GPIO4_1", "GPIO8_1", "GPIO16_1",
-};
-
-static const char * const MII_RX_ER_groups[] = {
-	"GPIO2_7", "GPIO4_7", "GPIO8_7", "GPIO16_7",
-};
-
-static const char * const MII_TX_CLK_groups[] = {
-	"GPIO2_4", "GPIO4_4", "GPIO8_4", "GPIO16_4",
-};
-
-static const char * const MII_TXD2_groups[] = {
-	"GPIO2_2", "GPIO4_2", "GPIO8_2", "GPIO16_2",
-};
-
-static const char * const MII_TXD3_groups[] = {
-	"GPIO2_3", "GPIO4_3", "GPIO8_3", "GPIO16_3",
-};
-
-static const char * const NAND_ALE_groups[] = {
-	"GPIO11_2",
-};
-
-static const char * const NAND_CE0N_groups[] = {
-	"GPIO11_6", "GPIO13_6",
-};
-
-static const char * const NAND_CE1N_groups[] = {
-	"GPIO11_7", "GPIO13_7",
-};
-
-static const char * const NAND_CLE_groups[] = {
-	"GPIO11_3",
-};
-
-static const char * const NAND_D0_groups[] = {
-	"GPIO12_0", "GPIO14_0",
-};
-
-static const char * const NAND_D1_groups[] = {
-	"GPIO12_1", "GPIO14_1",
-};
-
-static const char * const NAND_D2_groups[] = {
-	"GPIO12_2", "GPIO14_2",
-};
-
-static const char * const NAND_D3_groups[] = {
-	"GPIO12_3", "GPIO14_3",
-};
-
-static const char * const NAND_D4_groups[] = {
-	"GPIO12_4", "GPIO14_4",
-};
-
-static const char * const NAND_D5_groups[] = {
-	"GPIO12_5", "GPIO14_5",
-};
-
-static const char * const NAND_D6_groups[] = {
-	"GPIO12_6",
-};
-
-static const char * const NAND_D7_groups[] = {
-	"GPIO12_7",
-};
-
-static const char * const NAND_RDY0_groups[] = {
-	"GPIO11_4", "GPIO13_4",
-};
-
-static const char * const NAND_RDY1_groups[] = {
-	"GPIO11_5", "GPIO13_5",
-};
-
-static const char * const NAND_REN_groups[] = {
-	"GPIO11_0",
-};
-
-static const char * const NAND_WEN_groups[] = {
-	"gpio11_1",
-};
-
-static const char * const OUTCLK_groups[] = {
-	"GPIO2_5",
-};
-
-static const char * const QEI_A_groups[] = {
-	"GPIO16_5", "GPIO17_5",
-};
-
-static const char * const QEI_B_groups[] = {
-	"GPIO16_6", "GPIO17_6",
-};
-
-static const char * const QEI_INDEX_groups[] = {
-	"GPIO16_7", "GPIO17_7",
-};
-
-static const char * const QSPI0_DAT0_groups[] = {
-	"GPIO4_2", "GPIO11_2",
-};
-
-static const char * const QSPI0_DAT1_groups[] = {
-	"GPIO4_3", "GPIO11_3",
-};
-
-static const char * const QSPI0_DAT2_groups[] = {
-	"GPIO4_4", "GPIO11_4",
-};
-
-static const char * const QSPI0_DAT3_groups[] = {
-	"GPIO4_5", "GPIO11_5",
-};
-
-static const char * const QSPI0_SCK_groups[] = {
-	"GPIO4_0", "GPIO11_0",
-};
-
-static const char * const QSPI0_SEL_groups[] = {
-	"GPIO4_1", "GPIO11_1",
-};
-
-static const char * const RMII_CRS_DV_groups[] = {
-	"GPIO3_2", "GPIO5_2", "GPIO9_2", "GPIO15_2",
-};
-
-static const char * const RMII_MDC_groups[] = {
-	"GPIO3_0", "GPIO5_0", "GPIO9_0", "GPIO15_0",
-};
-
-static const char * const RMII_MDIO_groups[] = {
-	"GPIO3_1", "GPIO5_1", "GPIO9_1", "GPIO15_1",
-};
-
-static const char * const RMII_REFCLK_groups[] = {
-	"GPIO1_5", "GPIO1_6", "GPIO1_7", "GPIO10_1", "GPIO10_2", "GPIO10_4",
-	"GPIO10_5", "GPIO10_6", "GPIO10_7", "GPIO17_0", "GPIO17_5",
-};
-
-static const char * const RMII_RXD0_groups[] = {
-	"GPIO3_3", "GPIO5_3", "GPIO9_3", "GPIO15_3",
-};
-
-static const char * const RMII_RXD1_groups[] = {
-	"GPIO3_4", "GPIO5_4", "GPIO9_4", "GPIO15_4",
-};
-
-static const char * const RMII_TXD0_groups[] = {
-	"GPIO3_6", "GPIO15_6",
-};
-
-static const char * const RMII_TXD1_groups[] = {
-	"GPIO3_7", "GPIO15_7",
-};
-
-static const char * const RMII_TX_EN_groups[] = {
-	"GPIO3_5", "GPIO9_5", "GPIO15_5",
-};
-
-static const char * const SD0_CLK_groups[] = {
-	"GPIO3_0", "GPIO5_0", "GPIO12_0", "GPIO14_0", "GPIO15_0",
-};
-
-static const char * const SD0_CMD_groups[] = {
-	"GPIO3_1", "GPIO5_1", "GPIO12_1", "GPIO14_1", "GPIO15_1",
-};
-
-static const char * const SD0_DAT0_groups[] = {
-	"GPIO3_2", "GPIO5_2", "GPIO12_2", "GPIO14_2", "GPIO15_2",
-};
-
-static const char * const SD0_DAT1_groups[] = {
-	"GPIO3_3", "GPIO5_3", "GPIO12_3", "GPIO14_3", "GPIO15_3",
-};
-
-static const char * const SD0_DAT2_groups[] = {
-	"GPIO3_4", "GPIO5_4", "GPIO12_4", "GPIO14_4", "GPIO15_4",
-};
-
-static const char * const SD0_DAT3_groups[] = {
-	"GPIO3_5", "GPIO12_5", "GPIO14_5", "GPIO15_5",
-};
-
-static const char * const SPI0_MISO_groups[] = {
-	"GPIO1_6", "GPIO10_2",
-};
-
-static const char * const SPI0_MOSI_groups[] = {
-	"GPIO1_7", "GPIO10_3",
-};
-
-static const char * const SPI0_SCK_groups[] = {
-	"GPIO0_4", "GPIO1_4", "GPIO10_0",
-};
-
-static const char * const SPI0_SEL_groups[] = {
-	"GPIO1_5", "GPIO10_1",
-};
-
-static const char * const SPI1_MISO_groups[] = {
-	"GPIO0_2", "GPIO2_2", "GPIO10_6", "GPIO13_6",
-};
-
-static const char * const SPI1_MOSI_groups[] = {
-	"GPIO0_3", "GPIO2_3", "GPIO10_7", "GPIO13_7",
-};
-
-static const char * const SPI1_SCK_groups[] = {
-	"GPIO0_0", "GPIO2_0", "GPIO10_4", "GPIO13_4",
-};
-
-static const char * const SPI1_SEL_groups[] = {
-	"GPIO0_1", "GPIO2_1", "GPIO10_5", "GPIO13_5",
-};
-
-static const char * const UART0_CTS_groups[] = {
-	"GPIO14_3",
-};
-
-static const char * const UART0_DCD_groups[] = {
-	"GPIO1_6",
-};
-
-static const char * const UART0_DSR_groups[] = {
-	"GPIO1_5", "GPIO14_5",
-};
-
-static const char * const UART0_DTR_groups[] = {
-	"GPIO1_4", "GPIO14_4",
-};
-
-static const char * const UART0_RI_groups[] = {
-	"GPIO1_7",
-};
-
-static const char * const UART0_RTS_groups[] = {
-	"GPIO14_2",
-};
-
-static const char * const UART0_RXD_groups[] = {
-	"GPIO14_1",
-};
-
-static const char * const UART0_TXD_groups[] = {
-	"GPIO14_0",
-};
-
-static const char * const UART1_CLK_groups[] = {
-	"GPIO0_0", "GPIO12_0",
-};
-
-static const char * const UART1_CTS_groups[] = {
-	"GPIO0_4", "GPIO12_4",
-};
-
-static const char * const UART1_RTS_groups[] = {
-	"GPIO0_3", "GPIO12_3",
-};
-
-static const char * const UART1_RXD_groups[] = {
-	"GPIO0_2", "GPIO12_2",
-};
-
-static const char * const UART1_TXD_groups[] = {
-	"GPIO0_1", "GPIO12_1",
-};
-
-static const char * const UART2_CTS_groups[] = {
-	"GPIO2_1", "GPIO8_4", "GPIO13_4",
-};
-
-static const char * const UART2_RTS_groups[] = {
-	"GPIO2_0", "GPIO8_3",
-};
-
-static const char * const UART2_RXD_groups[] = {
-	"GPIO8_2",
-};
-
-static const char * const UART2_TXD_groups[] = {
-	"GPIO8_1",
-};
-
-static const char * const UART3_CLK_groups[] = {
-	"GPIO2_2", "GPIO8_5",
-};
-
-static const char * const UART3_CTS_groups[] = {
-	"GPIO2_6", "GPIO9_1",
-};
-
-static const char * const UART3_RTS_groups[] = {
-	"GPIO2_5", "GPIO9_0",
-};
-
-static const char * const UART3_RXD_groups[] = {
-	"GPIO2_4", "GPIO8_7",
-};
-
-static const char * const UART3_TXD_groups[] = {
-	"GPIO2_3", "GPIO8_6",
-};
-
-static const char * const UART4_CLK_groups[] = {
-	"GPIO2_7", "GPIO9_2",
-};
-
-static const char * const UART4_CTS_groups[] = {
-	"GPIO3_3",
-};
-
-static const char * const UART4_RTS_groups[] = {
-	"GPIO3_2", "GPIO9_5",
-};
-
-static const char * const UART4_RXD_groups[] = {
-	"GPIO3_1", "GPIO9_4", "GPIO15_1", "GPIO16_1",
-};
-
-static const char * const UART4_TXD_groups[] = {
-	"GPIO3_0", "GPIO9_3", "GPIO15_0", "GPIO16_0",
-};
-
-static const char * const UART5_CLK_groups[] = {
-	"GPIO3_4",
-};
-
-static const char * const UART5_CTS_groups[] = {
-	"GPIO4_0", "GPIO10_3",
-};
-
-static const char * const UART5_RTS_groups[] = {
-	"GPIO3_7", "GPIO10_2",
-};
-
-static const char * const UART5_RXD_groups[] = {
-	"GPIO3_6", "GPIO10_1", "GPIO15_3", "GPIO16_3",
-};
-
-static const char * const UART5_TXD_groups[] = {
-	"GPIO3_5", "GPIO10_0", "GPIO15_2", "GPIO16_2",
-};
-
-static const char * const UART6_CLK_groups[] = {
-	"GPIO4_1",
-};
-
-static const char * const UART6_CTS_groups[] = {
-	"GPIO4_5", "GPIO10_7", "GPIO16_7",
-};
-
-static const char * const UART6_RTS_groups[] = {
-	"GPIO4_4", "GPIO10_6", "GPIO16_6",
-};
-
-static const char * const UART6_RXD_groups[] = {
-	"GPIO4_3", "GPIO10_5", "GPIO15_5", "GPIO16_5",
-};
-
-static const char * const UART6_TXD_groups[] = {
-	"GPIO4_2", "GPIO10_4", "GPIO15_4", "GPIO16_4",
-};
-
-static const char * const UART7_CTS_groups[] = {
-	"GPIO5_3", "GPIO11_3", "GPIO17_3",
-};
-
-static const char * const UART7_RTS_groups[] = {
-	"GPIO5_2", "GPIO11_2", "GPIO17_2",
-};
-
-static const char * const UART7_RXD_groups[] = {
-	"GPIO5_1", "GPIO11_1", "GPIO15_7", "GPIO17_1",
-};
-
-static const char * const UART7_TXD_groups[] = {
-	"GPIO5_0", "GPIO11_0", "GPIO15_6", "GPIO17_0",
-};
-
-static const char * const UART8_RXD_groups[] = {
-	"GPIO11_5", "GPIO12_6", "GPIO17_5",
-};
-
-static const char * const UART8_TXD_groups[] = {
-	"GPIO5_4", "GPIO11_4", "GPIO12_5", "GPIO17_4",
-};
-
-static const char * const UART9_RXD_groups[] = {
-	"GPIO11_7", "GPIO13_6", "GPIO17_7",
-};
-
-static const char * const UART9_TXD_groups[] = {
-	"GPIO11_6", "GPIO13_5", "GPIO17_6",
-};
-
 
 /* Mux functions that can be used by a mux */
-
 enum asm9260_mux {
 	ASM9260_MUX_NA = -1,
 
@@ -1221,14 +340,14 @@ enum asm9260_mux {
 };
 
 #define FUNCTION(mux)			\
-	[(ASM9260_MUX_ ## mux)] = {			\
-		.name = #mux,				\
-		.groups = mux##_groups,		\
-		.ngroups = ARRAY_SIZE(mux##_groups),	\
+	[(ASM9260_MUX_ ## mux)] = {		\
+		.name = #mux,			\
+		.groups = NULL,			\
+		.ngroups = 0,		\
 	}
 
 /* Must correlate with enum asm9260_mux */
-static const struct asm9260_function asm9260_functions[] = {
+static struct asm9260_function asm9260_functions[] = {
 	FUNCTION(GPIO),
 	FUNCTION(CAM_DAT0),
 	FUNCTION(CAM_DAT1),
@@ -1451,7 +570,7 @@ static const struct asm9260_function asm9260_functions[] = {
 };
 
 
-
+#define MAX_FUNCS_PER_PIN	8
 #define PMUX(p_number, p_bank, p_pin, p_name, f1, f2, f3, f4, f5, f6, f7) \
 	{						\
 		.number = p_number,			\
@@ -1583,6 +702,7 @@ static struct asm9260_pingroup asm9260_mux_table[] = {
 	PMUX(88,	17,	7,	gpio17_7,	QEI_INDEX,	UART9_RXD,	NA,	NA,	MII_PPS_OUT,	NA,	NA),
 };
 
+#define MUX_TABLE_SIZE		ARRAY_SIZE(asm9260_mux_table)
 struct asm9260_pmx {
 	struct device		*dev;
 	struct pinctrl_dev	*pctl;
@@ -1591,21 +711,21 @@ struct asm9260_pmx {
 	u32			pin_en[3];
 	u32			gpio_en[3];
 
-	struct pinctrl_pin_desc	pin_desc[ARRAY_SIZE(asm9260_mux_table)];
+	struct pinctrl_pin_desc	pin_desc[MUX_TABLE_SIZE];
 	/*
 	 * TODO: i dont wont to care about  all possible function/pin relations.
 	 * are there better way to do it?
 	 */
-	const char		*groups[ARRAY_SIZE(asm9260_mux_table)];
+	//const char		*groups[MUX_TABLE_SIZE];
 };
 
 static void __init asm9260_init_mux_pins(struct asm9260_pmx *pmx)
 {
 	unsigned int i;
 
-	for (i = 0; i < ARRAY_SIZE(asm9260_mux_table); i++) {
+	for (i = 0; i < MUX_TABLE_SIZE; i++) {
 		/* TODO: brutal hack. */
-		pmx->groups[i] = asm9260_mux_table[i].name;
+		//pmx->groups[i] = asm9260_mux_table[i].name;
 
 		pmx->pin_desc[i].name = asm9260_mux_table[i].name;
 		pmx->pin_desc[i].number = asm9260_mux_table[i].number;
@@ -1630,7 +750,7 @@ static inline void pmx_write(struct asm9260_pmx *pmx, u32 val, u32 reg)
 
 static int asm9260_pinctrl_get_groups_count(struct pinctrl_dev *pctldev)
 {
-	return ARRAY_SIZE(asm9260_mux_table);
+	return MUX_TABLE_SIZE;
 }
 
 static const char *asm9260_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
@@ -1874,13 +994,43 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 					  unsigned int * const num_groups)
 {
 	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+	struct asm9260_pingroup *table;
+	/* TODO tmp should be allocated */
+	int a, b, count = 0, tmp[MUX_TABLE_SIZE];
+	const char **gr;
 
-	/*
-	 * TODO: hack around. We should prvide all variants or
-	 * tell the code that we support all functions on all pins.
-	 */
-	*groups = pmx->groups;
-	*num_groups = ARRAY_SIZE(asm9260_mux_table);
+	if (asm9260_functions[function].groups != NULL)
+		goto done;
+
+	for (a = 0; a < MUX_TABLE_SIZE; a++) {
+		table = &asm9260_mux_table[a];
+
+		for (b = 0; b < MAX_FUNCS_PER_PIN; b++) {
+			if (table->funcs[b] == function) {
+				tmp[count] = a;
+				count++;
+			}
+
+		}
+
+	}
+
+	gr = devm_kmalloc(pmx->dev,
+			sizeof(gr) * count, GFP_KERNEL);
+	if (!gr) {
+		dev_err(pmx->dev, "Can't allocate func group\n");
+		return PTR_ERR(gr);
+	}
+
+	for (a = 0; a < count; a++)
+		gr[a] = asm9260_mux_table[tmp[a]].name;
+
+	asm9260_functions[function].groups = *gr;
+	asm9260_functions[function].ngroups = count;
+
+done:
+	*groups = &asm9260_functions[function].groups;
+	*num_groups = asm9260_functions[function].ngroups;
 	return 0;
 }
 
@@ -2471,7 +1621,7 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 
 	asm9260_pinctrl_desc.name = dev_name(&pdev->dev);
 	asm9260_pinctrl_desc.pins = pmx->pin_desc;
-	asm9260_pinctrl_desc.npins = ARRAY_SIZE(asm9260_mux_table);
+	asm9260_pinctrl_desc.npins = MUX_TABLE_SIZE;
 
 	pmx->regs = of_io_request_and_map(np, 0, dev_name(&pdev->dev));
 	if (IS_ERR(pmx->regs))

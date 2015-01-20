@@ -84,7 +84,7 @@
  */
 struct asm9260_function {
 	const char		*name;
-	const char		*groups;
+	const char		**groups;
 	unsigned int		ngroups;
 };
 
@@ -995,12 +995,17 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 {
 	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
 	struct asm9260_pingroup *table;
-	/* TODO tmp should be allocated */
-	int a, b, count = 0, tmp[MUX_TABLE_SIZE];
+	int a, b, count = 0, *tmp;
 	const char **gr;
 
 	if (asm9260_functions[function].groups != NULL)
 		goto done;
+
+	tmp = devm_kmalloc(pmx->dev, sizeof(tmp) * MUX_TABLE_SIZE, GFP_KERNEL);
+	if (!tmp) {
+		dev_err(pmx->dev, "Can't allocate func/pin array\n");
+		return PTR_ERR(tmp);
+	}
 
 	for (a = 0; a < MUX_TABLE_SIZE; a++) {
 		table = &asm9260_mux_table[a];
@@ -1019,17 +1024,17 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 			sizeof(gr) * count, GFP_KERNEL);
 	if (!gr) {
 		dev_err(pmx->dev, "Can't allocate func group\n");
+		devm_kfree(pmx->dev, tmp);
 		return PTR_ERR(gr);
 	}
 
 	for (a = 0; a < count; a++)
 		gr[a] = asm9260_mux_table[tmp[a]].name;
 
-	asm9260_functions[function].groups = *gr;
+	asm9260_functions[function].groups = gr;
 	asm9260_functions[function].ngroups = count;
-
 done:
-	*groups = &asm9260_functions[function].groups;
+	*groups = asm9260_functions[function].groups;
 	*num_groups = asm9260_functions[function].ngroups;
 	return 0;
 }

@@ -110,9 +110,9 @@ struct asm9260_pingroup {
 	const unsigned int	*pins;
 	unsigned int		npins;
 
-	unsigned int	bank;
-	unsigned int	pin;
-	int		funcs[8];
+	const unsigned int	bank;
+	const unsigned int	pin;
+	const int		funcs[8];
 	bool			drv;
 	u8			slw_bit;
 

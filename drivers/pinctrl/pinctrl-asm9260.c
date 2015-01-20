@@ -381,30 +381,6 @@ static const struct pinctrl_pin_desc asm9260_pins[] = {
 	ASM9260_PINCTRL_PIN(GPIO17_7),
 };
 
-static const unsigned int uart1_pins[] = {
-	GPIO0_0, /* clk */
-	GPIO0_1, /* tx */
-	GPIO0_2, /* rx */
-	GPIO0_3, /* rts */
-	GPIO0_4, /* cts */
-};
-
-static const unsigned int uart4_0_pins[] = {
-	GPIO2_7, /* clk */
-	GPIO3_0, /* tx */
-	GPIO3_1, /* rx */
-	GPIO3_2, /* rts */
-	GPIO3_3, /* cts */
-};
-
-static const unsigned int uart4_1_pins[] = {
-	GPIO9_2, /* clk */
-	GPIO9_3, /* tx */
-	GPIO9_4, /* rx */
-	GPIO9_5, /* rts */
-	/* TODO: no cts, probably ASM9260_PIN_GPIO3_3 should be used */
-};
-
 /* Pins in each pin group */
 static const char * const GPIO_groups[] = {
 	"GPIO8_4",
@@ -1760,7 +1736,7 @@ static const struct asm9260_function asm9260_functions[] = {
 	}
 
 
-static struct asm9260_pingroup asm9260_mux_groups[] = {
+static struct asm9260_pingroup asm9260_mux_table[] = {
 	PMUX(0,	0,	GPIO0_0,	NA,	UART1_CLK,	I2S0_MCLK,	SPI1_SCK,	NA,	JTAG,	NA),
 	PMUX(0,	1,	GPIO0_1,	NA,	UART1_TXD,	I2S0_BCLK,	SPI1_SEL,	NA,	JTAG,	NA),
 	PMUX(0,	2,	GPIO0_2,	NA,	UART1_RXD,	I2S0_LRC,	SPI1_MISO,	NA,	JTAG,	NA),
@@ -1873,42 +1849,17 @@ static struct asm9260_pingroup asm9260_mux_groups[] = {
 };
 
 /*
- * This is the mapping from GPIO pins to pin mux groups in asm9260_mux_groups[].
+ * This is the mapping from GPIO pins to pin mux groups in asm9260_mux_table[].
  * Pins which aren't muxable to multiple peripherals are set to
  * ASM9260_MUX_GROUP_MAX to enable the "perip" function to enable/disable
  * peripheral control of the pin.
  *
  * This array is initialised in asm9260_init_mux_pins().
  */
-static u8 asm9260_mux_pins[ARRAY_SIZE(asm9260_pins)];
+//static u8 asm9260_mux_pins[ARRAY_SIZE(asm9260_pins)];
 
 /* ASM9260_MUX_GROUP_MAX is used in asm9260_mux_pins[] for non-muxing pins */
-#define ASM9260_MUX_GROUP_MAX ARRAY_SIZE(asm9260_mux_groups)
-
-/**
- * asm9260_init_mux_pins() - Initialise GPIO pin to mux group mapping.
- *
- * Initialises the asm9260_mux_pins[] array to be the inverse of the pin lists in
- * each pin mux group in asm9260_mux_groups[].
- *
- * It is assumed that no pin mux groups overlap (share pins).
- */
-static void __init asm9260_init_mux_pins(void)
-{
-	unsigned int g, p;
-	const struct asm9260_pingroup *grp;
-	const unsigned int *pin;
-	printk("%s:%i\n", __func__, __LINE__);
-
-	for (p = 0; p < ARRAY_SIZE(asm9260_pins); ++p)
-		asm9260_mux_pins[p] = ASM9260_MUX_GROUP_MAX;
-
-	grp = asm9260_mux_groups;
-	for (g = 0, grp = asm9260_mux_groups;
-	     g < ARRAY_SIZE(asm9260_mux_groups); ++g, ++grp)
-		for (pin = grp->pins, p = 0; p < grp->npins; ++p, ++pin)
-			asm9260_mux_pins[*pin] = g;
-}
+#define ASM9260_MUX_GROUP_MAX ARRAY_SIZE(asm9260_mux_table)
 
 /**
  * struct asm9260_pmx - Private pinctrl data
@@ -1926,7 +1877,21 @@ struct asm9260_pmx {
 	spinlock_t		lock;
 	u32			pin_en[3];
 	u32			gpio_en[3];
+
+	struct pinctrl_pin_desc	pin_desc[ARRAY_SIZE(asm9260_mux_table)];
 };
+
+static void __init asm9260_init_mux_pins(struct asm9260_pmx *pmx)
+{
+	unsigned int i;
+	printk("%s:%i\n", __func__, __LINE__);
+
+	for (i = 0; i < ARRAY_SIZE(asm9260_mux_table); i++) {
+		pmx->pin_desc[i].name = asm9260_mux_table[i].name;
+		/* TODO: set rel numbers */
+		pmx->pin_desc[i].number = i;
+	}
+}
 
 static inline u32 pmx_read(struct asm9260_pmx *pmx, u32 reg)
 {
@@ -2380,7 +2345,7 @@ static int asm9260_pinctrl_set_mux(struct pinctrl_dev *pctldev,
 	printk("%s: -> %u:%u %u\n", __func__, function, group,
 			asm9260_pins[group].number);
 
-	grp = &asm9260_mux_groups[group];
+	grp = &asm9260_mux_table[group];
 	//grp->func = function;
 	ret = asm9260_pinctrl_set_mux_mux(pmx, grp, function);
 	if (ret)
@@ -2777,6 +2742,8 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 	pmx->dev = &pdev->dev;
 	spin_lock_init(&pmx->lock);
 
+	asm9260_init_mux_pins(pmx);
+
 	asm9260_pinctrl_desc.name = dev_name(&pdev->dev);
 	asm9260_pinctrl_desc.pins = asm9260_pins;
 	asm9260_pinctrl_desc.npins = ARRAY_SIZE(asm9260_pins);
@@ -2824,7 +2791,6 @@ static struct platform_driver asm9260_pinctrl_driver = {
 
 static int __init asm9260_pinctrl_init(void)
 {
-	asm9260_init_mux_pins();
 	return platform_driver_register(&asm9260_pinctrl_driver);
 }
 arch_initcall(asm9260_pinctrl_init);

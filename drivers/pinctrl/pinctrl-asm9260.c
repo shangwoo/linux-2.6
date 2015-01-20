@@ -677,7 +677,7 @@ static const char * const NAND_REN_groups[] = {
 };
 
 static const char * const NAND_WEN_groups[] = {
-	"GPIO11_1",
+	"gpio11_1",
 };
 
 static const char * const OUTCLK_groups[] = {
@@ -1592,6 +1592,11 @@ struct asm9260_pmx {
 	u32			gpio_en[3];
 
 	struct pinctrl_pin_desc	pin_desc[ARRAY_SIZE(asm9260_mux_table)];
+	/*
+	 * TODO: i dont wont to care about  all possible function/pin relations.
+	 * are there better way to do it?
+	 */
+	const char		*groups[ARRAY_SIZE(asm9260_mux_table)];
 };
 
 static void __init asm9260_init_mux_pins(struct asm9260_pmx *pmx)
@@ -1599,6 +1604,9 @@ static void __init asm9260_init_mux_pins(struct asm9260_pmx *pmx)
 	unsigned int i;
 
 	for (i = 0; i < ARRAY_SIZE(asm9260_mux_table); i++) {
+		/* TODO: brutal hack. */
+		pmx->groups[i] = asm9260_mux_table[i].name;
+
 		pmx->pin_desc[i].name = asm9260_mux_table[i].name;
 		pmx->pin_desc[i].number = asm9260_mux_table[i].number;
 	}
@@ -1865,9 +1873,14 @@ static int asm9260_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
 					  const char * const **groups,
 					  unsigned int * const num_groups)
 {
-	/* pingroup functions */
-	*groups = asm9260_functions[function].groups;
-	*num_groups = asm9260_functions[function].ngroups;
+	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+
+	/*
+	 * TODO: hack around. We should prvide all variants or
+	 * tell the code that we support all functions on all pins.
+	 */
+	*groups = pmx->groups;
+	*num_groups = ARRAY_SIZE(asm9260_mux_table);
 	return 0;
 }
 

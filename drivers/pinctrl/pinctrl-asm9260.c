@@ -107,17 +107,10 @@ struct asm9260_function {
  */
 struct asm9260_pingroup {
 	const char		*name;
-	const unsigned int	*pins;
-	unsigned int		npins;
 
 	const unsigned int	bank;
 	const unsigned int	pin;
 	const int		funcs[8];
-	bool			drv;
-	u8			slw_bit;
-
-	int			func;
-	unsigned int		func_count;
 };
 
 ////////////////////////////////////////////////////
@@ -253,133 +246,6 @@ enum asm9260_pin_enum {
 	GPIO17_7	= PINID(17, 7), /* 88 */
 };
 /////////////////////////////////////////////////
-
-static const struct pinctrl_pin_desc asm9260_pins[] = {
-	ASM9260_PINCTRL_PIN(GPIO0_0),
-	ASM9260_PINCTRL_PIN(GPIO0_1),
-	ASM9260_PINCTRL_PIN(GPIO0_2),
-	ASM9260_PINCTRL_PIN(GPIO0_3),
-	ASM9260_PINCTRL_PIN(GPIO0_4),
-
-	ASM9260_PINCTRL_PIN(GPIO1_4),
-	ASM9260_PINCTRL_PIN(GPIO1_5),
-	ASM9260_PINCTRL_PIN(GPIO1_6),
-	ASM9260_PINCTRL_PIN(GPIO1_7),
-
-	ASM9260_PINCTRL_PIN(GPIO2_0),
-	ASM9260_PINCTRL_PIN(GPIO2_1),
-	ASM9260_PINCTRL_PIN(GPIO2_2),
-	ASM9260_PINCTRL_PIN(GPIO2_3),
-	ASM9260_PINCTRL_PIN(GPIO2_4),
-	ASM9260_PINCTRL_PIN(GPIO2_5),
-	ASM9260_PINCTRL_PIN(GPIO2_6),
-	ASM9260_PINCTRL_PIN(GPIO2_7),
-
-	ASM9260_PINCTRL_PIN(GPIO3_0),
-	ASM9260_PINCTRL_PIN(GPIO3_1),
-	ASM9260_PINCTRL_PIN(GPIO3_2),
-	ASM9260_PINCTRL_PIN(GPIO3_3),
-	ASM9260_PINCTRL_PIN(GPIO3_4),
-	ASM9260_PINCTRL_PIN(GPIO3_5),
-	ASM9260_PINCTRL_PIN(GPIO3_6),
-	ASM9260_PINCTRL_PIN(GPIO3_7),
-
-	ASM9260_PINCTRL_PIN(GPIO4_0),
-	ASM9260_PINCTRL_PIN(GPIO4_1),
-	ASM9260_PINCTRL_PIN(GPIO4_2),
-	ASM9260_PINCTRL_PIN(GPIO4_3),
-	ASM9260_PINCTRL_PIN(GPIO4_4),
-	ASM9260_PINCTRL_PIN(GPIO4_5),
-	ASM9260_PINCTRL_PIN(GPIO4_6),
-	ASM9260_PINCTRL_PIN(GPIO4_7),
-
-	ASM9260_PINCTRL_PIN(GPIO5_0),
-	ASM9260_PINCTRL_PIN(GPIO5_1),
-	ASM9260_PINCTRL_PIN(GPIO5_2),
-	ASM9260_PINCTRL_PIN(GPIO5_3),
-	ASM9260_PINCTRL_PIN(GPIO5_4),
-
-	ASM9260_PINCTRL_PIN(GPIO8_1),
-	ASM9260_PINCTRL_PIN(GPIO8_2),
-	ASM9260_PINCTRL_PIN(GPIO8_3),
-	ASM9260_PINCTRL_PIN(GPIO8_4),
-	ASM9260_PINCTRL_PIN(GPIO8_5),
-	ASM9260_PINCTRL_PIN(GPIO8_6),
-	ASM9260_PINCTRL_PIN(GPIO8_7),
-
-	ASM9260_PINCTRL_PIN(GPIO9_0),
-	ASM9260_PINCTRL_PIN(GPIO9_1),
-	ASM9260_PINCTRL_PIN(GPIO9_2),
-	ASM9260_PINCTRL_PIN(GPIO9_3),
-	ASM9260_PINCTRL_PIN(GPIO9_4),
-	ASM9260_PINCTRL_PIN(GPIO9_5),
-
-	ASM9260_PINCTRL_PIN(GPIO10_0),
-	ASM9260_PINCTRL_PIN(GPIO10_1),
-	ASM9260_PINCTRL_PIN(GPIO10_2),
-	ASM9260_PINCTRL_PIN(GPIO10_3),
-	ASM9260_PINCTRL_PIN(GPIO10_4),
-	ASM9260_PINCTRL_PIN(GPIO10_5),
-	ASM9260_PINCTRL_PIN(GPIO10_6),
-	ASM9260_PINCTRL_PIN(GPIO10_7),
-
-	ASM9260_PINCTRL_PIN(GPIO11_0),
-	ASM9260_PINCTRL_PIN(GPIO11_1),
-	ASM9260_PINCTRL_PIN(GPIO11_2),
-	ASM9260_PINCTRL_PIN(GPIO11_3),
-	ASM9260_PINCTRL_PIN(GPIO11_4),
-	ASM9260_PINCTRL_PIN(GPIO11_5),
-	ASM9260_PINCTRL_PIN(GPIO11_6),
-	ASM9260_PINCTRL_PIN(GPIO11_7),
-
-	ASM9260_PINCTRL_PIN(GPIO12_0),
-	ASM9260_PINCTRL_PIN(GPIO12_1),
-	ASM9260_PINCTRL_PIN(GPIO12_2),
-	ASM9260_PINCTRL_PIN(GPIO12_3),
-	ASM9260_PINCTRL_PIN(GPIO12_4),
-	ASM9260_PINCTRL_PIN(GPIO12_5),
-	ASM9260_PINCTRL_PIN(GPIO12_6),
-	ASM9260_PINCTRL_PIN(GPIO12_7),
-
-	ASM9260_PINCTRL_PIN(GPIO13_4),
-	ASM9260_PINCTRL_PIN(GPIO13_5),
-	ASM9260_PINCTRL_PIN(GPIO13_6),
-	ASM9260_PINCTRL_PIN(GPIO13_7),
-
-	ASM9260_PINCTRL_PIN(GPIO14_0),
-	ASM9260_PINCTRL_PIN(GPIO14_1),
-	ASM9260_PINCTRL_PIN(GPIO14_2),
-	ASM9260_PINCTRL_PIN(GPIO14_3),
-	ASM9260_PINCTRL_PIN(GPIO14_4),
-	ASM9260_PINCTRL_PIN(GPIO14_5),
-
-	ASM9260_PINCTRL_PIN(GPIO15_0),
-	ASM9260_PINCTRL_PIN(GPIO15_1),
-	ASM9260_PINCTRL_PIN(GPIO15_2),
-	ASM9260_PINCTRL_PIN(GPIO15_3),
-	ASM9260_PINCTRL_PIN(GPIO15_4),
-	ASM9260_PINCTRL_PIN(GPIO15_5),
-	ASM9260_PINCTRL_PIN(GPIO15_6),
-	ASM9260_PINCTRL_PIN(GPIO15_7),
-
-	ASM9260_PINCTRL_PIN(GPIO16_0),
-	ASM9260_PINCTRL_PIN(GPIO16_1),
-	ASM9260_PINCTRL_PIN(GPIO16_2),
-	ASM9260_PINCTRL_PIN(GPIO16_3),
-	ASM9260_PINCTRL_PIN(GPIO16_4),
-	ASM9260_PINCTRL_PIN(GPIO16_5),
-	ASM9260_PINCTRL_PIN(GPIO16_6),
-	ASM9260_PINCTRL_PIN(GPIO16_7),
-
-	ASM9260_PINCTRL_PIN(GPIO17_0),
-	ASM9260_PINCTRL_PIN(GPIO17_1),
-	ASM9260_PINCTRL_PIN(GPIO17_2),
-	ASM9260_PINCTRL_PIN(GPIO17_3),
-	ASM9260_PINCTRL_PIN(GPIO17_4),
-	ASM9260_PINCTRL_PIN(GPIO17_5),
-	ASM9260_PINCTRL_PIN(GPIO17_6),
-	ASM9260_PINCTRL_PIN(GPIO17_7),
-};
 
 /* Pins in each pin group */
 static const char * const GPIO_groups[] = {
@@ -1848,28 +1714,6 @@ static struct asm9260_pingroup asm9260_mux_table[] = {
 	PMUX(17,	7,	GPIO17_7,	QEI_INDEX,	UART9_RXD,	NA,	NA,	MII_PPS_OUT,	NA,	NA),
 };
 
-/*
- * This is the mapping from GPIO pins to pin mux groups in asm9260_mux_table[].
- * Pins which aren't muxable to multiple peripherals are set to
- * ASM9260_MUX_GROUP_MAX to enable the "perip" function to enable/disable
- * peripheral control of the pin.
- *
- * This array is initialised in asm9260_init_mux_pins().
- */
-//static u8 asm9260_mux_pins[ARRAY_SIZE(asm9260_pins)];
-
-/* ASM9260_MUX_GROUP_MAX is used in asm9260_mux_pins[] for non-muxing pins */
-#define ASM9260_MUX_GROUP_MAX ARRAY_SIZE(asm9260_mux_table)
-
-/**
- * struct asm9260_pmx - Private pinctrl data
- * @dev:	Platform device
- * @pctl:	Pin control device
- * @regs:	Register region
- * @lock:	Lock protecting coherency of pin_en, gpio_en, and SELECT regs
- * @pin_en:	Pins that have been enabled (32 pins packed into each element)
- * @gpio_en:	GPIOs that have been enabled (32 pins packed into each element)
- */
 struct asm9260_pmx {
 	struct device		*dev;
 	struct pinctrl_dev	*pctl;
@@ -1884,7 +1728,6 @@ struct asm9260_pmx {
 static void __init asm9260_init_mux_pins(struct asm9260_pmx *pmx)
 {
 	unsigned int i;
-	printk("%s:%i\n", __func__, __LINE__);
 
 	for (i = 0; i < ARRAY_SIZE(asm9260_mux_table); i++) {
 		pmx->pin_desc[i].name = asm9260_mux_table[i].name;
@@ -1911,13 +1754,15 @@ static inline void pmx_write(struct asm9260_pmx *pmx, u32 val, u32 reg)
 
 static int asm9260_pinctrl_get_groups_count(struct pinctrl_dev *pctldev)
 {
-	return ARRAY_SIZE(asm9260_pins);
+	return ARRAY_SIZE(asm9260_mux_table);
 }
 
 static const char *asm9260_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
 						 unsigned int group)
 {
-	return asm9260_pins[group].name;
+	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+
+	return pmx->pin_desc[group].name;
 }
 
 static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
@@ -1925,7 +1770,9 @@ static int asm9260_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
 					 const unsigned int **pins,
 					 unsigned int *num_pins)
 {
-	*pins = &asm9260_pins[group].number;
+	struct asm9260_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+
+	*pins = &pmx->pin_desc[group].number;
 	*num_pins = 1;
 
 	return 0;
@@ -2342,9 +2189,6 @@ static int asm9260_pinctrl_set_mux(struct pinctrl_dev *pctldev,
 	//unsigned int pin_num, mux_group, i, npins;
 	//const unsigned int *pins;
 
-	printk("%s: -> %u:%u %u\n", __func__, function, group,
-			asm9260_pins[group].number);
-
 	grp = &asm9260_mux_table[group];
 	//grp->func = function;
 	ret = asm9260_pinctrl_set_mux_mux(pmx, grp, function);
@@ -2745,8 +2589,8 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 	asm9260_init_mux_pins(pmx);
 
 	asm9260_pinctrl_desc.name = dev_name(&pdev->dev);
-	asm9260_pinctrl_desc.pins = asm9260_pins;
-	asm9260_pinctrl_desc.npins = ARRAY_SIZE(asm9260_pins);
+	asm9260_pinctrl_desc.pins = pmx->pin_desc;
+	asm9260_pinctrl_desc.npins = ARRAY_SIZE(asm9260_mux_table);
 
 	pmx->regs = of_io_request_and_map(np, 0, dev_name(&pdev->dev));
 	if (IS_ERR(pmx->regs))

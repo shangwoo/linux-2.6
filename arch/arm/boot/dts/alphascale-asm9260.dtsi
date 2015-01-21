@@ -52,8 +52,8 @@
 
 			/* SATA Activity and Present pins are not connected */
 			nand_fc0_pins_a: nand_fc0@0 {
-				alphascale,pins = "gpio11_1";
-				alphascale,function = "NAND";
+				alphascale,pins = "GPIO11_0", "GPIO11_1";
+				alphascale,function = "nand0";
 			};
 
 

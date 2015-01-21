@@ -48,7 +48,9 @@
 
 		pinctrl: pinctrl@80044000 {
 			compatible = "alphascale,asm9260-pinctrl";
-			reg = <0x80044000 0x200>;
+			reg = <0x80044000 0x400>;
+			clocks = <&acc CLKID_AHB_IOCONFIG>;
+			clock-names = "ahb";
 
 			/* SATA Activity and Present pins are not connected */
 			nand_fc0_pins_a: nand_fc0@0 {

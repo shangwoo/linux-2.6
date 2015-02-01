@@ -47,35 +47,18 @@
 #include "core.h"
 #include "pinconf.h"
 
-
-////////////////////////////////////////////////////
 /* pinctrl register */
 #define IOCON_PIO0_0			0x0000
 /* only two modes are supported NONE and PULL UP */
 #define IOCON_MODE_SHIFT		3
 #define IOCON_MODE_MASK			(0x3 << IOCON_MODE_SHIFT)
-#define IOCON_MODE_PULL_UP		(0x2 << IOCON_MODE_SHIFT)
-#define IOCON_MODE_PULL_NONE		(0x0 << IOCON_MODE_SHIFT)
+#define IOCON_MODE_PULL_DOWN		(0x1 << IOCON_MODE_SHIFT)
+#define IOCON_MODE_NONE			(0x0 << IOCON_MODE_SHIFT)
 /* up to 8 functions per pin */
 #define IOCON_PINMUX_MASK		(0x7 << 0)
 
 #define ASM9260_PINCTRL_PIN(pin)	PINCTRL_PIN(pin, #pin)
 #define MUX_OFFSET(bank, pin)		((bank) * 32 + (pin) * 4)
-//////////////////////////////////////////////////////
-
-/* Register offsets from bank base address */
-#define REG_PINCTRL_SELECT	0x10
-#define REG_PINCTRL_SCHMITT	0x90
-#define REG_PINCTRL_PU_PD	0xa0
-#define REG_PINCTRL_SR		0xc0
-#define REG_PINCTRL_DR		0xd0
-#define REG_PINCTRL_IF_CTL	0xe0
-
-/* REG_PINCTRL_DR field values */
-#define REG_DR_2mA		0
-#define REG_DR_4mA		1
-#define REG_DR_8mA		2
-#define REG_DR_12mA		3
 
 /**
  * struct asm9260_function - ASM9260 pinctrl mux function

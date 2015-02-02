@@ -405,7 +405,6 @@ static int reserve_map(struct device *dev, struct pinctrl_map **map,
 	unsigned int old_num = *reserved_maps;
 	unsigned int new_num = *num_maps + reserve;
 	struct pinctrl_map *new_map;
-	printk("%s:%i\n", __func__, __LINE__);
 
 	if (old_num >= new_num)
 		return 0;
@@ -428,7 +427,6 @@ static int add_map_mux(struct pinctrl_map **map, unsigned int *reserved_maps,
 		       unsigned int *num_maps, const char *group,
 		       const char *function)
 {
-	printk("%s:%i\n", __func__, __LINE__);
 	if (WARN_ON(*num_maps == *reserved_maps))
 		return -ENOSPC;
 
@@ -447,7 +445,6 @@ static int add_map_configs(struct device *dev,
 			   unsigned int num_configs)
 {
 	unsigned long *dup_configs;
-	printk("%s:%i\n", __func__, __LINE__);
 
 	if (WARN_ON(*num_maps == *reserved_maps))
 		return -ENOSPC;
@@ -495,7 +492,6 @@ static int asm9260_pinctrl_dt_subnode_to_map(struct device *dev,
 	struct property *prop;
 	const char *group;
 
-	printk("%s:%i\n", __func__, __LINE__);
 	ret = of_property_read_string(np, "alphascale,function", &function);
 	if (ret < 0) {
 		/* EINVAL=missing, which is fine since it's optional */
@@ -524,9 +520,7 @@ static int asm9260_pinctrl_dt_subnode_to_map(struct device *dev,
 	if (ret < 0)
 		goto exit;
 
-	printk("%s:%i\n", __func__, __LINE__);
 	of_property_for_each_string(np, "alphascale,pins", prop, group) {
-	printk("%s:%i\n", __func__, __LINE__);
 		if (function) {
 			ret = add_map_mux(map, reserved_maps, num_maps,
 					  group, function);
@@ -563,9 +557,7 @@ static int asm9260_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
 	*map = NULL;
 	*num_maps = 0;
 
-	printk("%s:%i %s\n", __func__, __LINE__, np_config->name);
 	//for_each_child_of_node(np_config, np) {
-	printk("%s:%i\n", __func__, __LINE__);
 		ret = asm9260_pinctrl_dt_subnode_to_map(pctldev->dev, np, map,
 						       &reserved_maps,
 						       num_maps);

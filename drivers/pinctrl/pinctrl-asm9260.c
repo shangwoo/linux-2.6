@@ -762,12 +762,10 @@ static struct pinmux_ops asm9260_pinmux_ops = {
 static int asm9260_pinconf_reg(struct pinctrl_dev *pctldev,
 			      unsigned int pin,
 			      enum pin_config_param param,
-			      u32 *reg, u32 *val)
+			      void __iomem **reg, u32 *val)
 {
 	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
 	struct asm9260_pingroup *table;
-	void __iomem            *offset;
-	u32 val;
 
 	table = &asm9260_mux_table[pin];
 
@@ -797,10 +795,10 @@ static int asm9260_pinconf_reg(struct pinctrl_dev *pctldev,
 static int asm9260_pinconf_get(struct pinctrl_dev *pctldev,
 			      unsigned int pin, unsigned long *config)
 {
-	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
 	enum pin_config_param param = pinconf_to_config_param(*config);
 	int ret;
-	u32 reg, width, mask, shift, val, tmp, arg;
+	u32 val, tmp, arg;
+	void __iomem *reg;
 
 	/* Get register information */
 	ret = asm9260_pinconf_reg(pctldev, pin, param,
@@ -826,20 +824,23 @@ static int asm9260_pinconf_set(struct pinctrl_dev *pctldev,
 			      unsigned int pin, unsigned long *configs,
 			      unsigned num_configs)
 {
-	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
 	enum pin_config_param param;
 	unsigned int arg;
 	int ret;
-	u32 reg, width, mask, shift, val, tmp;
-	unsigned long flags;
+	u32 val, tmp;
+	void __iomem *reg;
 	int i;
 
 	for (i = 0; i < num_configs; i++) {
+		struct asm9260_pingroup *table;
+
 		param = pinconf_to_config_param(configs[i]);
 		arg = pinconf_to_config_argument(configs[i]);
 
+		table = &asm9260_mux_table[pin];
+
 		dev_dbg(pctldev->dev, "%s(pin=%s, config=%#lx)\n",
-			__func__, asm9260_pins[pin].name, configs[i]);
+			__func__, table->name, configs[i]);
 
 		/* Get register information */
 		ret = asm9260_pinconf_reg(pctldev, pin, param,

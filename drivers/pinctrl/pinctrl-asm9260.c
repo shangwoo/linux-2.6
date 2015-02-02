@@ -658,6 +658,7 @@ static void asm9260_pinctrl_select(struct asm9260_pmx_priv *priv,
 	u32 reg, reg_shift, select, val;
 	unsigned int priv_index, priv_shift;
 	unsigned long flags;
+	printk("%s:%i\n", __func__, __LINE__);
 
 	/* uses base 32 instead of base 30 */
 	priv_index = pin >> 5;
@@ -697,6 +698,7 @@ static void asm9260_pinctrl_gpio_select(struct asm9260_pmx_priv *priv,
 	unsigned int index, shift;
 	u32 gpio_en;
 
+	printk("%s:%i\n", __func__, __LINE__);
 	if (pin >= ARRAY_SIZE(asm9260_pins))
 		return;
 
@@ -749,71 +751,46 @@ found_mux:
 
 	return 0;
 }
-#if 0
 
-/**
- * asm9260_pinctrl_gpio_request_enable() - Put pin in GPIO mode.
- * @pctldev:		Pin control data
- * @range:		GPIO range
- * @pin:		Pin number
- *
- * Puts a particular pin into GPIO mode, disabling peripheral control until it's
- * disabled again.
- */
-static int asm9260_pinctrl_gpio_request_enable(struct pinctrl_dev *pctldev,
-					      struct pinctrl_gpio_range *range,
-					      unsigned int pin)
-{
-	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
-	asm9260_pinctrl_gpio_select(priv, pin, true);
-	return 0;
-}
-
-/**
- * asm9260_pinctrl_gpio_disable_free() - Take pin out of GPIO mode.
- * @pctldev:		Pin control data
- * @range:		GPIO range
- * @pin:		Pin number
- *
- * Take a particular pin out of GPIO mode. If the pin is enabled for a
- * peripheral it will return to peripheral mode.
- */
-static void asm9260_pinctrl_gpio_disable_free(struct pinctrl_dev *pctldev,
-					     struct pinctrl_gpio_range *range,
-					     unsigned int pin)
-{
-	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
-	asm9260_pinctrl_gpio_select(priv, pin, false);
-}
-#endif
 static struct pinmux_ops asm9260_pinmux_ops = {
 	.get_functions_count	= asm9260_pinctrl_get_funcs_count,
 	.get_function_name	= asm9260_pinctrl_get_func_name,
 	.get_function_groups	= asm9260_pinctrl_get_func_groups,
 	.set_mux		= asm9260_pinctrl_set_mux,
-//	.gpio_request_enable	= asm9260_pinctrl_gpio_request_enable,
-//	.gpio_disable_free	= asm9260_pinctrl_gpio_disable_free,
 };
 
-#if 0
 static int asm9260_pinconf_reg(struct pinctrl_dev *pctldev,
 			      unsigned int pin,
 			      enum pin_config_param param,
 			      u32 *reg, u32 *val)
 {
-	/* All supported pins have controllable input bias */
+	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
+	struct asm9260_pingroup *table;
+	void __iomem            *offset;
+	u32 val;
+
+	table = &asm9260_mux_table[pin];
+
+	*reg = priv->regs + MUX_OFFSET(table->bank, table->pin);
+
 	switch (param) {
 	case PIN_CONFIG_BIAS_DISABLE:
-		*val = IOCON_MODE_PULL_NONE;
+		*val = IOCON_MODE_NONE;
 		break;
 	case PIN_CONFIG_BIAS_PULL_UP:
+		if (table->bank != 0)
+			return -ENOTSUPP;
 		*val = IOCON_MODE_PULL_UP;
+		break;
+	case PIN_CONFIG_BIAS_PULL_DOWN:
+		if (table->bank == 0)
+			return -ENOTSUPP;
+		*val = IOCON_MODE_PULL_DOWN;
 		break;
 	default:
 		return -ENOTSUPP;
 	};
 
-	*reg = pin;
 	return 0;
 }
 
@@ -832,7 +809,7 @@ static int asm9260_pinconf_get(struct pinctrl_dev *pctldev,
 		return ret;
 
 	/* Extract field from register */
-	tmp = priv_read(priv, reg);
+	tmp = ioread32(reg);
 	arg = ((tmp & IOCON_MODE_MASK) >> IOCON_MODE_SHIFT) == val;
 
 	/* Config not active */
@@ -870,44 +847,25 @@ static int asm9260_pinconf_set(struct pinctrl_dev *pctldev,
 		if (ret < 0)
 			return ret;
 
-		/* Unpack argument and range check it */
-		if (arg > 1) {
-			dev_dbg(pctldev->dev, "%s: arg %u out of range\n",
-				__func__, arg);
-			return -EINVAL;
-		}
-
 		/* Write register field */
-		__global_lock2(flags);
-		tmp = priv_read(priv, reg);
+		//__global_lock2(flags);
+		tmp = ioread32(reg);
 		tmp &= ~IOCON_MODE_MASK;
 		if (arg)
-			tmp |= val << IOCON_MODE_SHIFT;
-		priv_write(priv, tmp, reg);
-		__global_unlock2(flags);
+			tmp |= val;
+		iowrite32(tmp, reg);
+		//__global_unlock2(flags);
 	} /* for each config */
 
 	return 0;
 }
-
-static const int asm9260_boolean_map[] = {
-	[0]		= -EINVAL,
-	[1]		= 1,
-};
-
-static const int asm9260_dr_map[] = {
-	[REG_DR_2mA]	= 2,
-	[REG_DR_4mA]	= 4,
-	[REG_DR_8mA]	= 8,
-	[REG_DR_12mA]	= 12,
-};
 
 static struct pinconf_ops asm9260_pinconf_ops = {
 	.is_generic			= true,
 	.pin_config_get			= asm9260_pinconf_get,
 	.pin_config_set			= asm9260_pinconf_set,
 };
-#endif
+
 /*
  * Pin control driver setup
  */
@@ -916,7 +874,7 @@ static struct pinconf_ops asm9260_pinconf_ops = {
 static struct pinctrl_desc asm9260_pinctrl_desc = {
 	.pctlops	= &asm9260_pinctrl_ops,
 	.pmxops		= &asm9260_pinmux_ops,
-//	.confops	= &asm9260_pinconf_ops,
+	.confops	= &asm9260_pinconf_ops,
 	.owner		= THIS_MODULE,
 };
 

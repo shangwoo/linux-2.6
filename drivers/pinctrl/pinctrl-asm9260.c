@@ -52,6 +52,9 @@
 /* only two modes are supported NONE and PULL UP */
 #define IOCON_MODE_SHIFT		3
 #define IOCON_MODE_MASK			(0x3 << IOCON_MODE_SHIFT)
+/* Only GPIO0_* pins support pull up. */
+#define IOCON_MODE_PULL_UP		(0x2 << IOCON_MODE_SHIFT)
+/* Only GPIO0_* pins don't support pull down. */
 #define IOCON_MODE_PULL_DOWN		(0x1 << IOCON_MODE_SHIFT)
 #define IOCON_MODE_NONE			(0x0 << IOCON_MODE_SHIFT)
 /* up to 8 functions per pin */

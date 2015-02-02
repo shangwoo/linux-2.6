@@ -766,8 +766,13 @@ static int asm9260_pinconf_reg(struct pinctrl_dev *pctldev,
 {
 	struct asm9260_pmx_priv *priv = pinctrl_dev_get_drvdata(pctldev);
 	struct asm9260_pingroup *table;
+	int a;
 
-	table = &asm9260_mux_table[pin];
+	for (a = 0; a < MUX_TABLE_SIZE; a++) {
+		table = &asm9260_mux_table[a];
+		if (table->number == pin)
+			break;
+	}
 
 	*reg = priv->regs + MUX_OFFSET(table->bank, table->pin);
 
@@ -832,15 +837,9 @@ static int asm9260_pinconf_set(struct pinctrl_dev *pctldev,
 	int i;
 
 	for (i = 0; i < num_configs; i++) {
-		struct asm9260_pingroup *table;
 
 		param = pinconf_to_config_param(configs[i]);
 		arg = pinconf_to_config_argument(configs[i]);
-
-		table = &asm9260_mux_table[pin];
-
-		dev_dbg(pctldev->dev, "%s(pin=%s, config=%#lx)\n",
-			__func__, table->name, configs[i]);
 
 		/* Get register information */
 		ret = asm9260_pinconf_reg(pctldev, pin, param,

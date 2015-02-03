@@ -347,16 +347,6 @@ static void __init asm9260_init_mux_pins(struct asm9260_pmx_priv *priv)
 	}
 }
 
-static inline u32 priv_read(struct asm9260_pmx_priv *priv, u32 reg)
-{
-	return ioread32(priv->regs + reg);
-}
-
-static inline void priv_write(struct asm9260_pmx_priv *priv, u32 val, u32 reg)
-{
-	iowrite32(val, priv->regs + reg);
-}
-
 /*
  * Pin control operations
  */

@@ -488,6 +488,13 @@ config GPIO_ARIZONA
 	help
 	  Support for GPIOs on Wolfson Arizona class devices.
 
+config GPIO_ASM9260
+	tristate "GPIO support for Alphascale ASM9260"
+	depends on MACH_ASM9260 && OF
+	select IRQ_DOMAIN
+	help
+	  Support for GPIOs on Alphascale ASM9260 SoC.
+
 config GPIO_CRYSTAL_COVE
 	tristate "GPIO support for Crystal Cove PMIC"
 	depends on INTEL_SOC_PMIC

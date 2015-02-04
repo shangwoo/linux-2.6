@@ -1,242 +1,240 @@
 /*
- * TI/National Semiconductor LP3943 GPIO driver
+ * Alphascale asm9260t GPIO driver
  *
- * Copyright 2013 Texas Instruments
- *
- * Author: Milo Kim <milo.kim@ti.com>
+ * Copyright (C) 2015 Oleksij Rempel <linux@rempel-privat.de>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 2.
+ * the Free Software Foundation; either version 2 of the  License, or (at your
+ * option) any later version.
  */
 
 #include <linux/bitops.h>
 #include <linux/err.h>
 #include <linux/gpio.h>
 #include <linux/i2c.h>
-#include <linux/mfd/lp3943.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-enum lp3943_gpios {
-	LP3943_GPIO1,
-	LP3943_GPIO2,
-	LP3943_GPIO3,
-	LP3943_GPIO4,
-	LP3943_GPIO5,
-	LP3943_GPIO6,
-	LP3943_GPIO7,
-	LP3943_GPIO8,
-	LP3943_GPIO9,
-	LP3943_GPIO10,
-	LP3943_GPIO11,
-	LP3943_GPIO12,
-	LP3943_GPIO13,
-	LP3943_GPIO14,
-	LP3943_GPIO15,
-	LP3943_GPIO16,
-	LP3943_MAX_GPIO,
+enum asm9260_gpios {
+	ASM9260_GPIO1,
+	ASM9260_GPIO2,
+	ASM9260_GPIO3,
+	ASM9260_GPIO4,
+	ASM9260_GPIO5,
+	ASM9260_GPIO6,
+	ASM9260_GPIO7,
+	ASM9260_GPIO8,
+	ASM9260_GPIO9,
+	ASM9260_GPIO10,
+	ASM9260_GPIO11,
+	ASM9260_GPIO12,
+	ASM9260_GPIO13,
+	ASM9260_GPIO14,
+	ASM9260_GPIO15,
+	ASM9260_GPIO16,
+	ASM9260_MAX_GPIO,
 };
 
-struct lp3943_gpio {
+struct asm9260_gpio {
 	struct gpio_chip chip;
-	struct lp3943 *lp3943;
+	struct asm9260 *asm9260;
 	u16 input_mask;		/* 1 = GPIO is input direction, 0 = output */
 };
 
-static inline struct lp3943_gpio *to_lp3943_gpio(struct gpio_chip *_chip)
+static inline struct asm9260_gpio *to_asm9260_gpio(struct gpio_chip *_chip)
 {
-	return container_of(_chip, struct lp3943_gpio, chip);
+	return container_of(_chip, struct asm9260_gpio, chip);
 }
 
-static int lp3943_gpio_request(struct gpio_chip *chip, unsigned offset)
+static int asm9260_gpio_request(struct gpio_chip *chip, unsigned offset)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
-	struct lp3943 *lp3943 = lp3943_gpio->lp3943;
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
+	struct asm9260 *asm9260 = asm9260_gpio->asm9260;
 
 	/* Return an error if the pin is already assigned */
-	if (test_and_set_bit(offset, &lp3943->pin_used))
+	if (test_and_set_bit(offset, &asm9260->pin_used))
 		return -EBUSY;
 
 	return 0;
 }
 
-static void lp3943_gpio_free(struct gpio_chip *chip, unsigned offset)
+static void asm9260_gpio_free(struct gpio_chip *chip, unsigned offset)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
-	struct lp3943 *lp3943 = lp3943_gpio->lp3943;
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
+	struct asm9260 *asm9260 = asm9260_gpio->asm9260;
 
-	clear_bit(offset, &lp3943->pin_used);
+	clear_bit(offset, &asm9260->pin_used);
 }
 
-static int lp3943_gpio_set_mode(struct lp3943_gpio *lp3943_gpio, u8 offset,
+static int asm9260_gpio_set_mode(struct asm9260_gpio *asm9260_gpio, u8 offset,
 				u8 val)
 {
-	struct lp3943 *lp3943 = lp3943_gpio->lp3943;
-	const struct lp3943_reg_cfg *mux = lp3943->mux_cfg;
+	struct asm9260 *asm9260 = asm9260_gpio->asm9260;
+	const struct asm9260_reg_cfg *mux = asm9260->mux_cfg;
 
-	return lp3943_update_bits(lp3943, mux[offset].reg, mux[offset].mask,
+	return asm9260_update_bits(asm9260, mux[offset].reg, mux[offset].mask,
 				  val << mux[offset].shift);
 }
 
-static int lp3943_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
+static int asm9260_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
 
-	lp3943_gpio->input_mask |= BIT(offset);
+	asm9260_gpio->input_mask |= BIT(offset);
 
-	return lp3943_gpio_set_mode(lp3943_gpio, offset, LP3943_GPIO_IN);
+	return asm9260_gpio_set_mode(asm9260_gpio, offset, ASM9260_GPIO_IN);
 }
 
-static int lp3943_get_gpio_in_status(struct lp3943_gpio *lp3943_gpio,
+static int asm9260_get_gpio_in_status(struct asm9260_gpio *asm9260_gpio,
 				     struct gpio_chip *chip, unsigned offset)
 {
 	u8 addr, read;
 	int err;
 
 	switch (offset) {
-	case LP3943_GPIO1 ... LP3943_GPIO8:
-		addr = LP3943_REG_GPIO_A;
+	case ASM9260_GPIO1 ... ASM9260_GPIO8:
+		addr = ASM9260_REG_GPIO_A;
 		break;
-	case LP3943_GPIO9 ... LP3943_GPIO16:
-		addr = LP3943_REG_GPIO_B;
+	case ASM9260_GPIO9 ... ASM9260_GPIO16:
+		addr = ASM9260_REG_GPIO_B;
 		offset = offset - 8;
 		break;
 	default:
 		return -EINVAL;
 	}
 
-	err = lp3943_read_byte(lp3943_gpio->lp3943, addr, &read);
+	err = asm9260_read_byte(asm9260_gpio->asm9260, addr, &read);
 	if (err)
 		return err;
 
 	return !!(read & BIT(offset));
 }
 
-static int lp3943_get_gpio_out_status(struct lp3943_gpio *lp3943_gpio,
+static int asm9260_get_gpio_out_status(struct asm9260_gpio *asm9260_gpio,
 				      struct gpio_chip *chip, unsigned offset)
 {
-	struct lp3943 *lp3943 = lp3943_gpio->lp3943;
-	const struct lp3943_reg_cfg *mux = lp3943->mux_cfg;
+	struct asm9260 *asm9260 = asm9260_gpio->asm9260;
+	const struct asm9260_reg_cfg *mux = asm9260->mux_cfg;
 	u8 read;
 	int err;
 
-	err = lp3943_read_byte(lp3943, mux[offset].reg, &read);
+	err = asm9260_read_byte(asm9260, mux[offset].reg, &read);
 	if (err)
 		return err;
 
 	read = (read & mux[offset].mask) >> mux[offset].shift;
 
-	if (read == LP3943_GPIO_OUT_HIGH)
+	if (read == ASM9260_GPIO_OUT_HIGH)
 		return 1;
-	else if (read == LP3943_GPIO_OUT_LOW)
+	else if (read == ASM9260_GPIO_OUT_LOW)
 		return 0;
 	else
 		return -EINVAL;
 }
 
-static int lp3943_gpio_get(struct gpio_chip *chip, unsigned offset)
+static int asm9260_gpio_get(struct gpio_chip *chip, unsigned offset)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
 
 	/*
 	 * Limitation:
-	 *   LP3943 doesn't have the GPIO direction register. It provides
+	 *   ASM9260 doesn't have the GPIO direction register. It provides
 	 *   only input and output status registers.
 	 *   So, direction info is required to handle the 'get' operation.
 	 *   This variable is updated whenever the direction is changed and
 	 *   it is used here.
 	 */
 
-	if (lp3943_gpio->input_mask & BIT(offset))
-		return lp3943_get_gpio_in_status(lp3943_gpio, chip, offset);
+	if (asm9260_gpio->input_mask & BIT(offset))
+		return asm9260_get_gpio_in_status(asm9260_gpio, chip, offset);
 	else
-		return lp3943_get_gpio_out_status(lp3943_gpio, chip, offset);
+		return asm9260_get_gpio_out_status(asm9260_gpio, chip, offset);
 }
 
-static void lp3943_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
+static void asm9260_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
 	u8 data;
 
 	if (value)
-		data = LP3943_GPIO_OUT_HIGH;
+		data = ASM9260_GPIO_OUT_HIGH;
 	else
-		data = LP3943_GPIO_OUT_LOW;
+		data = ASM9260_GPIO_OUT_LOW;
 
-	lp3943_gpio_set_mode(lp3943_gpio, offset, data);
+	asm9260_gpio_set_mode(asm9260_gpio, offset, data);
 }
 
-static int lp3943_gpio_direction_output(struct gpio_chip *chip, unsigned offset,
+static int asm9260_gpio_direction_output(struct gpio_chip *chip, unsigned offset,
 					int value)
 {
-	struct lp3943_gpio *lp3943_gpio = to_lp3943_gpio(chip);
+	struct asm9260_gpio *asm9260_gpio = to_asm9260_gpio(chip);
 
-	lp3943_gpio_set(chip, offset, value);
-	lp3943_gpio->input_mask &= ~BIT(offset);
+	asm9260_gpio_set(chip, offset, value);
+	asm9260_gpio->input_mask &= ~BIT(offset);
 
 	return 0;
 }
 
-static const struct gpio_chip lp3943_gpio_chip = {
-	.label			= "lp3943",
+static const struct gpio_chip asm9260_gpio_chip = {
+	.label			= "asm9260",
 	.owner			= THIS_MODULE,
-	.request		= lp3943_gpio_request,
-	.free			= lp3943_gpio_free,
-	.direction_input	= lp3943_gpio_direction_input,
-	.get			= lp3943_gpio_get,
-	.direction_output	= lp3943_gpio_direction_output,
-	.set			= lp3943_gpio_set,
+	.request		= asm9260_gpio_request,
+	.free			= asm9260_gpio_free,
+	.direction_input	= asm9260_gpio_direction_input,
+	.get			= asm9260_gpio_get,
+	.direction_output	= asm9260_gpio_direction_output,
+	.set			= asm9260_gpio_set,
 	.base			= -1,
-	.ngpio			= LP3943_MAX_GPIO,
+	.ngpio			= ASM9260_MAX_GPIO,
 	.can_sleep		= 1,
 };
 
-static int lp3943_gpio_probe(struct platform_device *pdev)
+static int asm9260_gpio_probe(struct platform_device *pdev)
 {
-	struct lp3943 *lp3943 = dev_get_drvdata(pdev->dev.parent);
-	struct lp3943_gpio *lp3943_gpio;
+	struct asm9260 *asm9260 = dev_get_drvdata(pdev->dev.parent);
+	struct asm9260_gpio *asm9260_gpio;
 
-	lp3943_gpio = devm_kzalloc(&pdev->dev, sizeof(*lp3943_gpio),
+	asm9260_gpio = devm_kzalloc(&pdev->dev, sizeof(*asm9260_gpio),
 				GFP_KERNEL);
-	if (!lp3943_gpio)
+	if (!asm9260_gpio)
 		return -ENOMEM;
 
-	lp3943_gpio->lp3943 = lp3943;
-	lp3943_gpio->chip = lp3943_gpio_chip;
-	lp3943_gpio->chip.dev = &pdev->dev;
+	asm9260_gpio->asm9260 = asm9260;
+	asm9260_gpio->chip = asm9260_gpio_chip;
+	asm9260_gpio->chip.dev = &pdev->dev;
 
-	platform_set_drvdata(pdev, lp3943_gpio);
+	platform_set_drvdata(pdev, asm9260_gpio);
 
-	return gpiochip_add(&lp3943_gpio->chip);
+	return gpiochip_add(&asm9260_gpio->chip);
 }
 
-static int lp3943_gpio_remove(struct platform_device *pdev)
+static int asm9260_gpio_remove(struct platform_device *pdev)
 {
-	struct lp3943_gpio *lp3943_gpio = platform_get_drvdata(pdev);
+	struct asm9260_gpio *asm9260_gpio = platform_get_drvdata(pdev);
 
-	gpiochip_remove(&lp3943_gpio->chip);
+	gpiochip_remove(&asm9260_gpio->chip);
 	return 0;
 }
 
-static const struct of_device_id lp3943_gpio_of_match[] = {
-	{ .compatible = "ti,lp3943-gpio", },
+static const struct of_device_id asm9260_gpio_of_match[] = {
+	{ .compatible = "alphascale,asm9260-gpio", },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, lp3943_gpio_of_match);
+MODULE_DEVICE_TABLE(of, asm9260_gpio_of_match);
 
-static struct platform_driver lp3943_gpio_driver = {
-	.probe = lp3943_gpio_probe,
-	.remove = lp3943_gpio_remove,
+static struct platform_driver asm9260_gpio_driver = {
+	.probe = asm9260_gpio_probe,
+	.remove = asm9260_gpio_remove,
 	.driver = {
-		.name = "lp3943-gpio",
-		.of_match_table = lp3943_gpio_of_match,
+		.name = "asm9260-gpio",
+		.of_match_table = asm9260_gpio_of_match,
 	},
 };
-module_platform_driver(lp3943_gpio_driver);
+module_platform_driver(asm9260_gpio_driver);
 
-MODULE_DESCRIPTION("LP3943 GPIO driver");
-MODULE_ALIAS("platform:lp3943-gpio");
-MODULE_AUTHOR("Milo Kim");
-MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("ASM9260 GPIO driver");
+MODULE_ALIAS("platform:asm9260-gpio");
+MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
+MODULE_LICENSE("GPL v2");

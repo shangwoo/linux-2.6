@@ -17,6 +17,27 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
+#define HW_nDATA		0x0000
+#define HW_DMA_CTRL		0x0010
+#define HW_DMA_DATA		0x0020
+#define HW_DMA_PADCTRL0		0x0030
+#define HW_DMA_PADCTRL1		0x0040
+#define HW_DMA_PADCTRL2		0x0050
+#define HW_DMA_PADCTRL3		0x0060
+#define HW_DMA_CTRL1		0x0070
+#define HW_DMA_CTRL2		0x0080
+#define HW_DMA_CTRL3		0x0090
+#define HW_DMA_CTRL4		0x00a0
+#define HW_nDIR			0x8000
+#define HW_nIS			0x8010
+#define HW_nIBE			0x8020
+#define HW_nIEV			0x8030
+#define HW_nIE			0x8040
+#define HW_nRIS			0x8050
+#define HW_nMIS			0x8060
+#define HW_nIC			0x8070
+#define HW_nDATAMASK		0x8080
+
 enum asm9260_gpios {
 	ASM9260_GPIO1,
 	ASM9260_GPIO2,

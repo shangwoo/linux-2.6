@@ -12,10 +12,10 @@
 #include <linux/bitops.h>
 #include <linux/err.h>
 #include <linux/gpio.h>
-#include <linux/i2c.h>
 #include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/clk.h>
 
 #define SET_REG			0x4
 #define CLR_REG			0x8
@@ -66,7 +66,7 @@ enum asm9260_gpios {
 
 struct asm9260_gpio_priv {
 	struct gpio_chip	chip;
-	void __iomem		*regs;
+	void __iomem		*iobase;
 	struct clk		*clk;
 	u16 input_mask;		/* 1 = GPIO is input direction, 0 = output */
 };
@@ -85,8 +85,6 @@ static int asm9260_gpio_request(struct gpio_chip *chip, unsigned offset)
 static void asm9260_gpio_free(struct gpio_chip *chip, unsigned offset)
 {
 	printk("%s:%i\n", __func__, __LINE__);
-	return 0;
-
 }
 
 static int asm9260_gpio_set_mode(struct asm9260_gpio_priv *asm9260_gpio, u8 offset,
@@ -119,6 +117,7 @@ static int asm9260_get_gpio_out_status(struct asm9260_gpio_priv *asm9260_gpio,
 static int asm9260_gpio_get(struct gpio_chip *chip, unsigned offset)
 {
 	printk("%s:%i\n", __func__, __LINE__);
+	return 0;
 }
 
 static void asm9260_gpio_set(struct gpio_chip *chip, unsigned offset, int value)
@@ -151,6 +150,7 @@ static int asm9260_gpio_probe(struct platform_device *pdev)
 {
 	struct asm9260_gpio_priv *priv;
 	struct resource	*res;
+	int ret;
 
 	priv = devm_kzalloc(&pdev->dev, sizeof(*priv),
 				GFP_KERNEL);
@@ -159,8 +159,8 @@ static int asm9260_gpio_probe(struct platform_device *pdev)
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
-	if (IS_ERR(priv->regs))
-		return PTR_ERR(priv->regs);
+	if (IS_ERR(priv->iobase))
+		return PTR_ERR(priv->iobase);
 
 	priv->clk = devm_clk_get(&pdev->dev, "ahb");
 	ret = clk_prepare_enable(priv->clk);

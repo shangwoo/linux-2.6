@@ -17,26 +17,32 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-#define HW_nDATA		0x0000
-#define HW_DMA_CTRL		0x0010
-#define HW_DMA_DATA		0x0020
-#define HW_DMA_PADCTRL0		0x0030
-#define HW_DMA_PADCTRL1		0x0040
-#define HW_DMA_PADCTRL2		0x0050
-#define HW_DMA_PADCTRL3		0x0060
-#define HW_DMA_CTRL1		0x0070
-#define HW_DMA_CTRL2		0x0080
-#define HW_DMA_CTRL3		0x0090
-#define HW_DMA_CTRL4		0x00a0
-#define HW_nDIR			0x8000
-#define HW_nIS			0x8010
-#define HW_nIBE			0x8020
-#define HW_nIEV			0x8030
-#define HW_nIE			0x8040
-#define HW_nRIS			0x8050
-#define HW_nMIS			0x8060
-#define HW_nIC			0x8070
-#define HW_nDATAMASK		0x8080
+#define SET_REG			0x4
+#define CLR_REG			0x8
+
+#define HW_DATA0		0x00000
+#define HW_DMA_CTRL		0x00010
+#define HW_DMA_DATA		0x00020
+#define HW_DMA_PADCTRL0		0x00030
+#define HW_DMA_PADCTRL1		0x00040
+#define HW_DMA_PADCTRL2		0x00050
+#define HW_DMA_PADCTRL3		0x00060
+#define HW_DMA_CTRL1		0x00070
+#define HW_DMA_CTRL2		0x00080
+#define HW_DMA_CTRL3		0x00090
+#define HW_DMA_CTRL4		0x000a0
+#define HW_DIR0			0x08000
+#define HW_IS0			0x08010
+#define HW_IBE0			0x08020
+#define HW_IEV0			0x08030
+#define HW_IE0			0x08040
+#define HW_RIS0			0x08050
+#define HW_MIS0			0x08060
+#define HW_IC0			0x08070
+#define HW_DATAMASK0		0x08080
+
+#define PORTn(reg, port)	((reg) + ((port) / 4) * 0x10000)
+#define PINn(port, pin)		(1 << (((port) % 4) * 8 + (pin)))
 
 enum asm9260_gpios {
 	ASM9260_GPIO1,

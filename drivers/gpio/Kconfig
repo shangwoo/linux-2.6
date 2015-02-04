@@ -126,6 +126,13 @@ config GPIO_74XX_MMIO
 	    8 bits:	74244 (Input), 74273 (Output)
 	    16 bits:	741624 (Input), 7416374 (Output)
 
+config GPIO_ASM9260
+	tristate "GPIO support for Alphascale ASM9260"
+	depends on MACH_ASM9260 && OF
+	select IRQ_DOMAIN
+	help
+	  Support for GPIOs on Alphascale ASM9260 SoC.
+
 config GPIO_CLPS711X
 	tristate "CLPS711X GPIO support"
 	depends on ARCH_CLPS711X || COMPILE_TEST

@@ -328,11 +328,11 @@ struct asm9260_pmx_priv {
 	struct device		*dev;
 	struct pinctrl_dev	*pctl;
 	void __iomem		*regs;
-	spinlock_t		lock;
 	u32			pin_en[3];
 	u32			gpio_en[3];
 
 	struct clk		*clk;
+	struct mutex		lock;
 
 	struct pinctrl_pin_desc	pin_desc[MUX_TABLE_SIZE];
 };
@@ -881,7 +881,7 @@ static int asm9260_pinctrl_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 	priv->dev = &pdev->dev;
-	spin_lock_init(&priv->lock);
+	mutex_init(&priv->lock);
 
 	asm9260_init_mux_pins(priv);
 

@@ -64,14 +64,16 @@ enum asm9260_gpios {
 	ASM9260_MAX_GPIO,
 };
 
-struct asm9260_gpio {
-	struct gpio_chip chip;
+struct asm9260_gpio_priv {
+	struct gpio_chip	chip;
+	void __iomem		*regs;
+	struct clk		*clk;
 	u16 input_mask;		/* 1 = GPIO is input direction, 0 = output */
 };
 
-static inline struct asm9260_gpio *to_asm9260_gpio(struct gpio_chip *_chip)
+static inline struct asm9260_gpio_priv *to_asm9260_gpio(struct gpio_chip *_chip)
 {
-	return container_of(_chip, struct asm9260_gpio, chip);
+	return container_of(_chip, struct asm9260_gpio_priv, chip);
 }
 
 static int asm9260_gpio_request(struct gpio_chip *chip, unsigned offset)
@@ -87,7 +89,7 @@ static void asm9260_gpio_free(struct gpio_chip *chip, unsigned offset)
 
 }
 
-static int asm9260_gpio_set_mode(struct asm9260_gpio *asm9260_gpio, u8 offset,
+static int asm9260_gpio_set_mode(struct asm9260_gpio_priv *asm9260_gpio, u8 offset,
 				u8 val)
 {
 	printk("%s:%i\n", __func__, __LINE__);
@@ -100,14 +102,14 @@ static int asm9260_gpio_direction_input(struct gpio_chip *chip, unsigned offset)
 	return 0;
 }
 
-static int asm9260_get_gpio_in_status(struct asm9260_gpio *asm9260_gpio,
+static int asm9260_get_gpio_in_status(struct asm9260_gpio_priv *asm9260_gpio,
 				     struct gpio_chip *chip, unsigned offset)
 {
 	printk("%s:%i\n", __func__, __LINE__);
 	return 0;
 }
 
-static int asm9260_get_gpio_out_status(struct asm9260_gpio *asm9260_gpio,
+static int asm9260_get_gpio_out_status(struct asm9260_gpio_priv *asm9260_gpio,
 				      struct gpio_chip *chip, unsigned offset)
 {
 	printk("%s:%i\n", __func__, __LINE__);
@@ -147,26 +149,50 @@ static const struct gpio_chip asm9260_gpio_chip = {
 
 static int asm9260_gpio_probe(struct platform_device *pdev)
 {
-	struct asm9260_gpio *asm9260_gpio;
+	struct asm9260_gpio_priv *priv;
+	struct resource	*res;
 
-	asm9260_gpio = devm_kzalloc(&pdev->dev, sizeof(*asm9260_gpio),
+	priv = devm_kzalloc(&pdev->dev, sizeof(*priv),
 				GFP_KERNEL);
-	if (!asm9260_gpio)
+	if (!priv)
 		return -ENOMEM;
 
-	asm9260_gpio->chip = asm9260_gpio_chip;
-	asm9260_gpio->chip.dev = &pdev->dev;
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	priv->iobase = devm_ioremap_resource(&pdev->dev, res);
+	if (IS_ERR(priv->regs))
+		return PTR_ERR(priv->regs);
 
-	platform_set_drvdata(pdev, asm9260_gpio);
+	priv->clk = devm_clk_get(&pdev->dev, "ahb");
+	ret = clk_prepare_enable(priv->clk);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to enable clk!\n");
+		return ret;
+	}
 
-	return gpiochip_add(&asm9260_gpio->chip);
+	priv->chip = asm9260_gpio_chip;
+	priv->chip.dev = &pdev->dev;
+
+	platform_set_drvdata(pdev, priv);
+
+	ret = gpiochip_add(&priv->chip);
+	if (ret) {
+		dev_err(&pdev->dev, "Failed to registr gpiochip!\n");
+		goto err_return;
+	}
+
+	return ret;
+
+err_return:
+	clk_disable_unprepare(priv->clk);
+	return ret;
 }
 
 static int asm9260_gpio_remove(struct platform_device *pdev)
 {
-	struct asm9260_gpio *asm9260_gpio = platform_get_drvdata(pdev);
+	struct asm9260_gpio_priv *priv = platform_get_drvdata(pdev);
 
-	gpiochip_remove(&asm9260_gpio->chip);
+	gpiochip_remove(&priv->chip);
+	clk_disable_unprepare(priv->clk);
 	return 0;
 }
 

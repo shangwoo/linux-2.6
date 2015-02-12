@@ -182,4 +182,4 @@ module_platform_driver(asm9260_gpio_driver);
 
 MODULE_DESCRIPTION("ASM9260 GPIO driver");
 MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

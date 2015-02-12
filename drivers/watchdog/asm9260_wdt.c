@@ -267,4 +267,4 @@ static struct platform_driver asm9260_wdt_driver = {
 module_platform_driver(asm9260_wdt_driver);
 
 MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

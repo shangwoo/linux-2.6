@@ -181,6 +181,5 @@ static struct platform_driver asm9260_gpio_driver = {
 module_platform_driver(asm9260_gpio_driver);
 
 MODULE_DESCRIPTION("ASM9260 GPIO driver");
-MODULE_ALIAS("platform:asm9260-gpio");
 MODULE_AUTHOR("Oleksij Rempel <linux@rempel-privat.de>");
 MODULE_LICENSE("GPL v2");
